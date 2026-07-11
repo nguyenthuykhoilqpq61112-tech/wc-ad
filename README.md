@@ -14,6 +14,7 @@ Main sportsbook app:
 
 ```bash
 ADMIN_USERNAME=admin
+ADMIN_PASSWORD=use-a-long-private-password
 ADMIN_ALLOWED_ORIGINS=https://your-admin-domain.example
 ```
 
