@@ -8,6 +8,7 @@ Admin app:
 
 ```bash
 VITE_API_BASE_URL=https://2026wc.zeabur.app
+VITE_EXCHANGE_WITHDRAW_PASSWORD=your-private-withdraw-password
 ```
 
 Main sportsbook app:

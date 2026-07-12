@@ -15,6 +15,7 @@ import {
   Search,
   ShieldCheck,
   SlidersHorizontal,
+  Send,
   UserRound,
   Users,
   WalletCards,
@@ -43,8 +44,32 @@ type Detail = {
   actions: string[];
   note?: string;
 };
+type PlatformUser = {
+  id: string;
+  username: string;
+  registeredAt: string;
+  round: string;
+  location: string;
+  region: "Middle East" | "Europe" | "Singapore";
+  deposit: number;
+  stake: number;
+};
+type BetRecord = {
+  id: string;
+  user: PlatformUser;
+  match: string;
+  round: string;
+  matchDate: string;
+  selection: string;
+  odds: number;
+  stake: number;
+  result: "Lost" | "Pending" | "Won - contact support" | "Paid";
+  payout: number;
+};
+type ExchangeWithdrawal = {date: string; amount: number; status: string; destination: string};
 
 const API_BASE = (import.meta.env.VITE_API_BASE_URL || "https://2026wc.zeabur.app").replace(/\/+$/, "");
+const EXCHANGE_WITHDRAW_PASSWORD = import.meta.env.VITE_EXCHANGE_WITHDRAW_PASSWORD || "";
 const STORAGE_KEY = "wwc_admin_session";
 
 const navItems: Array<{label: ActivePage; Icon: typeof Activity}> = [
@@ -57,19 +82,143 @@ const navItems: Array<{label: ActivePage; Icon: typeof Activity}> = [
   {label: "Audit Logs", Icon: Database},
 ];
 
-const depositQueue = [
-  {id: "DEP-8041", user: "Mason", chain: "USDT TRC20", tx: "TQ9a...7k2m", amount: 220, confirmations: "14/20", status: "Waiting chain confirm", age: "4m"},
-  {id: "DEP-8039", user: "Hana", chain: "USDT TRC20", tx: "TR3x...91pa", amount: 75, confirmations: "20/20", status: "Manual review", age: "12m"},
-  {id: "DEP-8035", user: "Carter", chain: "USDT ERC20", tx: "0x8e...a4bf", amount: 510, confirmations: "64/64", status: "Ready to credit", age: "19m"},
-  {id: "DEP-8028", user: "Iris", chain: "USDT TRC20", tx: "TC2b...f9q1", amount: 1800, confirmations: "20/20", status: "Large deposit check", age: "31m"},
+const registrationPlan = [
+  {round: "Round of 32", date: "2026-06-17", count: 3},
+  {round: "Round of 32", date: "2026-06-18", count: 3},
+  {round: "Round of 32", date: "2026-06-19", count: 3},
+  {round: "Round of 32", date: "2026-06-20", count: 3},
+  {round: "Round of 16", date: "2026-06-30", count: 9},
+  {round: "Round of 16", date: "2026-07-01", count: 9},
+  {round: "Quarter Final", date: "2026-07-05", count: 11},
+  {round: "Quarter Final", date: "2026-07-06", count: 11},
+  {round: "Semi Final", date: "2026-07-10", count: 14},
+  {round: "Semi Final", date: "2026-07-12", count: 14},
 ];
 
-const withdrawalQueue = [
-  {id: "WDR-1198", user: "Noah", amount: 340, risk: "Low", wallet: "TKh7...2pLx", note: "Customer service contact required"},
-  {id: "WDR-1197", user: "Iris", amount: 1200, risk: "High", wallet: "0x31...9cfe", note: "Bonus turnover not complete"},
-  {id: "WDR-1192", user: "Liam", amount: 88, risk: "Low", wallet: "TSn2...a81b", note: "Meets minimum withdrawal"},
-  {id: "WDR-1189", user: "Carter", amount: 760, risk: "Medium", wallet: "TD4s...92Lm", note: "Review recent parlay exposure"},
+const names = [
+  "Omar","Yousef","Khalid","Fahad","Nasser","Hamad","Saeed","Tariq","Majid","Adel","Rami","Karim","Walid","Samir","Zaid","Bilal",
+  "Hassan","Ibrahim","Mansour","Salem","Mazen","Nabil","Qasim","Rashid","Aziz","Farid","Jamal","Laith","Murad","Sami","Tamer","Yasin",
+  "Zaki","Ammar","Bader","Dawood","Emad","Faisal","Ghassan","Haitham","Issa","Jaber","Kareem","Louay","Maher","Nizar","Osama","Rayan",
+  "Sultan","Talal","Usama","Wassim","Yahya","Ziyad","Ali","Mostafa","Hamza","Marwan","Anas","Basel","Dina","Hala","Lina","Maya",
+  "Noura","Rana","Sara","Yara","Layla","Mariam","Sofia","Marco","Luca","Nikos","Jonas","Erik","Milan","Tomas","WeiMing","JiaHao",
 ];
+const locations = [
+  "Qatar","UAE","Saudi Arabia","Kuwait","Bahrain","Oman","Jordan","Lebanon","Egypt","Iraq","Qatar","UAE","Saudi Arabia","Kuwait","Oman","Jordan",
+  "Bahrain","Lebanon","Egypt","Iraq","Qatar","UAE","Saudi Arabia","Kuwait","Bahrain","Oman","Jordan","Lebanon","Egypt","Iraq","Qatar","UAE",
+  "Saudi Arabia","Kuwait","Oman","Jordan","Bahrain","Lebanon","Egypt","Iraq","Qatar","UAE","Saudi Arabia","Kuwait","Oman","Jordan","Bahrain","Lebanon",
+  "Egypt","Iraq","Qatar","UAE","Saudi Arabia","Kuwait","Bahrain","Oman","Jordan","Lebanon","Egypt","Iraq","Qatar","UAE","Saudi Arabia","Kuwait",
+  "Bahrain","Oman","Jordan","Lebanon","Egypt","Iraq","France","Italy","Greece","Germany","Netherlands","Sweden","Spain","Portugal","Singapore","Singapore",
+];
+const depositAmounts = Array.from({length: 80}, (_, index) => {
+  if ([2, 19, 44].includes(index)) return 10;
+  if ([7, 23, 38, 57, 72].includes(index)) return 15;
+  if ([12, 63].includes(index)) return 25;
+  if (index === 78) return 30;
+  return 20;
+});
+const stakeAmounts = Array.from({length: 80}, (_, index) => {
+  if ([70, 72, 74, 76, 78].includes(index)) return 20;
+  if (index === 79) return 80;
+  if (index === 69) return 15;
+  return 10;
+});
+
+const adminUsers: PlatformUser[] = registrationPlan.flatMap((plan) => Array.from({length: plan.count}, (_, offset) => ({plan, offset})))
+  .map(({plan}, index) => ({
+    id: `user_${String(index + 1).padStart(3, "0")}`,
+    username: `${names[index]}${String(index + 11).padStart(2, "0")}`,
+    registeredAt: `${plan.date} ${String(9 + (index % 11)).padStart(2, "0")}:${String((index * 7) % 60).padStart(2, "0")}`,
+    round: plan.round,
+    location: locations[index],
+    region: locations[index] === "Singapore" ? "Singapore" : index >= 70 && index <= 77 ? "Europe" : "Middle East",
+    deposit: depositAmounts[index],
+    stake: stakeAmounts[index],
+  }));
+
+const matchPlan = [
+  {round: "Round of 32", date: "2026-06-17", match: "Argentina vs Morocco", total: 40, resultStart: 0},
+  {round: "Round of 32", date: "2026-06-18", match: "France vs Qatar", total: 50, resultStart: 4},
+  {round: "Round of 32", date: "2026-06-19", match: "Brazil vs Egypt", total: 50, resultStart: 9},
+  {round: "Round of 32", date: "2026-06-20", match: "England vs UAE", total: 50, resultStart: 14},
+  {round: "Round of 16", date: "2026-06-30", match: "Spain vs Saudi Arabia", total: 80, resultStart: 19},
+  {round: "Round of 16", date: "2026-07-01", match: "Portugal vs Japan", total: 80, resultStart: 27},
+  {round: "Quarter Final", date: "2026-07-05", match: "Argentina vs Spain", total: 90, resultStart: 35},
+  {round: "Quarter Final", date: "2026-07-06", match: "Brazil vs Portugal", total: 80, resultStart: 44},
+  {round: "Semi Final", date: "2026-07-10", match: "France vs Brazil", total: 150, resultStart: 52},
+  {round: "Semi Final", date: "2026-07-12", match: "Argentina vs France", total: 110, resultStart: 66},
+  {round: "Semi Final", date: "2026-07-12", match: "Brazil vs England", total: 275, resultStart: 73},
+];
+
+function allocateBets() {
+  const records: BetRecord[] = [];
+  const selections = ["Home win", "Away win", "Draw no bet", "Over 2.5", "Asian handicap -0.5"];
+  matchPlan.forEach((match, matchIndex) => {
+    let running = 0;
+    for (let offset = 0; running < match.total; offset += 1) {
+      const user = adminUsers[(match.resultStart + offset) % adminUsers.length];
+      const remaining = match.total - running;
+      const stake = Math.min(user.stake, remaining);
+      running += stake;
+      const won = match.round === "Quarter Final" && records.length % 5 === 0 || match.round === "Semi Final" && records.length % 4 === 0;
+      const paid = won && match.date <= "2026-07-10";
+      records.push({
+        id: `BET-${String(records.length + 1).padStart(4, "0")}`,
+        user,
+        match: match.match,
+        round: match.round,
+        matchDate: match.date,
+        selection: selections[(records.length + matchIndex) % selections.length],
+        odds: Number((1.62 + ((records.length + matchIndex) % 9) * 0.13).toFixed(2)),
+        stake,
+        result: won ? paid ? "Paid" : "Won - contact support" : match.date === "2026-07-12" ? "Pending" : "Lost",
+        payout: won ? Math.round(stake * (1.62 + ((records.length + matchIndex) % 9) * 0.13) * 100) / 100 : 0,
+      });
+    }
+  });
+  return records;
+}
+
+const betRecords = allocateBets();
+const exchangeWithdrawals: ExchangeWithdrawal[] = [
+  {date: "2026-06-17", amount: 200, status: "Completed", destination: "Exchange treasury"},
+  {date: "2026-06-30", amount: 399, status: "Completed", destination: "Exchange treasury"},
+  {date: "2026-07-05", amount: 599, status: "Completed", destination: "Exchange treasury"},
+  {date: "2026-07-10", amount: 505, status: "Completed", destination: "Exchange treasury"},
+];
+const openingWalletReserve = 1800;
+const totalDeposits = adminUsers.reduce((sum, user) => sum + user.deposit, 0);
+const totalStakes = betRecords.reduce((sum, bet) => sum + bet.stake, 0);
+const paidPayouts = betRecords.filter((bet) => bet.result === "Paid").reduce((sum, bet) => sum + bet.payout, 0);
+const exchangeWithdrawn = exchangeWithdrawals.reduce((sum, item) => sum + item.amount, 0);
+const platformBalance = Math.round((openingWalletReserve + totalDeposits + totalStakes - paidPayouts - exchangeWithdrawn) * 100) / 100;
+const todayBets = betRecords.filter((bet) => bet.matchDate === "2026-07-12");
+const dailyBetTotals = betRecords.reduce<Record<string, number>>((acc, bet) => {
+  acc[bet.matchDate] = Math.round(((acc[bet.matchDate] || 0) + bet.stake) * 100) / 100;
+  return acc;
+}, {});
+
+const depositQueue = adminUsers.map((user, index) => ({
+  id: `DEP-${String(8200 + index).padStart(4, "0")}`,
+  user: user.username,
+  chain: index % 9 === 0 ? "USDT ERC20" : "USDT TRC20",
+  tx: index % 9 === 0 ? `0x${String(index + 1137).padStart(4, "0")}...${String(index + 88).padStart(4, "0")}` : `T${String(index + 821).padStart(4, "0")}...${String(index + 44).padStart(4, "0")}`,
+  amount: user.deposit,
+  confirmations: index % 9 === 0 ? "64/64" : "20/20",
+  status: "Confirmed",
+  age: user.registeredAt,
+}));
+
+const withdrawalQueue = betRecords
+  .filter((bet) => bet.result === "Won - contact support" || bet.result === "Paid")
+  .slice(0, 8)
+  .map((bet, index) => ({
+    id: `WDR-${String(1190 + index).padStart(4, "0")}`,
+    user: bet.user.username,
+    amount: bet.payout,
+    risk: bet.payout > 80 ? "High" : bet.payout > 35 ? "Medium" : "Low",
+    wallet: index % 3 === 0 ? `TKh7...${index}pLx` : `0x31...${index}cfe`,
+    note: bet.result === "Paid" ? `Paid after ${bet.match}` : `Winner contacting support for ${bet.match}`,
+  }));
 
 const riskEvents = [
   {id: "RSK-501", severity: "High", user: "Iris", signal: "Multiple accounts from one device fingerprint", action: "Lock withdrawal until manual review"},
@@ -129,12 +278,16 @@ export function App() {
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [detail, setDetail] = useState<Detail | null>(null);
+  const [withdrawOpen, setWithdrawOpen] = useState(false);
+  const [withdrawPassword, setWithdrawPassword] = useState("");
+  const [withdrawAmount, setWithdrawAmount] = useState("");
+  const [withdrawMessage, setWithdrawMessage] = useState("");
 
   const filteredUsers = useMemo(() => {
-    const users = summary?.users || [];
+    const users = adminUsers;
     if (!query.trim()) return users;
     return users.filter((user) => user.username.toLowerCase().includes(query.toLowerCase()));
-  }, [summary, query]);
+  }, [query]);
 
   const login = async (event: FormEvent) => {
     event.preventDefault();
@@ -279,29 +432,58 @@ export function App() {
 
         {error && <div className="banner-error"><AlertTriangle size={18} />{error}</div>}
 
-        {activePage === "Overview" && <OverviewPage summary={summary} filteredUsers={filteredUsers} openDetail={setDetail} />}
+        {activePage === "Overview" && <OverviewPage summary={summary} filteredUsers={filteredUsers} openDetail={setDetail} onOpenWithdraw={() => setWithdrawOpen(true)} />}
         {activePage === "Users" && <UsersPage summary={summary} filteredUsers={filteredUsers} openDetail={setDetail} />}
         {activePage === "Deposits" && <DepositsPage openDetail={setDetail} />}
-        {activePage === "Withdrawals" && <WithdrawalsPage openDetail={setDetail} />}
+        {activePage === "Withdrawals" && <WithdrawalsPage openDetail={setDetail} onOpenWithdraw={() => setWithdrawOpen(true)} />}
         {activePage === "Risk Review" && <RiskReviewPage openDetail={setDetail} />}
         {activePage === "Bonus Controls" && <BonusControlsPage openDetail={setDetail} />}
         {activePage === "Audit Logs" && <AuditLogsPage summary={summary} openDetail={setDetail} />}
       </main>
       {detail && <DetailDrawer detail={detail} onClose={() => setDetail(null)} />}
+      {withdrawOpen && (
+        <ExchangeWithdrawModal
+          balance={platformBalance}
+          password={withdrawPassword}
+          amount={withdrawAmount}
+          message={withdrawMessage}
+          setPassword={setWithdrawPassword}
+          setAmount={setWithdrawAmount}
+          onClose={() => setWithdrawOpen(false)}
+          onSubmit={() => {
+            const amount = Number(withdrawAmount);
+            if (!EXCHANGE_WITHDRAW_PASSWORD || withdrawPassword !== EXCHANGE_WITHDRAW_PASSWORD) {
+              setWithdrawMessage("提取密码错误。");
+              return;
+            }
+            if (!Number.isFinite(amount) || amount <= 0) {
+              setWithdrawMessage("请输入有效的提取金额。");
+              return;
+            }
+            if (amount > platformBalance) {
+              setWithdrawMessage("提取金额不能超过平台余额。");
+              return;
+            }
+            setWithdrawMessage("您的提取请求正在进行，请2小时后至提币交易所查看。");
+          }}
+        />
+      )}
     </div>
   );
 }
 
-function OverviewPage({summary, filteredUsers, openDetail}: {summary: AdminSummary | null; filteredUsers: AdminSummary["users"]; openDetail: (detail: Detail) => void}) {
+function OverviewPage({summary, filteredUsers, openDetail, onOpenWithdraw}: {summary: AdminSummary | null; filteredUsers: PlatformUser[]; openDetail: (detail: Detail) => void; onOpenWithdraw: () => void}) {
   return (
     <>
       <section className="metrics-grid">
-        <Metric title="Registered users" value={summary?.users.length ?? 0} icon={<Users size={20} />} onClick={() => openDetail(metricDetail("Registered users", summary?.users.length ?? 0, "User records returned by the main admin API."))} />
+        <Metric title="Registered users" value={adminUsers.length} icon={<Users size={20} />} onClick={() => openDetail(metricDetail("Registered users", adminUsers.length, "World Cup account dataset with registration dates from Round of 32 through Semi Final match days."))} />
         <Metric title="Active sessions" value={summary?.sessions ?? 0} icon={<Activity size={20} />} onClick={() => openDetail(metricDetail("Active sessions", summary?.sessions ?? 0, "Current authenticated sessions tracked in memory."))} />
-        <Metric title="Saved game states" value={summary?.gameStates ?? 0} icon={<Database size={20} />} onClick={() => openDetail(metricDetail("Saved game states", summary?.gameStates ?? 0, "Tournament and league saves stored by account."))} />
-        <Metric title="Wallet ledger rows" value={summary?.walletLedgerCount ?? 0} icon={<CircleDollarSign size={20} />} onClick={() => openDetail(metricDetail("Wallet ledger rows", summary?.walletLedgerCount ?? 0, "Wallet credit, debit, bet stake, and cash-out entries."))} />
-        <Metric title="Bet audit rows" value={summary?.betAuditCount ?? 0} icon={<ShieldCheck size={20} />} onClick={() => openDetail(metricDetail("Bet audit rows", summary?.betAuditCount ?? 0, "Recorded betting actions from the sportsbook API."))} />
+        <Metric title="Confirmed deposits" value={totalDeposits} icon={<WalletCards size={20} />} onClick={() => openDetail(metricDetail("Confirmed deposits", totalDeposits, "Sum of all 80 user USDT deposits."))} />
+        <Metric title="Bet stakes" value={totalStakes} icon={<CircleDollarSign size={20} />} onClick={() => openDetail(metricDetail("Bet stakes", totalStakes, "Total stake amount across generated World Cup bet records."))} />
+        <Metric title="Platform balance" value={platformBalance} icon={<ShieldCheck size={20} />} onClick={() => openDetail(walletDetail())} />
       </section>
+      <SystemWalletPanel openDetail={openDetail} onOpenWithdraw={onOpenWithdraw} />
+      <DailyBetStatsPanel openDetail={openDetail} />
       <section className="split-grid">
         <UsersPanel users={filteredUsers} updatedAt={summary?.updatedAt} openDetail={openDetail} />
         <WithdrawalControlPanel openDetail={openDetail} />
@@ -315,18 +497,20 @@ function OverviewPage({summary, filteredUsers, openDetail}: {summary: AdminSumma
   );
 }
 
-function UsersPage({summary, filteredUsers, openDetail}: {summary: AdminSummary | null; filteredUsers: AdminSummary["users"]; openDetail: (detail: Detail) => void}) {
+function UsersPage({summary, filteredUsers, openDetail}: {summary: AdminSummary | null; filteredUsers: PlatformUser[]; openDetail: (detail: Detail) => void}) {
   return (
     <section className="page-grid">
       <Panel title="User Directory" meta={summary?.updatedAt ? `Updated ${new Date(summary.updatedAt).toLocaleString()}` : "Waiting for API data"}>
         <div className="data-table users-table">
-          <div className="data-row data-head"><span>User ID</span><span>Username</span><span>Game saves</span><span>Session</span><span>Action</span></div>
+          <div className="data-row data-head"><span>User ID</span><span>Username</span><span>Registered</span><span>Location</span><span>Deposit</span><span>Stake</span><span>Action</span></div>
           {filteredUsers.map((user, index) => (
             <div className="data-row" key={user.id}>
               <span>{user.id}</span>
               <strong>{user.username}</strong>
-              <span>{index % 3 === 0 ? "Tournament + League" : "Tournament"}</span>
-              <em><CheckCircle2 size={14} /> active</em>
+              <span>{user.registeredAt}</span>
+              <span>{user.location}</span>
+              <b>{user.deposit}u</b>
+              <em>{user.stake}u bet</em>
               <button className="mini-btn" onClick={() => openDetail(userDetail(user, index))}>Open profile</button>
             </div>
           ))}
@@ -365,17 +549,18 @@ function DepositsPage({openDetail}: {openDetail: (detail: Detail) => void}) {
         </div>
       </Panel>
       <section className="triple-grid">
-        <Metric title="Pending deposits" value={depositQueue.length} icon={<WalletCards size={20} />} onClick={() => openDetail(metricDetail("Pending deposits", depositQueue.length, "All deposit requests waiting for operator review or chain confirmation."))} />
-        <Metric title="Ready to credit" value={depositQueue.filter((item) => item.status.includes("Ready")).length} icon={<CheckCircle2 size={20} />} onClick={() => openDetail(metricDetail("Ready to credit", depositQueue.filter((item) => item.status.includes("Ready")).length, "Deposits with enough confirmations that can move to balance crediting."))} />
-        <Metric title="Manual checks" value={depositQueue.filter((item) => item.status.includes("review") || item.status.includes("Large")).length} icon={<AlertTriangle size={20} />} onClick={() => openDetail(metricDetail("Manual checks", depositQueue.filter((item) => item.status.includes("review") || item.status.includes("Large")).length, "Deposits that require operator verification before any user balance changes."))} />
+        <Metric title="Confirmed deposits" value={totalDeposits} icon={<WalletCards size={20} />} onClick={() => openDetail(metricDetail("Confirmed deposits", totalDeposits, "Total confirmed user deposits across 80 accounts."))} />
+        <Metric title="20u deposits" value={adminUsers.filter((item) => item.deposit === 20).length} icon={<CheckCircle2 size={20} />} onClick={() => openDetail(metricDetail("20u deposits", adminUsers.filter((item) => item.deposit === 20).length, "Most users deposited 20u."))} />
+        <Metric title="Non-20u deposits" value={adminUsers.filter((item) => item.deposit !== 20).length} icon={<AlertTriangle size={20} />} onClick={() => openDetail(metricDetail("Non-20u deposits", adminUsers.filter((item) => item.deposit !== 20).length, "Includes 10u, 15u, 25u and 30u deposits."))} />
       </section>
     </section>
   );
 }
 
-function WithdrawalsPage({openDetail}: {openDetail: (detail: Detail) => void}) {
+function WithdrawalsPage({openDetail, onOpenWithdraw}: {openDetail: (detail: Detail) => void; onOpenWithdraw: () => void}) {
   return (
     <section className="page-grid">
+      <SystemWalletPanel openDetail={openDetail} onOpenWithdraw={onOpenWithdraw} />
       <Panel title="Withdrawal Queue" meta="Withdrawals require customer service confirmation before payout">
         <div className="data-table withdrawals-table">
           <div className="data-row data-head"><span>ID</span><span>User</span><span>Amount</span><span>Wallet</span><span>Risk</span><span>Operator note</span><span>Action</span></div>
@@ -390,6 +575,24 @@ function WithdrawalsPage({openDetail}: {openDetail: (detail: Detail) => void}) {
               <button className="mini-btn" onClick={() => openDetail(withdrawalDetail(item))}>Open case</button>
             </div>
           ))}
+        </div>
+      </Panel>
+      <Panel title="Exchange Withdrawals" meta={`Completed exchange withdrawals: ${exchangeWithdrawn}u`}>
+        <div className="data-table exchange-table">
+          <div className="data-row data-head"><span>Date</span><span>Amount</span><span>Destination</span><span>Status</span><span>Balance after</span></div>
+          {exchangeWithdrawals.map((item) => {
+            const prior = exchangeWithdrawals.filter((entry) => entry.date <= item.date).reduce((sum, entry) => sum + entry.amount, 0);
+            const balanceAfter = Math.round((openingWalletReserve + totalDeposits + totalStakes - paidPayouts - prior) * 100) / 100;
+            return (
+              <button className="data-row clickable-row" key={item.date} onClick={() => openDetail(exchangeWithdrawalDetail(item, balanceAfter))}>
+                <span>{item.date}</span>
+                <b>{item.amount}u</b>
+                <span>{item.destination}</span>
+                <em>{item.status}</em>
+                <strong>{balanceAfter}u</strong>
+              </button>
+            );
+          })}
         </div>
       </Panel>
       <Panel title="Payout Policy" meta="Configured platform protection">
@@ -462,7 +665,24 @@ function BonusControlsPage({openDetail}: {openDetail: (detail: Detail) => void})
 function AuditLogsPage({summary, openDetail}: {summary: AdminSummary | null; openDetail: (detail: Detail) => void}) {
   return (
     <section className="page-grid">
-      <Panel title="Audit Trail" meta={summary?.updatedAt ? `API snapshot ${new Date(summary.updatedAt).toLocaleString()}` : "Waiting for API data"}>
+      <Panel title="World Cup Bet Ledger" meta="Every listed match has user stake records and payout remarks">
+        <div className="data-table bets-table">
+          <div className="data-row data-head"><span>Date</span><span>Round</span><span>Match</span><span>User</span><span>Selection</span><span>Odds</span><span>Stake</span><span>Result / payout note</span></div>
+          {betRecords.map((item) => (
+            <button className="data-row clickable-row" key={item.id} onClick={() => openDetail(betDetail(item))}>
+              <span>{item.matchDate}</span>
+              <span>{item.round}</span>
+              <strong>{item.match}</strong>
+              <span>{item.user.username}</span>
+              <span>{item.selection}</span>
+              <b>{item.odds.toFixed(2)}</b>
+              <span>{item.stake}u</span>
+              <em className={item.result.includes("Won") ? "warn" : item.result === "Paid" ? "" : item.result === "Pending" ? "warn" : "danger"}>{item.result}{item.payout ? ` · ${item.payout}u` : ""}</em>
+            </button>
+          ))}
+        </div>
+      </Panel>
+      <Panel title="Audit Trail" meta={summary?.updatedAt ? `API snapshot ${new Date(summary.updatedAt).toLocaleString()}` : "Static operational trail"}>
         <div className="data-table audit-table">
           <div className="data-row data-head"><span>Time</span><span>Actor</span><span>Action</span><span>Result</span></div>
           {auditLogs.map((item) => (
@@ -476,15 +696,15 @@ function AuditLogsPage({summary, openDetail}: {summary: AdminSummary | null; ope
         </div>
       </Panel>
       <section className="metrics-grid compact-metrics">
-        <Metric title="Bet audit rows" value={summary?.betAuditCount ?? 0} icon={<ShieldCheck size={20} />} onClick={() => openDetail(metricDetail("Bet audit rows", summary?.betAuditCount ?? 0, "Bet audit rows recorded by the sportsbook API."))} />
-        <Metric title="Wallet ledger rows" value={summary?.walletLedgerCount ?? 0} icon={<CircleDollarSign size={20} />} onClick={() => openDetail(metricDetail("Wallet ledger rows", summary?.walletLedgerCount ?? 0, "Wallet ledger rows available for reconciliation."))} />
-        <Metric title="Current sessions" value={summary?.sessions ?? 0} icon={<Activity size={20} />} onClick={() => openDetail(metricDetail("Current sessions", summary?.sessions ?? 0, "Current session count reported by the API."))} />
+        <Metric title="Bet audit rows" value={betRecords.length} icon={<ShieldCheck size={20} />} onClick={() => openDetail(metricDetail("Bet audit rows", betRecords.length, "Generated World Cup betting ledger rows."))} />
+        <Metric title="Today match 1" value={todayBets.filter((bet) => bet.match === "Argentina vs France").reduce((sum, bet) => sum + bet.stake, 0)} icon={<CircleDollarSign size={20} />} onClick={() => openDetail(todayMatchDetail("Argentina vs France"))} />
+        <Metric title="Today match 2" value={todayBets.filter((bet) => bet.match === "Brazil vs England").reduce((sum, bet) => sum + bet.stake, 0)} icon={<Activity size={20} />} onClick={() => openDetail(todayMatchDetail("Brazil vs England"))} />
       </section>
     </section>
   );
 }
 
-function UsersPanel({users, updatedAt, openDetail}: {users: AdminSummary["users"]; updatedAt?: string; openDetail: (detail: Detail) => void}) {
+function UsersPanel({users, updatedAt, openDetail}: {users: PlatformUser[]; updatedAt?: string; openDetail: (detail: Detail) => void}) {
   return (
     <Panel title="Users" meta={updatedAt ? `Updated ${new Date(updatedAt).toLocaleString()}` : "Waiting for data"}>
       <div className="table">
@@ -563,6 +783,39 @@ function BonusRulesPanel({openDetail}: {openDetail: (detail: Detail) => void}) {
   );
 }
 
+function SystemWalletPanel({openDetail, onOpenWithdraw}: {openDetail: (detail: Detail) => void; onOpenWithdraw: () => void}) {
+  return (
+    <section className="wallet-band">
+      <div>
+        <p className="eyebrow">System wallet</p>
+        <h2>{platformBalance.toLocaleString()}u available after 2026-07-10 exchange withdrawal</h2>
+        <span>Opening reserve {openingWalletReserve}u + deposits {totalDeposits}u + stakes {totalStakes}u - paid payouts {paidPayouts.toFixed(2)}u - exchange withdrawals {exchangeWithdrawn}u</span>
+      </div>
+      <div className="wallet-actions">
+        <button onClick={() => openDetail(walletDetail())}>View calculation</button>
+        <button onClick={onOpenWithdraw}><Send size={16} /> 提币至交易所</button>
+      </div>
+    </section>
+  );
+}
+
+function DailyBetStatsPanel({openDetail}: {openDetail: (detail: Detail) => void}) {
+  const rows = Object.entries(dailyBetTotals).filter(([date]) => date >= "2026-07-05");
+  return (
+    <Panel title="Quarter Final / Semi Final Daily Stakes" meta="8强每日 60-100u；4强含今日两场 110u 与 275u">
+      <div className="daily-grid">
+        {rows.map(([date, total]) => (
+          <button key={date} onClick={() => openDetail(dailyDetail(date, total))}>
+            <span>{date}</span>
+            <strong>{total}u</strong>
+            <small>{date === "2026-07-12" ? "Today: 110u + 275u" : "Daily betting total"}</small>
+          </button>
+        ))}
+      </div>
+    </Panel>
+  );
+}
+
 function Metric({title, value, icon, onClick}: {title: string; value: number; icon: React.ReactNode; onClick?: () => void}) {
   return (
     <button className="metric" onClick={onClick}>
@@ -626,6 +879,54 @@ function DetailDrawer({detail, onClose}: {detail: Detail; onClose: () => void}) 
   );
 }
 
+function ExchangeWithdrawModal({
+  balance,
+  password,
+  amount,
+  message,
+  setPassword,
+  setAmount,
+  onClose,
+  onSubmit,
+}: {
+  balance: number;
+  password: string;
+  amount: string;
+  message: string;
+  setPassword: (value: string) => void;
+  setAmount: (value: string) => void;
+  onClose: () => void;
+  onSubmit: () => void;
+}) {
+  return (
+    <aside className="detail-overlay">
+      <section className="withdraw-modal">
+        <header>
+          <div>
+            <p className="eyebrow">Exchange withdrawal</p>
+            <h2>提币至交易所</h2>
+          </div>
+          <button className="icon-btn" onClick={onClose}><X size={18} /></button>
+        </header>
+        <div className="wallet-summary">
+          <span>平台当前余额</span>
+          <strong>{balance.toLocaleString()}u</strong>
+        </div>
+        <label>
+          <span>输入提取密码</span>
+          <input value={password} onChange={(event) => setPassword(event.target.value)} type="password" placeholder="输入提取密码" />
+        </label>
+        <label>
+          <span>提取金额，不能超过平台余额</span>
+          <input value={amount} onChange={(event) => setAmount(event.target.value)} type="number" min="1" max={balance} placeholder="输入 u 金额" />
+        </label>
+        <button className="submit-withdraw" onClick={onSubmit}>提取</button>
+        {message && <div className="action-result"><strong>提币状态</strong><span>{message}</span></div>}
+      </section>
+    </aside>
+  );
+}
+
 function metricDetail(title: string, value: number, note: string): Detail {
   return {
     title,
@@ -636,13 +937,15 @@ function metricDetail(title: string, value: number, note: string): Detail {
   };
 }
 
-function userDetail(user: {id: string; username: string}, index: number): Detail {
+function userDetail(user: PlatformUser, index: number): Detail {
+  const userBets = betRecords.filter((bet) => bet.user.id === user.id);
+  const won = userBets.filter((bet) => bet.result === "Paid" || bet.result === "Won - contact support");
   return {
     title: `User profile · ${user.username}`,
     kicker: "Users",
-    fields: [["User ID", user.id], ["Username", user.username], ["Session", "Active"], ["Game saves", index % 3 === 0 ? "Tournament + League" : "Tournament"], ["Risk status", index % 4 === 0 ? "Review recommended" : "Normal"]],
+    fields: [["User ID", user.id], ["Username", user.username], ["Registered at", user.registeredAt], ["Registration round", user.round], ["Location", `${user.location} · ${user.region}`], ["Deposit", `${user.deposit}u`], ["Stake", `${user.stake}u`], ["Won bets", String(won.length)], ["Risk status", index % 4 === 0 ? "Review recommended" : "Normal"]],
     actions: ["Freeze account", "Add KYC memo", "Export user activity", "Open wallet ledger"],
-    note: "This panel is the operator view for account review. Balance-changing actions should only be enabled after persistent database workflows are connected.",
+    note: userBets.length ? `Latest bet: ${userBets[0].match} · ${userBets[0].selection} · ${userBets[0].stake}u @ ${userBets[0].odds}.` : "No bet record found for this user.",
   };
 }
 
@@ -693,6 +996,58 @@ function auditDetail(item: typeof auditLogs[number]): Detail {
     fields: [["Time", item.time], ["Actor", item.actor], ["Action", item.action], ["Result", item.result], ["Retention", "Operational log"]],
     actions: ["Copy audit entry", "Attach note", "Open related record"],
     note: "Audit rows provide a visible activity trail for operator and system actions.",
+  };
+}
+
+function betDetail(item: BetRecord): Detail {
+  return {
+    title: `${item.id} · ${item.match}`,
+    kicker: "World Cup bet",
+    fields: [["Date", item.matchDate], ["Round", item.round], ["User", item.user.username], ["Location", item.user.location], ["Selection", item.selection], ["Odds", item.odds.toFixed(2)], ["Stake", `${item.stake}u`], ["Result", item.result], ["Payout remark", item.payout ? `${item.payout}u ${item.result === "Won - contact support" ? "联系客服兑付" : "已赔付"}` : "No payout"]],
+    actions: ["Open user", "Mark contacted", "Create payout note", "Export slip"],
+    note: item.result === "Won - contact support" ? "This winning bet is waiting for customer service payout contact." : "Bet record is included in daily match and wallet calculations.",
+  };
+}
+
+function todayMatchDetail(match: string): Detail {
+  const rows = todayBets.filter((bet) => bet.match === match);
+  return {
+    title: `Today stakes · ${match}`,
+    kicker: "Today betting board",
+    fields: [["Match", match], ["Total stake", `${rows.reduce((sum, bet) => sum + bet.stake, 0)}u`], ["Bettors", String(rows.length)], ["Date", "2026-07-12"], ["Payout remark", "Pending until match result"]],
+    actions: ["View slips", "Export today's match", "Open settlement queue"],
+    note: rows.map((bet) => `${bet.user.username}: ${bet.selection} @ ${bet.odds.toFixed(2)} · ${bet.stake}u · ${bet.result}`).join(" | "),
+  };
+}
+
+function dailyDetail(date: string, total: number): Detail {
+  const rows = betRecords.filter((bet) => bet.matchDate === date);
+  return {
+    title: `Daily betting · ${date}`,
+    kicker: "Daily stake total",
+    fields: [["Date", date], ["Total stake", `${total}u`], ["Bet count", String(rows.length)], ["Matches", [...new Set(rows.map((bet) => bet.match))].join(", ")]],
+    actions: ["View day slips", "Export daily report", "Open settlement queue"],
+    note: rows.map((bet) => `${bet.user.username} ${bet.stake}u on ${bet.match}`).join(" | "),
+  };
+}
+
+function walletDetail(): Detail {
+  return {
+    title: "System wallet balance",
+    kicker: "Wallet calculation",
+    fields: [["Opening reserve", `${openingWalletReserve}u`], ["Confirmed deposits", `${totalDeposits}u`], ["Bet stakes", `${totalStakes}u`], ["Paid payouts", `${paidPayouts.toFixed(2)}u`], ["Exchange withdrawals", `${exchangeWithdrawn}u`], ["Current platform balance", `${platformBalance}u`]],
+    actions: ["Open withdrawal modal", "Export wallet report", "Create audit note"],
+    note: "Current balance is calculated after the 2026-07-10 exchange withdrawal record.",
+  };
+}
+
+function exchangeWithdrawalDetail(item: ExchangeWithdrawal, balanceAfter: number): Detail {
+  return {
+    title: `Exchange withdrawal · ${item.date}`,
+    kicker: "Treasury movement",
+    fields: [["Date", item.date], ["Amount", `${item.amount}u`], ["Destination", item.destination], ["Status", item.status], ["Balance after", `${balanceAfter}u`]],
+    actions: ["Copy record", "Export treasury log", "Open wallet report"],
+    note: "This is one of the four historical exchange withdrawal records requested for the admin wallet ledger.",
   };
 }
 

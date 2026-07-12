@@ -464,7 +464,7 @@ nav button:hover,
 }
 
 .users-table .data-row {
-  grid-template-columns: minmax(180px, 1.2fr) minmax(120px, 0.8fr) minmax(130px, 0.9fr) 100px 120px;
+  grid-template-columns: 96px 120px 150px 130px 80px 80px 120px;
 }
 
 .deposits-table .data-row {
@@ -485,6 +485,14 @@ nav button:hover,
 
 .audit-table .data-row {
   grid-template-columns: 160px 110px minmax(260px, 1fr) 100px;
+}
+
+.exchange-table .data-row {
+  grid-template-columns: 130px 100px minmax(170px, 1fr) 110px 130px;
+}
+
+.bets-table .data-row {
+  grid-template-columns: 120px 110px minmax(180px, 1fr) 120px 150px 70px 70px minmax(180px, 1fr);
 }
 
 .data-head {
@@ -552,6 +560,87 @@ nav button:hover,
   min-height: 74px;
   padding: 12px;
   text-align: left;
+}
+
+.wallet-band {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  margin-bottom: 16px;
+  border: 1px solid rgba(45, 212, 191, 0.2);
+  background: linear-gradient(135deg, rgba(20, 184, 166, 0.13), rgba(15, 23, 42, 0.74));
+  padding: 18px;
+}
+
+.wallet-band h2 {
+  margin: 0 0 6px;
+  font-size: 24px;
+}
+
+.wallet-band span {
+  color: #94a3b8;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.wallet-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 9px;
+}
+
+.wallet-actions button,
+.submit-withdraw {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 42px;
+  border: 1px solid rgba(45, 212, 191, 0.28);
+  background: rgba(20, 184, 166, 0.14);
+  color: #d5fff8;
+  padding: 0 14px;
+  font-size: 12px;
+  font-weight: 850;
+}
+
+.wallet-actions button:hover,
+.submit-withdraw:hover {
+  border-color: rgba(45, 212, 191, 0.58);
+  background: rgba(20, 184, 166, 0.24);
+}
+
+.daily-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.daily-grid button {
+  border: 1px solid rgba(148, 163, 184, 0.1);
+  background: rgba(15, 23, 42, 0.48);
+  color: inherit;
+  padding: 12px;
+  text-align: left;
+}
+
+.daily-grid button:hover {
+  border-color: rgba(45, 212, 191, 0.34);
+  background: rgba(20, 184, 166, 0.1);
+}
+
+.daily-grid span,
+.daily-grid small {
+  display: block;
+  color: #94a3b8;
+  font-size: 12px;
+}
+
+.daily-grid strong {
+  display: block;
+  margin: 6px 0;
+  font-size: 24px;
 }
 
 .queue,
@@ -669,6 +758,68 @@ nav button:hover,
   padding: 22px;
 }
 
+.withdraw-modal {
+  width: min(100%, 420px);
+  height: fit-content;
+  max-height: calc(100vh - 48px);
+  overflow-y: auto;
+  margin: 24px;
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  background: rgba(7, 10, 16, 0.98);
+  box-shadow: 0 28px 70px rgba(0, 0, 0, 0.42);
+  padding: 22px;
+}
+
+.withdraw-modal header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.withdraw-modal h2 {
+  margin: 0;
+  font-size: 28px;
+}
+
+.wallet-summary {
+  border: 1px solid rgba(45, 212, 191, 0.2);
+  background: rgba(20, 184, 166, 0.1);
+  padding: 14px;
+  margin-bottom: 14px;
+}
+
+.wallet-summary span,
+.withdraw-modal label span {
+  display: block;
+  color: #94a3b8;
+  font-size: 12px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.wallet-summary strong {
+  display: block;
+  margin-top: 6px;
+  font-size: 30px;
+}
+
+.withdraw-modal label {
+  display: block;
+  margin-bottom: 12px;
+}
+
+.withdraw-modal input {
+  width: 100%;
+  margin-top: 7px;
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  background: rgba(2, 6, 23, 0.72);
+  color: #fff;
+  outline: none;
+  padding: 12px;
+}
+
 .detail-drawer > header {
   display: flex;
   align-items: flex-start;
@@ -777,8 +928,14 @@ nav button:hover,
   .metrics-grid,
   .triple-grid,
   .compact-metrics,
+  .daily-grid,
   .control-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .wallet-band {
+    align-items: flex-start;
+    flex-direction: column;
   }
 }
 
@@ -801,6 +958,7 @@ nav button:hover,
   .split-grid,
   .triple-grid,
   .compact-metrics,
+  .daily-grid,
   .control-grid {
     grid-template-columns: 1fr;
   }
