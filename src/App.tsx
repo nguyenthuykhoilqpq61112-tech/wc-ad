@@ -185,7 +185,7 @@ const exchangeWithdrawals: ExchangeWithdrawal[] = [
   {date: "2026-07-05", amount: 599, status: "Completed", destination: "Exchange treasury"},
   {date: "2026-07-10", amount: 505, status: "Completed", destination: "Exchange treasury"},
 ];
-const openingWalletReserve = 1800;
+const openingWalletReserve = 0;
 const totalDeposits = adminUsers.reduce((sum, user) => sum + user.deposit, 0);
 const totalStakes = betRecords.reduce((sum, bet) => sum + bet.stake, 0);
 const paidPayouts = betRecords.filter((bet) => bet.result === "Paid").reduce((sum, bet) => sum + bet.payout, 0);
@@ -789,7 +789,7 @@ function SystemWalletPanel({openDetail, onOpenWithdraw}: {openDetail: (detail: D
       <div>
         <p className="eyebrow">System wallet</p>
         <h2>{platformBalance.toLocaleString()}u available after 2026-07-10 exchange withdrawal</h2>
-        <span>Opening reserve {openingWalletReserve}u + deposits {totalDeposits}u + stakes {totalStakes}u - paid payouts {paidPayouts.toFixed(2)}u - exchange withdrawals {exchangeWithdrawn}u</span>
+        <span>平台初始余额 {openingWalletReserve}u + deposits {totalDeposits}u + stakes {totalStakes}u - paid payouts {paidPayouts.toFixed(2)}u - exchange withdrawals {exchangeWithdrawn}u</span>
       </div>
       <div className="wallet-actions">
         <button onClick={() => openDetail(walletDetail())}>View calculation</button>
@@ -1035,7 +1035,7 @@ function walletDetail(): Detail {
   return {
     title: "System wallet balance",
     kicker: "Wallet calculation",
-    fields: [["Opening reserve", `${openingWalletReserve}u`], ["Confirmed deposits", `${totalDeposits}u`], ["Bet stakes", `${totalStakes}u`], ["Paid payouts", `${paidPayouts.toFixed(2)}u`], ["Exchange withdrawals", `${exchangeWithdrawn}u`], ["Current platform balance", `${platformBalance}u`]],
+    fields: [["平台初始余额", `${openingWalletReserve}u`], ["Confirmed deposits", `${totalDeposits}u`], ["Bet stakes", `${totalStakes}u`], ["Paid payouts", `${paidPayouts.toFixed(2)}u`], ["Exchange withdrawals", `${exchangeWithdrawn}u`], ["Current platform balance", `${platformBalance}u`]],
     actions: ["Open withdrawal modal", "Export wallet report", "Create audit note"],
     note: "Current balance is calculated after the 2026-07-10 exchange withdrawal record.",
   };
