@@ -144,7 +144,7 @@ const matchPlan = [
   {round: "Round of 16", date: "2026-07-01", match: "Portugal vs Japan", total: 80, resultStart: 27},
   {round: "Quarter Final", date: "2026-07-05", match: "Argentina vs Spain", total: 90, resultStart: 35},
   {round: "Quarter Final", date: "2026-07-06", match: "Brazil vs Portugal", total: 80, resultStart: 44},
-  {round: "Semi Final", date: "2026-07-10", match: "France vs Brazil", total: 150, resultStart: 52},
+  {round: "Semi Final", date: "2026-07-10", match: "France vs Brazil", total: 365, resultStart: 52},
   {round: "Semi Final", date: "2026-07-12", match: "Argentina vs France", total: 110, resultStart: 66},
   {round: "Semi Final", date: "2026-07-12", match: "Brazil vs England", total: 275, resultStart: 73},
 ];
@@ -153,11 +153,12 @@ function allocateBets() {
   const records: BetRecord[] = [];
   const selections = ["Home win", "Away win", "Draw no bet", "Over 2.5", "Asian handicap -0.5"];
   matchPlan.forEach((match, matchIndex) => {
+    const fixedStakes = match.date === "2026-07-10" ? [20, 20, 20, 20, 20, 80, 30, 30, 30, 30, 35, 50] : null;
     let running = 0;
-    for (let offset = 0; running < match.total; offset += 1) {
+    for (let offset = 0; running < match.total && (!fixedStakes || offset < fixedStakes.length); offset += 1) {
       const user = adminUsers[(match.resultStart + offset) % adminUsers.length];
       const remaining = match.total - running;
-      const stake = Math.min(user.stake, remaining);
+      const stake = Math.min(fixedStakes?.[offset] ?? user.stake, remaining);
       running += stake;
       const won = match.round === "Quarter Final" && records.length % 5 === 0 || match.round === "Semi Final" && records.length % 4 === 0;
       const paid = won && match.date <= "2026-07-10";
@@ -190,7 +191,9 @@ const totalDeposits = adminUsers.reduce((sum, user) => sum + user.deposit, 0);
 const totalStakes = betRecords.reduce((sum, bet) => sum + bet.stake, 0);
 const paidPayouts = betRecords.filter((bet) => bet.result === "Paid").reduce((sum, bet) => sum + bet.payout, 0);
 const exchangeWithdrawn = exchangeWithdrawals.reduce((sum, item) => sum + item.amount, 0);
-const platformBalance = Math.round((openingWalletReserve + totalDeposits + totalStakes - paidPayouts - exchangeWithdrawn) * 100) / 100;
+const targetPlatformBalance = 875;
+const walletReconciliationAdjustment = Math.round((targetPlatformBalance - (openingWalletReserve + totalDeposits + totalStakes - paidPayouts - exchangeWithdrawn)) * 100) / 100;
+const platformBalance = Math.round((openingWalletReserve + totalDeposits + totalStakes - paidPayouts - exchangeWithdrawn + walletReconciliationAdjustment) * 100) / 100;
 const todayBets = betRecords.filter((bet) => bet.matchDate === "2026-07-12");
 const dailyBetTotals = betRecords.reduce<Record<string, number>>((acc, bet) => {
   acc[bet.matchDate] = Math.round(((acc[bet.matchDate] || 0) + bet.stake) * 100) / 100;
@@ -582,7 +585,7 @@ function WithdrawalsPage({openDetail, onOpenWithdraw}: {openDetail: (detail: Det
           <div className="data-row data-head"><span>Date</span><span>Amount</span><span>Destination</span><span>Status</span><span>Balance after</span></div>
           {exchangeWithdrawals.map((item) => {
             const prior = exchangeWithdrawals.filter((entry) => entry.date <= item.date).reduce((sum, entry) => sum + entry.amount, 0);
-            const balanceAfter = Math.round((openingWalletReserve + totalDeposits + totalStakes - paidPayouts - prior) * 100) / 100;
+            const balanceAfter = Math.round((openingWalletReserve + totalDeposits + totalStakes - paidPayouts - prior + walletReconciliationAdjustment) * 100) / 100;
             return (
               <button className="data-row clickable-row" key={item.date} onClick={() => openDetail(exchangeWithdrawalDetail(item, balanceAfter))}>
                 <span>{item.date}</span>
@@ -789,7 +792,7 @@ function SystemWalletPanel({openDetail, onOpenWithdraw}: {openDetail: (detail: D
       <div>
         <p className="eyebrow">System wallet</p>
         <h2>{platformBalance.toLocaleString()}u available after 2026-07-10 exchange withdrawal</h2>
-        <span>平台初始余额 {openingWalletReserve}u + deposits {totalDeposits}u + stakes {totalStakes}u - paid payouts {paidPayouts.toFixed(2)}u - exchange withdrawals {exchangeWithdrawn}u</span>
+        <span>平台初始余额 {openingWalletReserve}u + deposits {totalDeposits}u + stakes {totalStakes}u - paid payouts {paidPayouts.toFixed(2)}u - exchange withdrawals {exchangeWithdrawn}u + reconciliation {walletReconciliationAdjustment.toFixed(2)}u</span>
       </div>
       <div className="wallet-actions">
         <button onClick={() => openDetail(walletDetail())}>View calculation</button>
@@ -1025,7 +1028,7 @@ function dailyDetail(date: string, total: number): Detail {
   return {
     title: `Daily betting · ${date}`,
     kicker: "Daily stake total",
-    fields: [["Date", date], ["Total stake", `${total}u`], ["Bet count", String(rows.length)], ["Matches", [...new Set(rows.map((bet) => bet.match))].join(", ")]],
+    fields: [["Date", date], ["Total stake", `${total}u`], ["Bet count", String(rows.length)], ["Unique bettors", String(new Set(rows.map((bet) => bet.user.id)).size)], ["Matches", [...new Set(rows.map((bet) => bet.match))].join(", ")]],
     actions: ["View day slips", "Export daily report", "Open settlement queue"],
     note: rows.map((bet) => `${bet.user.username} ${bet.stake}u on ${bet.match}`).join(" | "),
   };
@@ -1035,7 +1038,7 @@ function walletDetail(): Detail {
   return {
     title: "System wallet balance",
     kicker: "Wallet calculation",
-    fields: [["平台初始余额", `${openingWalletReserve}u`], ["Confirmed deposits", `${totalDeposits}u`], ["Bet stakes", `${totalStakes}u`], ["Paid payouts", `${paidPayouts.toFixed(2)}u`], ["Exchange withdrawals", `${exchangeWithdrawn}u`], ["Current platform balance", `${platformBalance}u`]],
+    fields: [["平台初始余额", `${openingWalletReserve}u`], ["Confirmed deposits", `${totalDeposits}u`], ["Bet stakes", `${totalStakes}u`], ["Paid payouts", `${paidPayouts.toFixed(2)}u`], ["Exchange withdrawals", `${exchangeWithdrawn}u`], ["Wallet reconciliation", `${walletReconciliationAdjustment.toFixed(2)}u`], ["Current platform balance", `${platformBalance}u`]],
     actions: ["Open withdrawal modal", "Export wallet report", "Create audit note"],
     note: "Current balance is calculated after the 2026-07-10 exchange withdrawal record.",
   };
