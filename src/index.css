@@ -357,6 +357,15 @@ nav button:hover,
   gap: 16px;
 }
 
+.page-grid {
+  display: grid;
+  gap: 16px;
+}
+
+.compact-metrics {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
 .panel {
   min-width: 0;
   padding: 18px;
@@ -416,6 +425,114 @@ nav button:hover,
   gap: 5px;
   color: #86efac;
   font-style: normal;
+}
+
+.data-table {
+  display: grid;
+  gap: 8px;
+  overflow-x: auto;
+}
+
+.data-row {
+  display: grid;
+  min-width: 860px;
+  gap: 12px;
+  align-items: center;
+  border: 1px solid rgba(148, 163, 184, 0.1);
+  background: rgba(15, 23, 42, 0.48);
+  padding: 12px;
+  font-size: 13px;
+}
+
+.users-table .data-row {
+  grid-template-columns: minmax(180px, 1.2fr) minmax(120px, 0.8fr) minmax(130px, 0.9fr) 100px 120px;
+}
+
+.deposits-table .data-row {
+  grid-template-columns: 92px 110px 90px 110px 120px 130px minmax(150px, 1fr) 96px;
+}
+
+.withdrawals-table .data-row {
+  grid-template-columns: 92px 110px 90px 130px 80px minmax(220px, 1fr) 110px;
+}
+
+.risk-table .data-row {
+  grid-template-columns: 92px 90px 110px minmax(230px, 1fr) minmax(220px, 1fr) 110px;
+}
+
+.bonus-table .data-row {
+  grid-template-columns: minmax(180px, 1fr) minmax(170px, 1fr) minmax(170px, 1fr) 90px 100px;
+}
+
+.audit-table .data-row {
+  grid-template-columns: 160px 110px minmax(260px, 1fr) 100px;
+}
+
+.data-head {
+  background: transparent;
+  color: #64748b;
+  font-size: 11px;
+  font-weight: 850;
+  text-transform: uppercase;
+}
+
+.data-row span {
+  min-width: 0;
+  overflow: hidden;
+  color: #cbd5e1;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.data-row b,
+.data-row strong {
+  color: #f8fafc;
+}
+
+.data-row em {
+  color: #86efac;
+  font-style: normal;
+  font-weight: 800;
+}
+
+.data-row em.warn {
+  color: #fde68a;
+}
+
+.data-row em.danger {
+  color: #fca5a5;
+}
+
+.mini-btn,
+.control-grid button {
+  border: 1px solid rgba(45, 212, 191, 0.26);
+  background: rgba(20, 184, 166, 0.11);
+  color: #d5fff8;
+  font-size: 12px;
+  font-weight: 850;
+}
+
+.mini-btn {
+  min-height: 34px;
+  padding: 0 10px;
+}
+
+.mini-btn:hover,
+.control-grid button:hover {
+  border-color: rgba(45, 212, 191, 0.58);
+  background: rgba(20, 184, 166, 0.2);
+}
+
+.control-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.control-grid button {
+  min-height: 74px;
+  padding: 12px;
+  text-align: left;
 }
 
 .queue,
@@ -522,7 +639,9 @@ nav button:hover,
   }
 
   .metrics-grid,
-  .triple-grid {
+  .triple-grid,
+  .compact-metrics,
+  .control-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
@@ -544,11 +663,17 @@ nav button:hover,
 
   .metrics-grid,
   .split-grid,
-  .triple-grid {
+  .triple-grid,
+  .compact-metrics,
+  .control-grid {
     grid-template-columns: 1fr;
   }
 
   .table-row {
     grid-template-columns: 1fr;
+  }
+
+  .data-row {
+    min-width: 720px;
   }
 }
