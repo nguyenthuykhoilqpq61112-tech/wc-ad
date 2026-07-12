@@ -1,4 +1,4 @@
-# win-worldcup Admin Back Office
+# wc-ad
 
 Standalone private admin console for the win-worldcup sportsbook.
 
