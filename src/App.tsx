@@ -18,6 +18,7 @@ import {
   UserRound,
   Users,
   WalletCards,
+  X,
 } from "lucide-react";
 
 type AuthSession = {
@@ -35,6 +36,13 @@ type AdminSummary = {
 };
 
 type ActivePage = "Overview" | "Users" | "Deposits" | "Withdrawals" | "Risk Review" | "Bonus Controls" | "Audit Logs";
+type Detail = {
+  title: string;
+  kicker: string;
+  fields: Array<[string, string]>;
+  actions: string[];
+  note?: string;
+};
 
 const API_BASE = (import.meta.env.VITE_API_BASE_URL || "https://2026wc.zeabur.app").replace(/\/+$/, "");
 const STORAGE_KEY = "wwc_admin_session";
@@ -120,6 +128,7 @@ export function App() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  const [detail, setDetail] = useState<Detail | null>(null);
 
   const filteredUsers = useMemo(() => {
     const users = summary?.users || [];
@@ -239,55 +248,74 @@ export function App() {
               <Search size={16} />
               <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search users" />
             </label>
-            <button className="icon-btn" onClick={loadSummary} disabled={refreshing} title="Refresh">
+            <button className="icon-btn" onClick={() => {
+              loadSummary();
+              setDetail({
+                title: "Refresh requested",
+                kicker: "Live API",
+                fields: [["Endpoint", "/api/admin/summary"], ["Requested by", session.user.username]],
+                actions: ["Reload summary metrics", "Refresh user directory", "Update audit counters"],
+                note: "The dashboard requests the latest admin summary from the main sportsbook API.",
+              });
+            }} disabled={refreshing} title="Refresh">
               <RefreshCcw size={17} className={refreshing ? "spin" : ""} />
             </button>
-            <button className="account" onClick={logout}>
+            <button className="account" onClick={() => setDetail({
+              title: "Admin session",
+              kicker: "Authenticated operator",
+              fields: [["Username", session.user.username], ["API host", API_BASE], ["Stored session", "Local browser storage"]],
+              actions: ["Review active session", "Logout from this browser", "Rotate admin password in Zeabur"],
+              note: "Use the logout action only when leaving the operations workstation.",
+            })}>
               <UserRound size={17} />
               {session.user.username}
-              <LogOut size={16} />
+              <LogOut size={16} onClick={(event) => {
+                event.stopPropagation();
+                logout();
+              }} />
             </button>
           </div>
         </header>
 
         {error && <div className="banner-error"><AlertTriangle size={18} />{error}</div>}
 
-        {activePage === "Overview" && <OverviewPage summary={summary} filteredUsers={filteredUsers} />}
-        {activePage === "Users" && <UsersPage summary={summary} filteredUsers={filteredUsers} />}
-        {activePage === "Deposits" && <DepositsPage />}
-        {activePage === "Withdrawals" && <WithdrawalsPage />}
-        {activePage === "Risk Review" && <RiskReviewPage />}
-        {activePage === "Bonus Controls" && <BonusControlsPage />}
-        {activePage === "Audit Logs" && <AuditLogsPage summary={summary} />}
+        {activePage === "Overview" && <OverviewPage summary={summary} filteredUsers={filteredUsers} openDetail={setDetail} />}
+        {activePage === "Users" && <UsersPage summary={summary} filteredUsers={filteredUsers} openDetail={setDetail} />}
+        {activePage === "Deposits" && <DepositsPage openDetail={setDetail} />}
+        {activePage === "Withdrawals" && <WithdrawalsPage openDetail={setDetail} />}
+        {activePage === "Risk Review" && <RiskReviewPage openDetail={setDetail} />}
+        {activePage === "Bonus Controls" && <BonusControlsPage openDetail={setDetail} />}
+        {activePage === "Audit Logs" && <AuditLogsPage summary={summary} openDetail={setDetail} />}
       </main>
+      {detail && <DetailDrawer detail={detail} onClose={() => setDetail(null)} />}
     </div>
   );
 }
 
-function OverviewPage({summary, filteredUsers}: {summary: AdminSummary | null; filteredUsers: AdminSummary["users"]}) {
+function OverviewPage({summary, filteredUsers, openDetail}: {summary: AdminSummary | null; filteredUsers: AdminSummary["users"]; openDetail: (detail: Detail) => void}) {
   return (
     <>
       <section className="metrics-grid">
-        <Metric title="Registered users" value={summary?.users.length ?? 0} icon={<Users size={20} />} />
-        <Metric title="Active sessions" value={summary?.sessions ?? 0} icon={<Activity size={20} />} />
-        <Metric title="Saved game states" value={summary?.gameStates ?? 0} icon={<Database size={20} />} />
-        <Metric title="Wallet ledger rows" value={summary?.walletLedgerCount ?? 0} icon={<CircleDollarSign size={20} />} />
-        <Metric title="Bet audit rows" value={summary?.betAuditCount ?? 0} icon={<ShieldCheck size={20} />} />
+        <Metric title="Registered users" value={summary?.users.length ?? 0} icon={<Users size={20} />} onClick={() => openDetail(metricDetail("Registered users", summary?.users.length ?? 0, "User records returned by the main admin API."))} />
+        <Metric title="Active sessions" value={summary?.sessions ?? 0} icon={<Activity size={20} />} onClick={() => openDetail(metricDetail("Active sessions", summary?.sessions ?? 0, "Current authenticated sessions tracked in memory."))} />
+        <Metric title="Saved game states" value={summary?.gameStates ?? 0} icon={<Database size={20} />} onClick={() => openDetail(metricDetail("Saved game states", summary?.gameStates ?? 0, "Tournament and league saves stored by account."))} />
+        <Metric title="Wallet ledger rows" value={summary?.walletLedgerCount ?? 0} icon={<CircleDollarSign size={20} />} onClick={() => openDetail(metricDetail("Wallet ledger rows", summary?.walletLedgerCount ?? 0, "Wallet credit, debit, bet stake, and cash-out entries."))} />
+        <Metric title="Bet audit rows" value={summary?.betAuditCount ?? 0} icon={<ShieldCheck size={20} />} onClick={() => openDetail(metricDetail("Bet audit rows", summary?.betAuditCount ?? 0, "Recorded betting actions from the sportsbook API."))} />
       </section>
       <section className="split-grid">
-        <UsersPanel users={filteredUsers} updatedAt={summary?.updatedAt} />
-        <WithdrawalControlPanel />
+        <UsersPanel users={filteredUsers} updatedAt={summary?.updatedAt} openDetail={openDetail} />
+        <WithdrawalControlPanel openDetail={openDetail} />
       </section>
       <section className="triple-grid">
-        <DepositQueuePanel />
-        <RiskSignalsPanel />
-        <BonusRulesPanel />
+        <DepositQueuePanel openDetail={openDetail} />
+        <RiskSignalsPanel openDetail={openDetail} />
+        <BonusRulesPanel openDetail={openDetail} />
       </section>
     </>
   );
 }
 
-function UsersPage({summary, filteredUsers}: {summary: AdminSummary | null; filteredUsers: AdminSummary["users"]}) {
+function UsersPage({summary, filteredUsers, openDetail}: {summary: AdminSummary | null; filteredUsers: AdminSummary["users"]; openDetail: (detail: Detail) => void}) {
   return (
     <section className="page-grid">
       <Panel title="User Directory" meta={summary?.updatedAt ? `Updated ${new Date(summary.updatedAt).toLocaleString()}` : "Waiting for API data"}>
@@ -299,7 +327,7 @@ function UsersPage({summary, filteredUsers}: {summary: AdminSummary | null; filt
               <strong>{user.username}</strong>
               <span>{index % 3 === 0 ? "Tournament + League" : "Tournament"}</span>
               <em><CheckCircle2 size={14} /> active</em>
-              <button className="mini-btn">Open profile</button>
+              <button className="mini-btn" onClick={() => openDetail(userDetail(user, index))}>Open profile</button>
             </div>
           ))}
           {filteredUsers.length === 0 && <div className="empty">No matching users.</div>}
@@ -307,14 +335,16 @@ function UsersPage({summary, filteredUsers}: {summary: AdminSummary | null; filt
       </Panel>
       <Panel title="Account Controls" meta="Operator actions">
         <div className="control-grid">
-          {["Freeze account", "Reset password note", "Add KYC memo", "Export user activity"].map((item) => <button key={item}>{item}</button>)}
+          {["Freeze account", "Reset password note", "Add KYC memo", "Export user activity"].map((item) => (
+            <button key={item} onClick={() => openDetail(controlDetail(item, "Users", "This opens the operator workflow for the selected user account after a profile is selected."))}>{item}</button>
+          ))}
         </div>
       </Panel>
     </section>
   );
 }
 
-function DepositsPage() {
+function DepositsPage({openDetail}: {openDetail: (detail: Detail) => void}) {
   return (
     <section className="page-grid">
       <Panel title="Deposit Verification" meta="Credit balance only after confirmed USDT receipt">
@@ -329,21 +359,21 @@ function DepositsPage() {
               <span>{item.tx}</span>
               <span>{item.confirmations}</span>
               <em>{item.status}</em>
-              <button className="mini-btn">Review</button>
+              <button className="mini-btn" onClick={() => openDetail(depositDetail(item))}>Review</button>
             </div>
           ))}
         </div>
       </Panel>
       <section className="triple-grid">
-        <Metric title="Pending deposits" value={depositQueue.length} icon={<WalletCards size={20} />} />
-        <Metric title="Ready to credit" value={depositQueue.filter((item) => item.status.includes("Ready")).length} icon={<CheckCircle2 size={20} />} />
-        <Metric title="Manual checks" value={depositQueue.filter((item) => item.status.includes("review") || item.status.includes("Large")).length} icon={<AlertTriangle size={20} />} />
+        <Metric title="Pending deposits" value={depositQueue.length} icon={<WalletCards size={20} />} onClick={() => openDetail(metricDetail("Pending deposits", depositQueue.length, "All deposit requests waiting for operator review or chain confirmation."))} />
+        <Metric title="Ready to credit" value={depositQueue.filter((item) => item.status.includes("Ready")).length} icon={<CheckCircle2 size={20} />} onClick={() => openDetail(metricDetail("Ready to credit", depositQueue.filter((item) => item.status.includes("Ready")).length, "Deposits with enough confirmations that can move to balance crediting."))} />
+        <Metric title="Manual checks" value={depositQueue.filter((item) => item.status.includes("review") || item.status.includes("Large")).length} icon={<AlertTriangle size={20} />} onClick={() => openDetail(metricDetail("Manual checks", depositQueue.filter((item) => item.status.includes("review") || item.status.includes("Large")).length, "Deposits that require operator verification before any user balance changes."))} />
       </section>
     </section>
   );
 }
 
-function WithdrawalsPage() {
+function WithdrawalsPage({openDetail}: {openDetail: (detail: Detail) => void}) {
   return (
     <section className="page-grid">
       <Panel title="Withdrawal Queue" meta="Withdrawals require customer service confirmation before payout">
@@ -357,24 +387,24 @@ function WithdrawalsPage() {
               <span>{item.wallet}</span>
               <em className={item.risk === "High" ? "danger" : item.risk === "Medium" ? "warn" : ""}>{item.risk}</em>
               <span>{item.note}</span>
-              <button className="mini-btn">Open case</button>
+              <button className="mini-btn" onClick={() => openDetail(withdrawalDetail(item))}>Open case</button>
             </div>
           ))}
         </div>
       </Panel>
       <Panel title="Payout Policy" meta="Configured platform protection">
         <div className="policy-list">
-          <div><span>Minimum withdrawal</span><strong>$50 USDT</strong></div>
-          <div><span>Manual support check</span><strong>Required</strong></div>
-          <div><span>Bonus turnover</span><strong>Must be complete</strong></div>
-          <div><span>High-risk delay</span><strong>24-72 hours</strong></div>
+          <button onClick={() => openDetail(policyDetail("Minimum withdrawal", "$50 USDT"))}><span>Minimum withdrawal</span><strong>$50 USDT</strong></button>
+          <button onClick={() => openDetail(policyDetail("Manual support check", "Required"))}><span>Manual support check</span><strong>Required</strong></button>
+          <button onClick={() => openDetail(policyDetail("Bonus turnover", "Must be complete"))}><span>Bonus turnover</span><strong>Must be complete</strong></button>
+          <button onClick={() => openDetail(policyDetail("High-risk delay", "24-72 hours"))}><span>High-risk delay</span><strong>24-72 hours</strong></button>
         </div>
       </Panel>
     </section>
   );
 }
 
-function RiskReviewPage() {
+function RiskReviewPage({openDetail}: {openDetail: (detail: Detail) => void}) {
   return (
     <section className="page-grid">
       <Panel title="Risk Signals" meta="Prioritize high severity cases before approving wallet actions">
@@ -387,21 +417,23 @@ function RiskReviewPage() {
               <span>{item.user}</span>
               <span>{item.signal}</span>
               <span>{item.action}</span>
-              <button className="mini-btn">Investigate</button>
+              <button className="mini-btn" onClick={() => openDetail(riskDetail(item))}>Investigate</button>
             </div>
           ))}
         </div>
       </Panel>
       <Panel title="Risk Limits" meta="Current controls">
         <div className="control-grid">
-          {["Live bet stake cap: $250", "Same device account limit: 2", "Withdrawal hold threshold: $1,000", "Bonus abuse score: 70+"].map((item) => <button key={item}>{item}</button>)}
+          {["Live bet stake cap: $250", "Same device account limit: 2", "Withdrawal hold threshold: $1,000", "Bonus abuse score: 70+"].map((item) => (
+            <button key={item} onClick={() => openDetail(controlDetail(item, "Risk limit", "This limit is shown to operators before approving sensitive account or wallet actions."))}>{item}</button>
+          ))}
         </div>
       </Panel>
     </section>
   );
 }
 
-function BonusControlsPage() {
+function BonusControlsPage({openDetail}: {openDetail: (detail: Detail) => void}) {
   return (
     <section className="page-grid">
       <Panel title="Bonus Programs" meta="Rules shown here are operator-facing configuration records">
@@ -413,56 +445,56 @@ function BonusControlsPage() {
               <span>{item.value}</span>
               <span>{item.limit}</span>
               <em>{item.status}</em>
-              <button className="mini-btn">Edit rule</button>
+              <button className="mini-btn" onClick={() => openDetail(bonusDetail(item))}>Edit rule</button>
             </div>
           ))}
         </div>
       </Panel>
       <section className="triple-grid">
-        <Metric title="Active promos" value={bonusRules.filter((item) => item.status === "Active").length} icon={<SlidersHorizontal size={20} />} />
-        <Metric title="Manual promos" value={bonusRules.filter((item) => item.status === "Manual").length} icon={<FileText size={20} />} />
-        <Metric title="Loyalty tiers" value={5} icon={<ShieldCheck size={20} />} />
+        <Metric title="Active promos" value={bonusRules.filter((item) => item.status === "Active").length} icon={<SlidersHorizontal size={20} />} onClick={() => openDetail(metricDetail("Active promos", bonusRules.filter((item) => item.status === "Active").length, "Promotion rules currently enabled for the sportsbook."))} />
+        <Metric title="Manual promos" value={bonusRules.filter((item) => item.status === "Manual").length} icon={<FileText size={20} />} onClick={() => openDetail(metricDetail("Manual promos", bonusRules.filter((item) => item.status === "Manual").length, "Promotion rules requiring operator confirmation."))} />
+        <Metric title="Loyalty tiers" value={5} icon={<ShieldCheck size={20} />} onClick={() => openDetail(metricDetail("Loyalty tiers", 5, "VIP and loyalty tiers used for account rewards."))} />
       </section>
     </section>
   );
 }
 
-function AuditLogsPage({summary}: {summary: AdminSummary | null}) {
+function AuditLogsPage({summary, openDetail}: {summary: AdminSummary | null; openDetail: (detail: Detail) => void}) {
   return (
     <section className="page-grid">
       <Panel title="Audit Trail" meta={summary?.updatedAt ? `API snapshot ${new Date(summary.updatedAt).toLocaleString()}` : "Waiting for API data"}>
         <div className="data-table audit-table">
           <div className="data-row data-head"><span>Time</span><span>Actor</span><span>Action</span><span>Result</span></div>
           {auditLogs.map((item) => (
-            <div className="data-row" key={`${item.time}-${item.action}`}>
+            <button className="data-row clickable-row" key={`${item.time}-${item.action}`} onClick={() => openDetail(auditDetail(item))}>
               <span>{item.time}</span>
               <strong>{item.actor}</strong>
               <span>{item.action}</span>
               <em>{item.result}</em>
-            </div>
+            </button>
           ))}
         </div>
       </Panel>
       <section className="metrics-grid compact-metrics">
-        <Metric title="Bet audit rows" value={summary?.betAuditCount ?? 0} icon={<ShieldCheck size={20} />} />
-        <Metric title="Wallet ledger rows" value={summary?.walletLedgerCount ?? 0} icon={<CircleDollarSign size={20} />} />
-        <Metric title="Current sessions" value={summary?.sessions ?? 0} icon={<Activity size={20} />} />
+        <Metric title="Bet audit rows" value={summary?.betAuditCount ?? 0} icon={<ShieldCheck size={20} />} onClick={() => openDetail(metricDetail("Bet audit rows", summary?.betAuditCount ?? 0, "Bet audit rows recorded by the sportsbook API."))} />
+        <Metric title="Wallet ledger rows" value={summary?.walletLedgerCount ?? 0} icon={<CircleDollarSign size={20} />} onClick={() => openDetail(metricDetail("Wallet ledger rows", summary?.walletLedgerCount ?? 0, "Wallet ledger rows available for reconciliation."))} />
+        <Metric title="Current sessions" value={summary?.sessions ?? 0} icon={<Activity size={20} />} onClick={() => openDetail(metricDetail("Current sessions", summary?.sessions ?? 0, "Current session count reported by the API."))} />
       </section>
     </section>
   );
 }
 
-function UsersPanel({users, updatedAt}: {users: AdminSummary["users"]; updatedAt?: string}) {
+function UsersPanel({users, updatedAt, openDetail}: {users: AdminSummary["users"]; updatedAt?: string; openDetail: (detail: Detail) => void}) {
   return (
     <Panel title="Users" meta={updatedAt ? `Updated ${new Date(updatedAt).toLocaleString()}` : "Waiting for data"}>
       <div className="table">
         <div className="table-row table-head"><span>User ID</span><span>Username</span><span>Status</span></div>
-        {users.slice(0, 7).map((user) => (
-          <div className="table-row" key={user.id}>
+        {users.slice(0, 7).map((user, index) => (
+          <button className="table-row clickable-row" key={user.id} onClick={() => openDetail(userDetail(user, index))}>
             <span>{user.id}</span>
             <strong>{user.username}</strong>
             <em><CheckCircle2 size={14} /> active</em>
-          </div>
+          </button>
         ))}
         {users.length === 0 && <div className="empty">No matching users.</div>}
       </div>
@@ -470,12 +502,12 @@ function UsersPanel({users, updatedAt}: {users: AdminSummary["users"]; updatedAt
   );
 }
 
-function WithdrawalControlPanel() {
+function WithdrawalControlPanel({openDetail}: {openDetail: (detail: Detail) => void}) {
   return (
     <Panel title="Withdrawal Control" meta="Manual approval required">
       <div className="queue">
         {withdrawalQueue.slice(0, 3).map((item) => (
-          <article key={item.id}>
+          <article key={item.id} onClick={() => openDetail(withdrawalDetail(item))} role="button" tabIndex={0}>
             <div><strong>{item.id}</strong><span>{item.user}</span></div>
             <b>${item.amount.toLocaleString()}</b>
             <small className={item.risk === "High" ? "danger" : ""}>{item.risk} risk</small>
@@ -487,58 +519,58 @@ function WithdrawalControlPanel() {
   );
 }
 
-function DepositQueuePanel() {
+function DepositQueuePanel({openDetail}: {openDetail: (detail: Detail) => void}) {
   return (
     <Panel title="Deposit Queue" meta="Credit only after USDT receipt">
       <div className="compact-list">
         {depositQueue.slice(0, 3).map((item) => (
-          <div key={item.id}>
+          <button key={item.id} onClick={() => openDetail(depositDetail(item))}>
             <span><Clock3 size={14} /> {item.age}</span>
             <strong>{item.user} · ${item.amount}</strong>
             <small>{item.chain} · {item.status}</small>
-          </div>
+          </button>
         ))}
       </div>
     </Panel>
   );
 }
 
-function RiskSignalsPanel() {
+function RiskSignalsPanel({openDetail}: {openDetail: (detail: Detail) => void}) {
   return (
     <Panel title="Risk Signals" meta="Review before balance changes">
       <div className="compact-list">
         {riskEvents.slice(0, 3).map((item) => (
-          <div key={item.id}>
+          <button key={item.id} onClick={() => openDetail(riskDetail(item))}>
             <span><AlertTriangle size={14} /> {item.severity}</span>
             <strong>{item.signal}</strong>
             <small>{item.action}</small>
-          </div>
+          </button>
         ))}
       </div>
     </Panel>
   );
 }
 
-function BonusRulesPanel() {
+function BonusRulesPanel({openDetail}: {openDetail: (detail: Detail) => void}) {
   return (
     <Panel title="Bonus Rules" meta="Current operating policy">
       <div className="policy-list">
         {bonusRules.slice(0, 4).map((item) => (
-          <div key={item.name}><span>{item.name}</span><strong>{item.value}</strong></div>
+          <button key={item.name} onClick={() => openDetail(bonusDetail(item))}><span>{item.name}</span><strong>{item.value}</strong></button>
         ))}
       </div>
     </Panel>
   );
 }
 
-function Metric({title, value, icon}: {title: string; value: number; icon: React.ReactNode}) {
+function Metric({title, value, icon, onClick}: {title: string; value: number; icon: React.ReactNode; onClick?: () => void}) {
   return (
-    <article className="metric">
+    <button className="metric" onClick={onClick}>
       <div>{icon}</div>
       <span>{title}</span>
       <strong>{value.toLocaleString()}</strong>
       <small><ArrowUpRight size={13} /> live API</small>
-    </article>
+    </button>
   );
 }
 
@@ -554,4 +586,132 @@ function Panel({title, meta, children}: {title: string; meta: string; children: 
       {children}
     </section>
   );
+}
+
+function DetailDrawer({detail, onClose}: {detail: Detail; onClose: () => void}) {
+  const [selectedAction, setSelectedAction] = useState("");
+
+  return (
+    <aside className="detail-overlay" aria-label="Selected admin detail">
+      <section className="detail-drawer">
+        <header>
+          <div>
+            <p className="eyebrow">{detail.kicker}</p>
+            <h2>{detail.title}</h2>
+          </div>
+          <button className="icon-btn" onClick={onClose} title="Close detail"><X size={18} /></button>
+        </header>
+        <div className="detail-fields">
+          {detail.fields.map(([label, value]) => (
+            <div key={label}>
+              <span>{label}</span>
+              <strong>{value}</strong>
+            </div>
+          ))}
+        </div>
+        {detail.note && <p className="detail-note">{detail.note}</p>}
+        <div className="detail-actions">
+          {detail.actions.map((action) => (
+            <button key={action} onClick={() => setSelectedAction(action)}>{action}</button>
+          ))}
+        </div>
+        {selectedAction && (
+          <div className="action-result">
+            <strong>{selectedAction}</strong>
+            <span>Action selected. In production this would create an operator workflow item and write an audit log entry.</span>
+          </div>
+        )}
+      </section>
+    </aside>
+  );
+}
+
+function metricDetail(title: string, value: number, note: string): Detail {
+  return {
+    title,
+    kicker: "Dashboard metric",
+    fields: [["Current value", value.toLocaleString()], ["Source", "Main sportsbook API"], ["Status", "Readable"]],
+    actions: ["Open related page", "Export metric snapshot", "Add operator note"],
+    note,
+  };
+}
+
+function userDetail(user: {id: string; username: string}, index: number): Detail {
+  return {
+    title: `User profile · ${user.username}`,
+    kicker: "Users",
+    fields: [["User ID", user.id], ["Username", user.username], ["Session", "Active"], ["Game saves", index % 3 === 0 ? "Tournament + League" : "Tournament"], ["Risk status", index % 4 === 0 ? "Review recommended" : "Normal"]],
+    actions: ["Freeze account", "Add KYC memo", "Export user activity", "Open wallet ledger"],
+    note: "This panel is the operator view for account review. Balance-changing actions should only be enabled after persistent database workflows are connected.",
+  };
+}
+
+function depositDetail(item: typeof depositQueue[number]): Detail {
+  return {
+    title: `Deposit review · ${item.id}`,
+    kicker: "Deposits",
+    fields: [["User", item.user], ["Amount", `$${item.amount.toLocaleString()}`], ["Chain", item.chain], ["Transaction", item.tx], ["Confirmations", item.confirmations], ["Status", item.status], ["Age", item.age]],
+    actions: ["Mark as verified", "Request proof", "Hold for review", "Create audit note"],
+    note: "Credit user balance only after the platform wallet has actually received the USDT transfer.",
+  };
+}
+
+function withdrawalDetail(item: typeof withdrawalQueue[number]): Detail {
+  return {
+    title: `Withdrawal case · ${item.id}`,
+    kicker: "Withdrawals",
+    fields: [["User", item.user], ["Amount", `$${item.amount.toLocaleString()}`], ["Wallet", item.wallet], ["Risk", item.risk], ["Operator note", item.note], ["Minimum withdrawal", "$50 USDT"]],
+    actions: ["Contact customer service", "Approve after review", "Hold payout", "Escalate to risk"],
+    note: "Withdrawals are intentionally manual here: customer service confirmation and risk review protect platform funds before payout.",
+  };
+}
+
+function riskDetail(item: typeof riskEvents[number]): Detail {
+  return {
+    title: `Risk case · ${item.id}`,
+    kicker: "Risk Review",
+    fields: [["Severity", item.severity], ["User", item.user], ["Signal", item.signal], ["Required action", item.action], ["Case owner", "Admin desk"]],
+    actions: ["Open investigation", "Apply temporary limit", "Hold wallet actions", "Clear with note"],
+    note: "Use this view to document the risk decision before changing account limits or wallet access.",
+  };
+}
+
+function bonusDetail(item: typeof bonusRules[number]): Detail {
+  return {
+    title: `Bonus rule · ${item.name}`,
+    kicker: "Bonus Controls",
+    fields: [["Program", item.name], ["Value", item.value], ["Limit", item.limit], ["Status", item.status], ["Wagering check", "Required before withdrawal"]],
+    actions: ["Edit rule", "Pause promotion", "Duplicate campaign", "View affected users"],
+    note: "Bonus rules displayed here are operator-facing controls for promotions and loyalty programs.",
+  };
+}
+
+function auditDetail(item: typeof auditLogs[number]): Detail {
+  return {
+    title: `Audit event · ${item.result}`,
+    kicker: "Audit Logs",
+    fields: [["Time", item.time], ["Actor", item.actor], ["Action", item.action], ["Result", item.result], ["Retention", "Operational log"]],
+    actions: ["Copy audit entry", "Attach note", "Open related record"],
+    note: "Audit rows provide a visible activity trail for operator and system actions.",
+  };
+}
+
+function controlDetail(title: string, section: string, note: string): Detail {
+  return {
+    title,
+    kicker: section,
+    fields: [["Control", title], ["Scope", section], ["Mode", "Operator workflow"], ["Status", "Ready for review"]],
+    actions: ["Open workflow", "Add internal note", "Create audit event"],
+    note,
+  };
+}
+
+function policyDetail(title: string, value: string): Detail {
+  return {
+    title,
+    kicker: "Payout policy",
+    fields: [["Policy", title], ["Current value", value], ["Applies to", "All withdrawal requests"], ["Review type", "Manual"]],
+    actions: ["Edit policy", "View affected withdrawals", "Create audit note"],
+    note: "This policy is shown to operators before payout decisions are made.",
+  };
 }
