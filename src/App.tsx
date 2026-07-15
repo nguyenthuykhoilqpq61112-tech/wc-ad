@@ -147,12 +147,44 @@ const matchPlan = [
   {round: "Semi Final", date: "2026-07-10", match: "France vs Brazil", total: 365, resultStart: 52},
   {round: "Semi Final", date: "2026-07-12", match: "Argentina vs France", total: 110, resultStart: 66},
   {round: "Semi Final", date: "2026-07-12", match: "Brazil vs England", total: 275, resultStart: 73},
+  {round: "Final", date: "2026-07-15", match: "Spain vs France", total: 405, resultStart: 10},
+];
+
+const julyFifteenthBets = [
+  {stake: 50, selection: "Correct score 0:2", odds: 9.8, result: "Won - contact support" as const},
+  {stake: 50, selection: "France win", odds: 1.86, result: "Paid" as const},
+  {stake: 45, selection: "France win", odds: 1.84, result: "Paid" as const},
+  {stake: 40, selection: "France win", odds: 1.82, result: "Paid" as const},
+  {stake: 40, selection: "France win", odds: 1.88, result: "Paid" as const},
+  {stake: 40, selection: "France win", odds: 1.8, result: "Paid" as const},
+  {stake: 35, selection: "France win", odds: 1.9, result: "Paid" as const},
+  {stake: 55, selection: "1X2 Spain win", odds: 3.35, result: "Lost" as const},
+  {stake: 30, selection: "Draw", odds: 3.15, result: "Lost" as const},
+  {stake: 20, selection: "Draw", odds: 3.2, result: "Lost" as const},
 ];
 
 function allocateBets() {
   const records: BetRecord[] = [];
   const selections = ["Home win", "Away win", "Draw no bet", "Over 2.5", "Asian handicap -0.5"];
   matchPlan.forEach((match, matchIndex) => {
+    if (match.date === "2026-07-15") {
+      julyFifteenthBets.forEach((special, offset) => {
+        const user = adminUsers[(match.resultStart + offset) % adminUsers.length];
+        records.push({
+          id: `BET-${String(records.length + 1).padStart(4, "0")}`,
+          user,
+          match: match.match,
+          round: match.round,
+          matchDate: match.date,
+          selection: special.selection,
+          odds: special.odds,
+          stake: special.stake,
+          result: special.result,
+          payout: special.result === "Lost" ? 0 : Math.round(special.stake * special.odds * 100) / 100,
+        });
+      });
+      return;
+    }
     const fixedStakes = match.date === "2026-07-10" ? [20, 20, 20, 20, 20, 80, 30, 30, 30, 30, 35, 50] : null;
     let running = 0;
     for (let offset = 0; running < match.total && (!fixedStakes || offset < fixedStakes.length); offset += 1) {
@@ -194,7 +226,7 @@ const exchangeWithdrawn = exchangeWithdrawals.reduce((sum, item) => sum + item.a
 const targetPlatformBalance = 875;
 const walletReconciliationAdjustment = Math.round((targetPlatformBalance - (openingWalletReserve + totalDeposits + totalStakes - paidPayouts - exchangeWithdrawn)) * 100) / 100;
 const platformBalance = Math.round((openingWalletReserve + totalDeposits + totalStakes - paidPayouts - exchangeWithdrawn + walletReconciliationAdjustment) * 100) / 100;
-const todayBets = betRecords.filter((bet) => bet.matchDate === "2026-07-12");
+const todayBets = betRecords.filter((bet) => bet.matchDate === "2026-07-15");
 const dailyBetTotals = betRecords.reduce<Record<string, number>>((acc, bet) => {
   acc[bet.matchDate] = Math.round(((acc[bet.matchDate] || 0) + bet.stake) * 100) / 100;
   return acc;
@@ -700,8 +732,9 @@ function AuditLogsPage({summary, openDetail}: {summary: AdminSummary | null; ope
       </Panel>
       <section className="metrics-grid compact-metrics">
         <Metric title="Bet audit rows" value={betRecords.length} icon={<ShieldCheck size={20} />} onClick={() => openDetail(metricDetail("Bet audit rows", betRecords.length, "Generated World Cup betting ledger rows."))} />
-        <Metric title="Today match 1" value={todayBets.filter((bet) => bet.match === "Argentina vs France").reduce((sum, bet) => sum + bet.stake, 0)} icon={<CircleDollarSign size={20} />} onClick={() => openDetail(todayMatchDetail("Argentina vs France"))} />
-        <Metric title="Today match 2" value={todayBets.filter((bet) => bet.match === "Brazil vs England").reduce((sum, bet) => sum + bet.stake, 0)} icon={<Activity size={20} />} onClick={() => openDetail(todayMatchDetail("Brazil vs England"))} />
+        <Metric title="7.15 stake total" value={todayBets.reduce((sum, bet) => sum + bet.stake, 0)} icon={<CircleDollarSign size={20} />} onClick={() => openDetail(todayMatchDetail("Spain vs France"))} />
+        <Metric title="7.15 bettors" value={new Set(todayBets.map((bet) => bet.user.id)).size} icon={<Activity size={20} />} onClick={() => openDetail(todayMatchDetail("Spain vs France"))} />
+        <Metric title="Correct score hit" value={todayBets.find((bet) => bet.selection === "Correct score 0:2")?.stake ?? 0} icon={<CheckCircle2 size={20} />} onClick={() => openDetail(betDetail(todayBets.find((bet) => bet.selection === "Correct score 0:2") || todayBets[0]))} />
       </section>
     </section>
   );
@@ -1017,7 +1050,7 @@ function todayMatchDetail(match: string): Detail {
   return {
     title: `Today stakes · ${match}`,
     kicker: "Today betting board",
-    fields: [["Match", match], ["Total stake", `${rows.reduce((sum, bet) => sum + bet.stake, 0)}u`], ["Bettors", String(rows.length)], ["Date", "2026-07-12"], ["Payout remark", "Pending until match result"]],
+    fields: [["Match", match], ["Final score", "Spain 0:2 France"], ["Total stake", `${rows.reduce((sum, bet) => sum + bet.stake, 0)}u`], ["Bettors", String(new Set(rows.map((bet) => bet.user.id)).size)], ["Date", "2026-07-15"], ["Payout remark", "Correct score winner contacts support; France win slips paid"]],
     actions: ["View slips", "Export today's match", "Open settlement queue"],
     note: rows.map((bet) => `${bet.user.username}: ${bet.selection} @ ${bet.odds.toFixed(2)} · ${bet.stake}u · ${bet.result}`).join(" | "),
   };
