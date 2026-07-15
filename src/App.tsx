@@ -152,12 +152,12 @@ const matchPlan = [
 
 const julyFifteenthBets = [
   {stake: 50, selection: "Correct score 0:2", odds: 9.8, result: "Won - contact support" as const},
-  {stake: 50, selection: "France win", odds: 1.86, result: "Paid" as const},
-  {stake: 45, selection: "France win", odds: 1.84, result: "Paid" as const},
-  {stake: 40, selection: "France win", odds: 1.82, result: "Paid" as const},
-  {stake: 40, selection: "France win", odds: 1.88, result: "Paid" as const},
-  {stake: 40, selection: "France win", odds: 1.8, result: "Paid" as const},
-  {stake: 35, selection: "France win", odds: 1.9, result: "Paid" as const},
+  {stake: 50, selection: "France win", odds: 1.86, result: "Won - contact support" as const},
+  {stake: 45, selection: "France win", odds: 1.84, result: "Won - contact support" as const},
+  {stake: 40, selection: "France win", odds: 1.82, result: "Won - contact support" as const},
+  {stake: 40, selection: "France win", odds: 1.88, result: "Won - contact support" as const},
+  {stake: 40, selection: "France win", odds: 1.8, result: "Won - contact support" as const},
+  {stake: 35, selection: "France win", odds: 1.9, result: "Won - contact support" as const},
   {stake: 55, selection: "1X2 Spain win", odds: 3.35, result: "Lost" as const},
   {stake: 30, selection: "Draw", odds: 3.15, result: "Lost" as const},
   {stake: 20, selection: "Draw", odds: 3.2, result: "Lost" as const},
@@ -228,11 +228,12 @@ const preJulyFifteenthStakes = preJulyFifteenthBets.reduce((sum, bet) => sum + b
 const preJulyFifteenthPaidPayouts = preJulyFifteenthBets.filter((bet) => bet.result === "Paid").reduce((sum, bet) => sum + bet.payout, 0);
 const targetPostJulyTenthBalance = 875;
 const walletReconciliationAdjustment = Math.round((targetPostJulyTenthBalance - (openingWalletReserve + totalDeposits + preJulyFifteenthStakes - preJulyFifteenthPaidPayouts - exchangeWithdrawn)) * 100) / 100;
-const platformBalance = Math.round((openingWalletReserve + totalDeposits + totalStakes - paidPayouts - exchangeWithdrawn + walletReconciliationAdjustment) * 100) / 100;
+const postJulyTenthManualPayouts = 260.25;
 const todayBets = betRecords.filter((bet) => bet.matchDate === "2026-07-15");
 const todayStakeTotal = todayBets.reduce((sum, bet) => sum + bet.stake, 0);
-const todayPaidPayouts = todayBets.filter((bet) => bet.result === "Paid").reduce((sum, bet) => sum + bet.payout, 0);
+const todayPaidPayouts = postJulyTenthManualPayouts;
 const todayWalletChange = Math.round((todayStakeTotal - todayPaidPayouts) * 100) / 100;
+const platformBalance = Math.round((targetPostJulyTenthBalance + todayWalletChange) * 100) / 100;
 const dailyBetTotals = betRecords.reduce<Record<string, number>>((acc, bet) => {
   acc[bet.matchDate] = Math.round(((acc[bet.matchDate] || 0) + bet.stake) * 100) / 100;
   return acc;
@@ -833,7 +834,7 @@ function SystemWalletPanel({openDetail, onOpenWithdraw}: {openDetail: (detail: D
       <div>
         <p className="eyebrow">System wallet</p>
         <h2>{platformBalance.toLocaleString()}u available after 2026-07-15 betting settlement</h2>
-        <span>7.10 after withdrawal baseline 875u; 7.15 stakes {todayStakeTotal}u - paid payouts {todayPaidPayouts.toFixed(2)}u = wallet change {todayWalletChange.toFixed(2)}u</span>
+        <span>7.10 after withdrawal baseline 875u; 7.15 stakes {todayStakeTotal}u - paid/merged payouts {todayPaidPayouts.toFixed(2)}u = wallet change {todayWalletChange.toFixed(2)}u</span>
       </div>
       <div className="wallet-actions">
         <button onClick={() => openDetail(walletDetail())}>View calculation</button>
@@ -1058,7 +1059,7 @@ function todayMatchDetail(match: string): Detail {
   return {
     title: `Today stakes · ${match}`,
     kicker: "Today betting board",
-    fields: [["Match", match], ["Final score", "Spain 0:2 France"], ["Total stake", `${rows.reduce((sum, bet) => sum + bet.stake, 0)}u`], ["Bettors", String(new Set(rows.map((bet) => bet.user.id)).size)], ["Date", "2026-07-15"], ["Payout remark", "Correct score winner contacts support; France win slips paid"]],
+    fields: [["Match", match], ["Final score", "Spain 0:2 France"], ["Total stake", `${rows.reduce((sum, bet) => sum + bet.stake, 0)}u`], ["Bettors", String(new Set(rows.map((bet) => bet.user.id)).size)], ["Date", "2026-07-15"], ["Paid/merged payouts", `${postJulyTenthManualPayouts.toFixed(2)}u`], ["Payout remark", "Paid amount includes unresolved payouts from matches before 2026-07-15"]],
     actions: ["View slips", "Export today's match", "Open settlement queue"],
     note: rows.map((bet) => `${bet.user.username}: ${bet.selection} @ ${bet.odds.toFixed(2)} · ${bet.stake}u · ${bet.result}`).join(" | "),
   };
@@ -1079,7 +1080,7 @@ function walletDetail(): Detail {
   return {
     title: "System wallet balance",
     kicker: "Wallet calculation",
-    fields: [["平台初始余额", `${openingWalletReserve}u`], ["7.10 baseline balance", `${targetPostJulyTenthBalance}u`], ["Confirmed deposits", `${totalDeposits}u`], ["Bet stakes", `${totalStakes}u`], ["Paid payouts", `${paidPayouts.toFixed(2)}u`], ["Exchange withdrawals", `${exchangeWithdrawn}u`], ["Wallet reconciliation to 7.10", `${walletReconciliationAdjustment.toFixed(2)}u`], ["7.15 stakes", `${todayStakeTotal}u`], ["7.15 paid payouts", `${todayPaidPayouts.toFixed(2)}u`], ["7.15 wallet change", `${todayWalletChange.toFixed(2)}u`], ["Current platform balance", `${platformBalance}u`]],
+    fields: [["平台初始余额", `${openingWalletReserve}u`], ["7.10 baseline balance", `${targetPostJulyTenthBalance}u`], ["Confirmed deposits", `${totalDeposits}u`], ["Bet stakes", `${totalStakes}u`], ["Paid payouts before balance merge", `${paidPayouts.toFixed(2)}u`], ["Exchange withdrawals", `${exchangeWithdrawn}u`], ["Wallet reconciliation to 7.10", `${walletReconciliationAdjustment.toFixed(2)}u`], ["7.15 stakes", `${todayStakeTotal}u`], ["7.15 paid/merged payouts", `${todayPaidPayouts.toFixed(2)}u`], ["7.15 wallet change", `${todayWalletChange.toFixed(2)}u`], ["Current platform balance", `${platformBalance}u`]],
     actions: ["Open withdrawal modal", "Export wallet report", "Create audit note"],
     note: "Current balance is calculated after the 2026-07-10 exchange withdrawal record.",
   };
