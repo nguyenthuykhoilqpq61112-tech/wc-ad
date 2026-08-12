@@ -50,7 +50,7 @@ type PlatformUser = {
   registeredAt: string;
   round: string;
   location: string;
-  region: "Middle East" | "Europe" | "Singapore";
+  region: "Middle East" | "Europe" | "Singapore" | "North America";
   deposit: number;
   stake: number;
 };
@@ -67,6 +67,8 @@ type BetRecord = {
   payout: number;
 };
 type ExchangeWithdrawal = {date: string; amount: number; status: string; destination: string};
+type DepositRecord = {id: string; user: string; chain: string; tx: string; amount: number; confirmations: string; status: string; age: string};
+type WheelIncome = {date: string; amount: number; source: string; status: string};
 
 const API_BASE = (import.meta.env.VITE_API_BASE_URL || "https://2026wc.zeabur.app").replace(/\/+$/, "");
 const EXCHANGE_WITHDRAW_PASSWORD = import.meta.env.VITE_EXCHANGE_WITHDRAW_PASSWORD || "";
@@ -134,6 +136,21 @@ const adminUsers: PlatformUser[] = registrationPlan.flatMap((plan) => Array.from
     deposit: depositAmounts[index],
     stake: stakeAmounts[index],
   }));
+
+const northAmericaUsers: PlatformUser[] = [
+  "Ethan","Logan","Noah","Lucas","Mason","Aiden","Carter","Wyatt","Caleb","Ryan","Dylan","Owen",
+  "Liam","Jacob","Cole","Hunter","Blake","Chase","Austin","Connor","Miles","Nolan","Parker","Reed",
+].map((name, index) => ({
+  id: `na_user_${String(index + 1).padStart(3, "0")}`,
+  username: `${name}${index % 2 === 0 ? "CA" : "US"}${String(index + 31).padStart(2, "0")}`,
+  registeredAt: `2026-07-${String(20 + (index % 12)).padStart(2, "0")} ${String(10 + (index % 9)).padStart(2, "0")}:${String((index * 11) % 60).padStart(2, "0")}`,
+  round: "Post World Cup sports",
+  location: index % 3 === 0 ? "Canada" : "United States",
+  region: "North America",
+  deposit: index < 2 ? 10 : 0,
+  stake: 0,
+}));
+const allUsers = [...adminUsers, ...northAmericaUsers];
 
 const matchPlan = [
   {round: "Round of 32", date: "2026-06-17", match: "Argentina vs Morocco", total: 40, resultStart: 0},
@@ -211,15 +228,58 @@ function allocateBets() {
   return records;
 }
 
-const betRecords = allocateBets();
+const postFinalBetPlans = [
+  {date: "2026-07-20", sport: "NBA", match: "Lakers vs Celtics", total: 20, stakes: [10, 10], selections: ["Lakers moneyline", "Over 218.5"]},
+  {date: "2026-07-21", sport: "NHL", match: "Maple Leafs vs Bruins", total: 36, stakes: [12, 14, 10]},
+  {date: "2026-07-22", sport: "NBA", match: "Warriors vs Suns", total: 48, stakes: [10, 12, 8, 9, 9]},
+  {date: "2026-07-23", sport: "NHL", match: "Canadiens vs Rangers", total: 62, stakes: [10, 12, 15, 8, 9, 8]},
+  {date: "2026-07-24", sport: "NBA", match: "Bulls vs Heat", total: 74, stakes: [12, 10, 11, 9, 8, 14, 10]},
+  {date: "2026-07-25", sport: "NHL", match: "Oilers vs Avalanche", total: 55, stakes: [10, 15, 8, 12, 10]},
+  {date: "2026-07-26", sport: "NBA", match: "Knicks vs Nets", total: 80, stakes: [10, 12, 11, 9, 13, 8, 7, 10]},
+  {date: "2026-07-27", sport: "NHL", match: "Canucks vs Kraken", total: 43, stakes: [10, 9, 12, 12]},
+  {date: "2026-07-28", sport: "NBA", match: "Mavericks vs Nuggets", total: 69, stakes: [12, 10, 9, 8, 15, 15]},
+  {date: "2026-07-29", sport: "NHL", match: "Flames vs Jets", total: 31, stakes: [16, 15]},
+  {date: "2026-07-30", sport: "NBA", match: "76ers vs Bucks", total: 77, stakes: [9, 10, 12, 8, 11, 10, 7, 10]},
+  {date: "2026-07-31", sport: "NHL", match: "Senators vs Red Wings", total: 52, stakes: [10, 14, 8, 10, 10]},
+  {date: "2026-08-01", sport: "NBA", match: "Clippers vs Kings", total: 66, stakes: [12, 9, 10, 8, 7, 10, 10]},
+];
+
+function allocatePostFinalBets(startIndex: number): BetRecord[] {
+  const selections = ["Moneyline", "Spread -3.5", "Total over", "Total under", "First period winner", "Player points over"];
+  const records: BetRecord[] = [];
+  postFinalBetPlans.forEach((plan, planIndex) => {
+    plan.stakes.forEach((stake, offset) => {
+      const user = northAmericaUsers[(planIndex + offset) % northAmericaUsers.length];
+      records.push({
+        id: `BET-${String(startIndex + records.length + 1).padStart(4, "0")}`,
+        user,
+        match: plan.match,
+        round: plan.sport,
+        matchDate: plan.date,
+        selection: plan.selections?.[offset] || selections[(planIndex + offset) % selections.length],
+        odds: Number((1.68 + ((planIndex + offset) % 7) * 0.11).toFixed(2)),
+        stake,
+        result: "Lost",
+        payout: 0,
+      });
+    });
+  });
+  return records;
+}
+
+const worldCupBetRecords = allocateBets();
+const betRecords = [...worldCupBetRecords, ...allocatePostFinalBets(worldCupBetRecords.length)];
 const exchangeWithdrawals: ExchangeWithdrawal[] = [
   {date: "2026-06-17", amount: 200, status: "Completed", destination: "Exchange treasury"},
   {date: "2026-06-30", amount: 399, status: "Completed", destination: "Exchange treasury"},
   {date: "2026-07-05", amount: 599, status: "Completed", destination: "Exchange treasury"},
   {date: "2026-07-10", amount: 505, status: "Completed", destination: "Exchange treasury"},
+  {date: "2026-07-16", amount: 1000, status: "Completed", destination: "Exchange treasury"},
+  {date: "2026-08-03", amount: 400, status: "Completed", destination: "Exchange treasury"},
+  {date: "2026-08-08", amount: 332.75, status: "Completed", destination: "Exchange treasury"},
 ];
 const openingWalletReserve = 0;
-const totalDeposits = adminUsers.reduce((sum, user) => sum + user.deposit, 0);
+const totalDeposits = allUsers.reduce((sum, user) => sum + user.deposit, 0);
 const totalStakes = betRecords.reduce((sum, bet) => sum + bet.stake, 0);
 const paidPayouts = betRecords.filter((bet) => bet.result === "Paid").reduce((sum, bet) => sum + bet.payout, 0);
 const exchangeWithdrawn = exchangeWithdrawals.reduce((sum, item) => sum + item.amount, 0);
@@ -233,13 +293,24 @@ const todayBets = betRecords.filter((bet) => bet.matchDate === "2026-07-15");
 const todayStakeTotal = todayBets.reduce((sum, bet) => sum + bet.stake, 0);
 const todayPaidPayouts = postJulyTenthManualPayouts;
 const todayWalletChange = Math.round((todayStakeTotal - todayPaidPayouts) * 100) / 100;
-const platformBalance = Math.round((targetPostJulyTenthBalance + todayWalletChange) * 100) / 100;
+const postJulyFifteenthBets = betRecords.filter((bet) => bet.matchDate > "2026-07-15");
+const postJulyFifteenthStakes = postJulyFifteenthBets.reduce((sum, bet) => sum + bet.stake, 0);
+const postJulyFifteenthDeposits = northAmericaUsers.reduce((sum, user) => sum + user.deposit, 0);
+const postJulyFifteenthWithdrawals = exchangeWithdrawals.filter((item) => item.date > "2026-07-15").reduce((sum, item) => sum + item.amount, 0);
+const wheelIncomes: WheelIncome[] = [
+  {date: "2026-08-08", amount: 20, source: "Wheel game", status: "Settled"},
+  {date: "2026-08-10", amount: 15, source: "Wheel game", status: "Settled"},
+  {date: "2026-08-11", amount: 5, source: "Wheel game", status: "Settled"},
+];
+const wheelIncomeTotal = wheelIncomes.reduce((sum, item) => sum + item.amount, 0);
+const platformBalance = Math.round((targetPostJulyTenthBalance + todayWalletChange + postJulyFifteenthDeposits + postJulyFifteenthStakes + wheelIncomeTotal - postJulyFifteenthWithdrawals) * 100) / 100;
 const dailyBetTotals = betRecords.reduce<Record<string, number>>((acc, bet) => {
   acc[bet.matchDate] = Math.round(((acc[bet.matchDate] || 0) + bet.stake) * 100) / 100;
   return acc;
 }, {});
 
-const depositQueue = adminUsers.map((user, index) => ({
+const depositQueue: DepositRecord[] = [
+  ...adminUsers.map((user, index) => ({
   id: `DEP-${String(8200 + index).padStart(4, "0")}`,
   user: user.username,
   chain: index % 9 === 0 ? "USDT ERC20" : "USDT TRC20",
@@ -248,7 +319,18 @@ const depositQueue = adminUsers.map((user, index) => ({
   confirmations: index % 9 === 0 ? "64/64" : "20/20",
   status: "Confirmed",
   age: user.registeredAt,
-}));
+  })),
+  ...northAmericaUsers.slice(0, 2).map((user, index) => ({
+    id: `DEP-${String(9100 + index).padStart(4, "0")}`,
+    user: user.username,
+    chain: "USDT TRC20",
+    tx: `TNBA${String(index + 21).padStart(2, "0")}...${String(index + 70).padStart(2, "0")}`,
+    amount: user.deposit,
+    confirmations: "20/20",
+    status: "Confirmed",
+    age: "2026-07-20 01:18",
+  })),
+];
 
 const withdrawalQueue = betRecords
   .filter((bet) => bet.result === "Won - contact support" || bet.result === "Paid")
@@ -278,6 +360,12 @@ const bonusRules = [
 ];
 
 const auditLogs = [
+  {time: "2026-08-11 02:30", actor: "casino-engine", action: "Settled wheel game income 5u", result: "OK"},
+  {time: "2026-08-10 01:50", actor: "casino-engine", action: "Settled wheel game income 15u", result: "OK"},
+  {time: "2026-08-08 03:18", actor: "casino-engine", action: "Settled wheel game income 20u", result: "OK"},
+  {time: "2026-08-01 23:20", actor: "system", action: "Closed 7.21-8.1 NBA/NHL betting ledger", result: "All lost"},
+  {time: "2026-07-20 22:14", actor: "cashier", action: "Confirmed two deposits totaling 20u and NBA lost bets", result: "OK"},
+  {time: "2026-07-16 03:12", actor: "admin", action: "Withdrew 1000u to exchange treasury", result: "Completed"},
   {time: "2026-07-12 21:44", actor: "admin", action: "Reviewed withdrawal WDR-1197", result: "Held"},
   {time: "2026-07-12 21:39", actor: "system", action: "Created admin summary snapshot", result: "OK"},
   {time: "2026-07-12 21:31", actor: "admin", action: "Opened deposit DEP-8035", result: "Pending credit"},
@@ -326,7 +414,7 @@ export function App() {
   const [withdrawMessage, setWithdrawMessage] = useState("");
 
   const filteredUsers = useMemo(() => {
-    const users = adminUsers;
+    const users = allUsers;
     if (!query.trim()) return users;
     return users.filter((user) => user.username.toLowerCase().includes(query.toLowerCase()));
   }, [query]);
@@ -518,9 +606,9 @@ function OverviewPage({summary, filteredUsers, openDetail, onOpenWithdraw}: {sum
   return (
     <>
       <section className="metrics-grid">
-        <Metric title="Registered users" value={adminUsers.length} icon={<Users size={20} />} onClick={() => openDetail(metricDetail("Registered users", adminUsers.length, "World Cup account dataset with registration dates from Round of 32 through Semi Final match days."))} />
+        <Metric title="Registered users" value={allUsers.length} icon={<Users size={20} />} onClick={() => openDetail(metricDetail("Registered users", allUsers.length, "World Cup plus post-final North America sports account dataset."))} />
         <Metric title="Active sessions" value={summary?.sessions ?? 0} icon={<Activity size={20} />} onClick={() => openDetail(metricDetail("Active sessions", summary?.sessions ?? 0, "Current authenticated sessions tracked in memory."))} />
-        <Metric title="Confirmed deposits" value={totalDeposits} icon={<WalletCards size={20} />} onClick={() => openDetail(metricDetail("Confirmed deposits", totalDeposits, "Sum of all 80 user USDT deposits."))} />
+        <Metric title="Confirmed deposits" value={totalDeposits} icon={<WalletCards size={20} />} onClick={() => openDetail(metricDetail("Confirmed deposits", totalDeposits, "Sum of World Cup deposits plus 7.20 two-user recharge total."))} />
         <Metric title="Bet stakes" value={totalStakes} icon={<CircleDollarSign size={20} />} onClick={() => openDetail(metricDetail("Bet stakes", totalStakes, "Total stake amount across generated World Cup bet records."))} />
         <Metric title="Platform balance" value={platformBalance} icon={<ShieldCheck size={20} />} onClick={() => openDetail(walletDetail())} />
       </section>
@@ -591,7 +679,7 @@ function DepositsPage({openDetail}: {openDetail: (detail: Detail) => void}) {
         </div>
       </Panel>
       <section className="triple-grid">
-        <Metric title="Confirmed deposits" value={totalDeposits} icon={<WalletCards size={20} />} onClick={() => openDetail(metricDetail("Confirmed deposits", totalDeposits, "Total confirmed user deposits across 80 accounts."))} />
+        <Metric title="Confirmed deposits" value={totalDeposits} icon={<WalletCards size={20} />} onClick={() => openDetail(metricDetail("Confirmed deposits", totalDeposits, "Total confirmed user deposits including the 7.20 two-user 20u recharge."))} />
         <Metric title="20u deposits" value={adminUsers.filter((item) => item.deposit === 20).length} icon={<CheckCircle2 size={20} />} onClick={() => openDetail(metricDetail("20u deposits", adminUsers.filter((item) => item.deposit === 20).length, "Most users deposited 20u."))} />
         <Metric title="Non-20u deposits" value={adminUsers.filter((item) => item.deposit !== 20).length} icon={<AlertTriangle size={20} />} onClick={() => openDetail(metricDetail("Non-20u deposits", adminUsers.filter((item) => item.deposit !== 20).length, "Includes 10u, 15u, 25u and 30u deposits."))} />
       </section>
@@ -625,8 +713,11 @@ function WithdrawalsPage({openDetail, onOpenWithdraw}: {openDetail: (detail: Det
           {exchangeWithdrawals.map((item) => {
             const prior = exchangeWithdrawals.filter((entry) => entry.date <= item.date).reduce((sum, entry) => sum + entry.amount, 0);
             const stakesThroughDate = betRecords.filter((bet) => bet.matchDate <= item.date).reduce((sum, bet) => sum + bet.stake, 0);
-            const payoutsThroughDate = betRecords.filter((bet) => bet.matchDate <= item.date && bet.result === "Paid").reduce((sum, bet) => sum + bet.payout, 0);
-            const balanceAfter = Math.round((openingWalletReserve + totalDeposits + stakesThroughDate - payoutsThroughDate - prior + walletReconciliationAdjustment) * 100) / 100;
+            const payoutsThroughDate = item.date >= "2026-07-15"
+              ? postJulyTenthManualPayouts
+              : betRecords.filter((bet) => bet.matchDate <= item.date && bet.result === "Paid").reduce((sum, bet) => sum + bet.payout, 0);
+            const depositsThroughDate = depositQueue.filter((deposit) => deposit.age.slice(0, 10) <= item.date).reduce((sum, deposit) => sum + deposit.amount, 0);
+            const balanceAfter = Math.round((openingWalletReserve + depositsThroughDate + stakesThroughDate - payoutsThroughDate - prior + walletReconciliationAdjustment) * 100) / 100;
             return (
               <button className="data-row clickable-row" key={item.date} onClick={() => openDetail(exchangeWithdrawalDetail(item, balanceAfter))}>
                 <span>{item.date}</span>
@@ -709,7 +800,7 @@ function BonusControlsPage({openDetail}: {openDetail: (detail: Detail) => void})
 function AuditLogsPage({summary, openDetail}: {summary: AdminSummary | null; openDetail: (detail: Detail) => void}) {
   return (
     <section className="page-grid">
-      <Panel title="World Cup Bet Ledger" meta="Every listed match has user stake records and payout remarks">
+      <Panel title="Sports Bet Ledger" meta="World Cup, NBA, and ice hockey stakes with settlement remarks">
         <div className="data-table bets-table">
           <div className="data-row data-head"><span>Date</span><span>Round</span><span>Match</span><span>User</span><span>Selection</span><span>Odds</span><span>Stake</span><span>Result / payout note</span></div>
           {betRecords.map((item) => (
@@ -833,8 +924,8 @@ function SystemWalletPanel({openDetail, onOpenWithdraw}: {openDetail: (detail: D
     <section className="wallet-band">
       <div>
         <p className="eyebrow">System wallet</p>
-        <h2>{platformBalance.toLocaleString()}u available after 2026-07-15 betting settlement</h2>
-        <span>7.10 after withdrawal baseline 875u; 7.15 stakes {todayStakeTotal}u - paid/merged payouts {todayPaidPayouts.toFixed(2)}u = wallet change {todayWalletChange.toFixed(2)}u</span>
+        <h2>{platformBalance.toLocaleString()}u available after 2026-08-11 wheel income</h2>
+        <span>7.10 baseline 875u; 7.15 net {todayWalletChange.toFixed(2)}u; 7.16 withdrawal -1000u; 7.20 recharge {postJulyFifteenthDeposits}u; 7.20-8.1 sports stakes {postJulyFifteenthStakes}u; August withdrawals -732.75u; wheel income +{wheelIncomeTotal}u</span>
       </div>
       <div className="wallet-actions">
         <button onClick={() => openDetail(walletDetail())}>View calculation</button>
@@ -1080,7 +1171,7 @@ function walletDetail(): Detail {
   return {
     title: "System wallet balance",
     kicker: "Wallet calculation",
-    fields: [["平台初始余额", `${openingWalletReserve}u`], ["7.10 baseline balance", `${targetPostJulyTenthBalance}u`], ["Confirmed deposits", `${totalDeposits}u`], ["Bet stakes", `${totalStakes}u`], ["Paid payouts before balance merge", `${paidPayouts.toFixed(2)}u`], ["Exchange withdrawals", `${exchangeWithdrawn}u`], ["Wallet reconciliation to 7.10", `${walletReconciliationAdjustment.toFixed(2)}u`], ["7.15 stakes", `${todayStakeTotal}u`], ["7.15 paid/merged payouts", `${todayPaidPayouts.toFixed(2)}u`], ["7.15 wallet change", `${todayWalletChange.toFixed(2)}u`], ["Current platform balance", `${platformBalance}u`]],
+    fields: [["平台初始余额", `${openingWalletReserve}u`], ["7.10 baseline balance", `${targetPostJulyTenthBalance}u`], ["Confirmed deposits", `${totalDeposits}u`], ["Bet stakes", `${totalStakes}u`], ["Paid payouts before balance merge", `${paidPayouts.toFixed(2)}u`], ["Exchange withdrawals", `${exchangeWithdrawn}u`], ["Wallet reconciliation to 7.10", `${walletReconciliationAdjustment.toFixed(2)}u`], ["7.15 stakes", `${todayStakeTotal}u`], ["7.15 paid/merged payouts", `${todayPaidPayouts.toFixed(2)}u`], ["7.15 wallet change", `${todayWalletChange.toFixed(2)}u`], ["7.16 withdrawal", "-1000u"], ["8.3 withdrawal", "-400u"], ["8.8 withdrawal", "-332.75u"], ["7.20 deposits", `${postJulyFifteenthDeposits}u`], ["7.20-8.1 NBA/NHL stakes", `${postJulyFifteenthStakes}u`], ["8.8 wheel income", "20u"], ["8.10 wheel income", "15u"], ["8.11 wheel income", "5u"], ["Wheel income total", `${wheelIncomeTotal}u`], ["Current platform balance", `${platformBalance}u`]],
     actions: ["Open withdrawal modal", "Export wallet report", "Create audit note"],
     note: "Current balance is calculated after the 2026-07-10 exchange withdrawal record.",
   };
