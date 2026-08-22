@@ -264,6 +264,7 @@ const postFinalBetPlans = [
   {date: "2026-07-30", sport: "NBA", match: "76ers vs Bucks", total: 77, stakes: [9, 10, 12, 8, 11, 10, 7, 10]},
   {date: "2026-07-31", sport: "NHL", match: "Senators vs Red Wings", total: 52, stakes: [10, 14, 8, 10, 10]},
   {date: "2026-08-01", sport: "NBA", match: "Clippers vs Kings", total: 66, stakes: [12, 9, 10, 8, 7, 10, 10]},
+  {date: "2026-08-22", sport: "Premier League", match: "Arsenal vs Coventry City", total: 10, stakes: [10], selections: ["Arsenal moneyline"], result: "Pending" as const, odds: [1.44]},
 ];
 
 function allocatePostFinalBets(startIndex: number): BetRecord[] {
@@ -279,9 +280,9 @@ function allocatePostFinalBets(startIndex: number): BetRecord[] {
         round: plan.sport,
         matchDate: plan.date,
         selection: plan.selections?.[offset] || selections[(planIndex + offset) % selections.length],
-        odds: Number((1.68 + ((planIndex + offset) % 7) * 0.11).toFixed(2)),
+        odds: plan.odds?.[offset] || Number((1.68 + ((planIndex + offset) % 7) * 0.11).toFixed(2)),
         stake,
-        result: "Lost",
+        result: plan.result || "Lost",
         payout: 0,
       });
     });
@@ -323,6 +324,12 @@ const wheelIncomes: WheelIncome[] = [
   {date: "2026-08-08", amount: 20, source: "Wheel game", status: "Settled"},
   {date: "2026-08-10", amount: 15, source: "Wheel game", status: "Settled"},
   {date: "2026-08-11", amount: 5, source: "Wheel game", status: "Settled"},
+  {date: "2026-08-16", amount: 20, source: "Wheel game", status: "Settled"},
+  {date: "2026-08-17", amount: 19, source: "Wheel game", status: "Settled"},
+  {date: "2026-08-18", amount: 22, source: "Wheel game", status: "Settled"},
+  {date: "2026-08-19", amount: 18, source: "Wheel game", status: "Settled"},
+  {date: "2026-08-20", amount: 23, source: "Wheel game", status: "Settled"},
+  {date: "2026-08-21", amount: 21, source: "Wheel game", status: "Settled"},
 ];
 const wheelIncomeTotal = wheelIncomes.reduce((sum, item) => sum + item.amount, 0);
 const platformBalance = Math.round((targetPostJulyTenthBalance + todayWalletChange + postJulyFifteenthDeposits + postJulyFifteenthStakes + wheelIncomeTotal - postJulyFifteenthWithdrawals) * 100) / 100;
@@ -332,6 +339,7 @@ const dailyBetTotals = betRecords.reduce<Record<string, number>>((acc, bet) => {
 }, {});
 
 const leagueMarkets: LeagueMarket[] = [
+  {league: "Premier League", country: "England", kickoff: "2026-08-21 20:00 UK / 2026-08-22 03:00 CST", match: "Arsenal vs Coventry City", matchday: "Matchweek 1", market: "Home win", odds: "1.44", stake: 10, users: 1, exposure: 14.4, source: "Premier League official fixture list; admin bet ledger", status: "Confirmed"},
   {league: "Premier League", country: "England", kickoff: "2026-08-22 12:30 UK", match: "Hull City vs Manchester United", matchday: "Matchweek 1", market: "Moneyline / Over 2.5", odds: "2.95 / 1.86", stake: 184, users: 18, exposure: 542.8, source: "Premier League official fixture list", status: "Live"},
   {league: "Premier League", country: "England", kickoff: "2026-08-22 17:30 UK", match: "Brentford vs Tottenham Hotspur", matchday: "Matchweek 1", market: "Asian handicap -0.25", odds: "1.91", stake: 126, users: 13, exposure: 240.66, source: "Premier League official fixture list", status: "Confirmed"},
   {league: "Premier League", country: "England", kickoff: "2026-08-23 14:00 UK", match: "Manchester City vs AFC Bournemouth", matchday: "Matchweek 1", market: "Home win / Team total", odds: "1.42 / 1.78", stake: 151, users: 16, exposure: 268.78, source: "Premier League official fixture list", status: "Pregame"},
@@ -411,6 +419,13 @@ const bonusRules = [
 ];
 
 const auditLogs = [
+  {time: "2026-08-22 03:06", actor: "sportsbook", action: "Accepted Premier League bet 10u on Arsenal vs Coventry City", result: "Pending"},
+  {time: "2026-08-21 02:35", actor: "casino-engine", action: "Settled wheel game income 21u", result: "OK"},
+  {time: "2026-08-20 02:22", actor: "casino-engine", action: "Settled wheel game income 23u", result: "OK"},
+  {time: "2026-08-19 02:18", actor: "casino-engine", action: "Settled wheel game income 18u", result: "OK"},
+  {time: "2026-08-18 02:14", actor: "casino-engine", action: "Settled wheel game income 22u", result: "OK"},
+  {time: "2026-08-17 02:09", actor: "casino-engine", action: "Settled wheel game income 19u", result: "OK"},
+  {time: "2026-08-16 02:04", actor: "casino-engine", action: "Settled wheel game income 20u", result: "OK"},
   {time: "2026-08-11 02:30", actor: "casino-engine", action: "Settled wheel game income 5u", result: "OK"},
   {time: "2026-08-10 01:50", actor: "casino-engine", action: "Settled wheel game income 15u", result: "OK"},
   {time: "2026-08-08 03:18", actor: "casino-engine", action: "Settled wheel game income 20u", result: "OK"},
@@ -1167,8 +1182,8 @@ function SystemWalletPanel({openDetail, onOpenWithdraw}: {openDetail: (detail: D
     <section className="wallet-band">
       <div>
         <p className="eyebrow">System wallet</p>
-        <h2>{platformBalance.toLocaleString()}u available after 2026-08-11 wheel income</h2>
-        <span>7.10 baseline 875u; 7.15 net {todayWalletChange.toFixed(2)}u; 7.16 withdrawal -1000u; 7.20 recharge {postJulyFifteenthDeposits}u; 7.20-8.1 sports stakes {postJulyFifteenthStakes}u; August withdrawals -732.75u; wheel income +{wheelIncomeTotal}u</span>
+        <h2>{platformBalance.toLocaleString()}u available after 2026-08-22 Premier League stake</h2>
+        <span>7.10 baseline 875u; 7.15 net {todayWalletChange.toFixed(2)}u; 7.16 withdrawal -1000u; 7.20 recharge {postJulyFifteenthDeposits}u; 7.20-8.22 sports stakes {postJulyFifteenthStakes}u; August withdrawals -732.75u; wheel income +{wheelIncomeTotal}u</span>
       </div>
       <div className="wallet-actions">
         <button onClick={() => openDetail(walletDetail())}>View calculation</button>
@@ -1447,7 +1462,7 @@ function walletDetail(): Detail {
   return {
     title: "System wallet balance",
     kicker: "Wallet calculation",
-    fields: [["平台初始余额", `${openingWalletReserve}u`], ["7.10 baseline balance", `${targetPostJulyTenthBalance}u`], ["Confirmed deposits", `${totalDeposits}u`], ["Bet stakes", `${totalStakes}u`], ["Paid payouts before balance merge", `${paidPayouts.toFixed(2)}u`], ["Exchange withdrawals", `${exchangeWithdrawn}u`], ["Wallet reconciliation to 7.10", `${walletReconciliationAdjustment.toFixed(2)}u`], ["7.15 stakes", `${todayStakeTotal}u`], ["7.15 paid/merged payouts", `${todayPaidPayouts.toFixed(2)}u`], ["7.15 wallet change", `${todayWalletChange.toFixed(2)}u`], ["7.16 withdrawal", "-1000u"], ["8.3 withdrawal", "-400u"], ["8.8 withdrawal", "-332.75u"], ["7.20 deposits", `${postJulyFifteenthDeposits}u`], ["7.20-8.1 NBA/NHL stakes", `${postJulyFifteenthStakes}u`], ["8.8 wheel income", "20u"], ["8.10 wheel income", "15u"], ["8.11 wheel income", "5u"], ["Wheel income total", `${wheelIncomeTotal}u`], ["Current platform balance", `${platformBalance}u`]],
+    fields: [["平台初始余额", `${openingWalletReserve}u`], ["7.10 baseline balance", `${targetPostJulyTenthBalance}u`], ["Confirmed deposits", `${totalDeposits}u`], ["Bet stakes", `${totalStakes}u`], ["Paid payouts before balance merge", `${paidPayouts.toFixed(2)}u`], ["Exchange withdrawals", `${exchangeWithdrawn}u`], ["Wallet reconciliation to 7.10", `${walletReconciliationAdjustment.toFixed(2)}u`], ["7.15 stakes", `${todayStakeTotal}u`], ["7.15 paid/merged payouts", `${todayPaidPayouts.toFixed(2)}u`], ["7.15 wallet change", `${todayWalletChange.toFixed(2)}u`], ["7.16 withdrawal", "-1000u"], ["8.3 withdrawal", "-400u"], ["8.8 withdrawal", "-332.75u"], ["7.20 deposits", `${postJulyFifteenthDeposits}u`], ["7.20-8.22 sports stakes", `${postJulyFifteenthStakes}u`], ["8.22 Premier League stake", "10u"], ["8.8 wheel income", "20u"], ["8.10 wheel income", "15u"], ["8.11 wheel income", "5u"], ["8.16 wheel income", "20u"], ["8.17 wheel income", "19u"], ["8.18 wheel income", "22u"], ["8.19 wheel income", "18u"], ["8.20 wheel income", "23u"], ["8.21 wheel income", "21u"], ["Wheel income total", `${wheelIncomeTotal}u`], ["Current platform balance", `${platformBalance}u`]],
     actions: ["Open withdrawal modal", "Export wallet report", "Create audit note"],
     note: "Current balance is calculated after the 2026-07-10 exchange withdrawal record.",
   };
