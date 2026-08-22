@@ -9,6 +9,7 @@ import {
   Clock3,
   Database,
   FileText,
+  Goal,
   Lock,
   LogOut,
   RefreshCcw,
@@ -36,7 +37,7 @@ type AdminSummary = {
   updatedAt: string;
 };
 
-type ActivePage = "Overview" | "Users" | "Deposits" | "Withdrawals" | "Risk Review" | "Bonus Controls" | "Audit Logs";
+type ActivePage = "Overview" | "Users" | "Deposits" | "Withdrawals" | "Risk Review" | "Bonus Controls" | "Five Leagues" | "Audit Logs";
 type Detail = {
   title: string;
   kicker: string;
@@ -69,6 +70,18 @@ type BetRecord = {
 type ExchangeWithdrawal = {date: string; amount: number; status: string; destination: string};
 type DepositRecord = {id: string; user: string; chain: string; tx: string; amount: number; confirmations: string; status: string; age: string};
 type WheelIncome = {date: string; amount: number; source: string; status: string};
+type LeagueMarket = {
+  league: string;
+  country: string;
+  kickoff: string;
+  match: string;
+  market: string;
+  odds: string;
+  stake: number;
+  users: number;
+  exposure: number;
+  status: "Pregame" | "Live" | "Risk review";
+};
 
 const API_BASE = (import.meta.env.VITE_API_BASE_URL || "https://2026wc.zeabur.app").replace(/\/+$/, "");
 const EXCHANGE_WITHDRAW_PASSWORD = import.meta.env.VITE_EXCHANGE_WITHDRAW_PASSWORD || "";
@@ -81,6 +94,7 @@ const navItems: Array<{label: ActivePage; Icon: typeof Activity}> = [
   {label: "Withdrawals", Icon: Banknote},
   {label: "Risk Review", Icon: AlertTriangle},
   {label: "Bonus Controls", Icon: SlidersHorizontal},
+  {label: "Five Leagues", Icon: Goal},
   {label: "Audit Logs", Icon: Database},
 ];
 
@@ -309,6 +323,23 @@ const dailyBetTotals = betRecords.reduce<Record<string, number>>((acc, bet) => {
   return acc;
 }, {});
 
+const leagueMarkets: LeagueMarket[] = [
+  {league: "Premier League", country: "England", kickoff: "2026-08-22 19:30", match: "Manchester City vs Arsenal", market: "Moneyline / Over 2.5", odds: "2.05 / 1.83", stake: 184, users: 18, exposure: 377.2, status: "Live"},
+  {league: "Premier League", country: "England", kickoff: "2026-08-23 00:30", match: "Liverpool vs Chelsea", market: "Asian handicap -0.25", odds: "1.91", stake: 126, users: 13, exposure: 240.66, status: "Pregame"},
+  {league: "LaLiga", country: "Spain", kickoff: "2026-08-22 22:15", match: "Real Madrid vs Sevilla", market: "Home win / Team total", odds: "1.56 / 1.92", stake: 142, users: 14, exposure: 272.64, status: "Pregame"},
+  {league: "LaLiga", country: "Spain", kickoff: "2026-08-24 03:00", match: "Barcelona vs Valencia", market: "Both teams to score", odds: "1.78", stake: 88, users: 9, exposure: 156.64, status: "Risk review"},
+  {league: "Serie A", country: "Italy", kickoff: "2026-08-23 02:45", match: "Inter Milan vs Napoli", market: "Draw no bet", odds: "1.74", stake: 117, users: 11, exposure: 203.58, status: "Pregame"},
+  {league: "Serie A", country: "Italy", kickoff: "2026-08-24 00:00", match: "Juventus vs Roma", market: "Under 2.5", odds: "1.86", stake: 74, users: 7, exposure: 137.64, status: "Pregame"},
+  {league: "Bundesliga", country: "Germany", kickoff: "2026-08-22 21:30", match: "Bayern Munich vs Dortmund", market: "Live next goal", odds: "2.18", stake: 155, users: 16, exposure: 337.9, status: "Live"},
+  {league: "Bundesliga", country: "Germany", kickoff: "2026-08-23 23:30", match: "Leipzig vs Leverkusen", market: "Spread -0.5", odds: "2.02", stake: 69, users: 6, exposure: 139.38, status: "Pregame"},
+  {league: "Ligue 1", country: "France", kickoff: "2026-08-23 03:00", match: "Paris SG vs Lyon", market: "Player shots over", odds: "1.95", stake: 103, users: 10, exposure: 200.85, status: "Pregame"},
+  {league: "Ligue 1", country: "France", kickoff: "2026-08-24 02:45", match: "Marseille vs Monaco", market: "Double chance", odds: "1.67", stake: 58, users: 5, exposure: 96.86, status: "Pregame"},
+];
+const leagueNames = Array.from(new Set(leagueMarkets.map((item) => item.league)));
+const leagueTotalStake = leagueMarkets.reduce((sum, item) => sum + item.stake, 0);
+const leagueTotalExposure = Math.round(leagueMarkets.reduce((sum, item) => sum + item.exposure, 0) * 100) / 100;
+const liveLeagueMarkets = leagueMarkets.filter((item) => item.status === "Live").length;
+
 const depositQueue: DepositRecord[] = [
   ...adminUsers.map((user, index) => ({
   id: `DEP-${String(8200 + index).padStart(4, "0")}`,
@@ -493,6 +524,7 @@ export function App() {
     Withdrawals: ["Withdrawals", "Manual payout review and platform protection"],
     "Risk Review": ["Risk Review", "Signals, limits, and investigation notes"],
     "Bonus Controls": ["Bonus Controls", "Promotions, loyalty, and wagering rules"],
+    "Five Leagues": ["Five Leagues", "Premier League, LaLiga, Serie A, Bundesliga, Ligue 1"],
     "Audit Logs": ["Audit Logs", "Operator and system activity trail"],
   } satisfies Record<ActivePage, [string, string]>;
 
@@ -568,6 +600,7 @@ export function App() {
         {activePage === "Withdrawals" && <WithdrawalsPage openDetail={setDetail} onOpenWithdraw={() => setWithdrawOpen(true)} />}
         {activePage === "Risk Review" && <RiskReviewPage openDetail={setDetail} />}
         {activePage === "Bonus Controls" && <BonusControlsPage openDetail={setDetail} />}
+        {activePage === "Five Leagues" && <FiveLeaguesPage openDetail={setDetail} />}
         {activePage === "Audit Logs" && <AuditLogsPage summary={summary} openDetail={setDetail} />}
       </main>
       {detail && <DetailDrawer detail={detail} onClose={() => setDetail(null)} />}
@@ -792,6 +825,103 @@ function BonusControlsPage({openDetail}: {openDetail: (detail: Detail) => void})
         <Metric title="Active promos" value={bonusRules.filter((item) => item.status === "Active").length} icon={<SlidersHorizontal size={20} />} onClick={() => openDetail(metricDetail("Active promos", bonusRules.filter((item) => item.status === "Active").length, "Promotion rules currently enabled for the sportsbook."))} />
         <Metric title="Manual promos" value={bonusRules.filter((item) => item.status === "Manual").length} icon={<FileText size={20} />} onClick={() => openDetail(metricDetail("Manual promos", bonusRules.filter((item) => item.status === "Manual").length, "Promotion rules requiring operator confirmation."))} />
         <Metric title="Loyalty tiers" value={5} icon={<ShieldCheck size={20} />} onClick={() => openDetail(metricDetail("Loyalty tiers", 5, "VIP and loyalty tiers used for account rewards."))} />
+      </section>
+    </section>
+  );
+}
+
+function FiveLeaguesPage({openDetail}: {openDetail: (detail: Detail) => void}) {
+  return (
+    <section className="page-grid five-leagues-page">
+      <section className="league-hero">
+        <div>
+          <p className="eyebrow">European football desk</p>
+          <h2>五大联赛盘口运营</h2>
+          <span>独立查看英超、西甲、意甲、德甲、法甲的赛前盘、滚球盘、风险敞口和用户下注分布。</span>
+        </div>
+        <div className="league-hero-stats">
+          <button onClick={() => openDetail(metricDetail("Five leagues stake", leagueTotalStake, "Standalone five-league stake monitor. It is intentionally not merged into the World Cup wallet balance."))}>
+            <span>Stake</span>
+            <strong>{leagueTotalStake}u</strong>
+          </button>
+          <button onClick={() => openDetail(metricDetail("Five leagues exposure", leagueTotalExposure, "Maximum operator payout exposure across the listed five-league markets."))}>
+            <span>Exposure</span>
+            <strong>{leagueTotalExposure}u</strong>
+          </button>
+          <button onClick={() => openDetail(metricDetail("Live league markets", liveLeagueMarkets, "Markets currently marked as live for operator attention."))}>
+            <span>Live</span>
+            <strong>{liveLeagueMarkets}</strong>
+          </button>
+        </div>
+      </section>
+
+      <section className="league-card-grid">
+        {leagueNames.map((league) => {
+          const rows = leagueMarkets.filter((item) => item.league === league);
+          const stake = rows.reduce((sum, item) => sum + item.stake, 0);
+          const exposure = Math.round(rows.reduce((sum, item) => sum + item.exposure, 0) * 100) / 100;
+          const live = rows.some((item) => item.status === "Live");
+          return (
+            <button className="league-card" key={league} onClick={() => openDetail(leagueDetail(league))}>
+              <span>{rows[0].country}</span>
+              <strong>{league}</strong>
+              <small>{rows.length} fixtures · {stake}u stake · {exposure}u exposure</small>
+              <em className={live ? "live" : ""}>{live ? "Live desk open" : "Pregame desk"}</em>
+            </button>
+          );
+        })}
+      </section>
+
+      <Panel title="League Fixtures & Odds" meta="Moneyline, totals, handicap, live market, and player prop monitoring">
+        <div className="data-table league-table">
+          <div className="data-row data-head"><span>Kickoff</span><span>League</span><span>Match</span><span>Market</span><span>Odds</span><span>Users</span><span>Stake</span><span>Exposure</span><span>Status</span><span>Action</span></div>
+          {leagueMarkets.map((item) => (
+            <button className="data-row clickable-row" key={`${item.league}-${item.match}`} onClick={() => openDetail(leagueMarketDetail(item))}>
+              <span>{item.kickoff}</span>
+              <span>{item.league}</span>
+              <strong>{item.match}</strong>
+              <span>{item.market}</span>
+              <b>{item.odds}</b>
+              <span>{item.users}</span>
+              <span>{item.stake}u</span>
+              <span>{item.exposure}u</span>
+              <em className={item.status === "Live" ? "" : item.status === "Risk review" ? "warn" : ""}>{item.status}</em>
+              <span>Open</span>
+            </button>
+          ))}
+        </div>
+      </Panel>
+
+      <section className="triple-grid">
+        <Panel title="Risk Flags" meta="League market protection">
+          <div className="compact-list">
+            {["Barcelona BTTS prop needs exposure cap", "Bayern-Dortmund live next-goal volatility", "Premier League sharp bets from repeat accounts"].map((item) => (
+              <button key={item} onClick={() => openDetail(controlDetail(item, "Five Leagues risk", "Operator should review exposure before lifting market limits."))}>
+                <span><AlertTriangle size={14} /> Risk</span>
+                <strong>{item}</strong>
+                <small>Click to open the risk workflow.</small>
+              </button>
+            ))}
+          </div>
+        </Panel>
+        <Panel title="Bonus Hooks" meta="Football retention campaigns">
+          <div className="policy-list">
+            {[
+              ["Acca boost", "+8% on 3-leg five-league parlays"],
+              ["Live goal rebate", "5u free bet after qualifying live loss"],
+              ["Weekend loyalty", "1.2x points on league fixtures"],
+            ].map(([name, value]) => (
+              <button key={name} onClick={() => openDetail(controlDetail(name, "Five Leagues bonus", value))}><span>{name}</span><strong>{value}</strong></button>
+            ))}
+          </div>
+        </Panel>
+        <Panel title="Desk Actions" meta="Operator shortcuts">
+          <div className="control-grid league-controls">
+            {["Suspend live market", "Adjust exposure cap", "Export fixtures", "Create payout memo"].map((item) => (
+              <button key={item} onClick={() => openDetail(controlDetail(item, "Five Leagues", "This creates a five-league operator task and appends an audit note."))}>{item}</button>
+            ))}
+          </div>
+        </Panel>
       </section>
     </section>
   );
@@ -1122,6 +1252,29 @@ function bonusDetail(item: typeof bonusRules[number]): Detail {
     fields: [["Program", item.name], ["Value", item.value], ["Limit", item.limit], ["Status", item.status], ["Wagering check", "Required before withdrawal"]],
     actions: ["Edit rule", "Pause promotion", "Duplicate campaign", "View affected users"],
     note: "Bonus rules displayed here are operator-facing controls for promotions and loyalty programs.",
+  };
+}
+
+function leagueDetail(league: string): Detail {
+  const rows = leagueMarkets.filter((item) => item.league === league);
+  const stake = rows.reduce((sum, item) => sum + item.stake, 0);
+  const exposure = Math.round(rows.reduce((sum, item) => sum + item.exposure, 0) * 100) / 100;
+  return {
+    title: `League desk · ${league}`,
+    kicker: "Five Leagues",
+    fields: [["League", league], ["Country", rows[0]?.country || "Europe"], ["Fixtures", String(rows.length)], ["Stake", `${stake}u`], ["Exposure", `${exposure}u`], ["Live markets", String(rows.filter((item) => item.status === "Live").length)], ["Risk review rows", String(rows.filter((item) => item.status === "Risk review").length)]],
+    actions: ["Open fixtures", "Export league report", "Adjust market limits", "Create audit note"],
+    note: rows.map((item) => `${item.match}: ${item.market} @ ${item.odds}, ${item.stake}u stake`).join(" | "),
+  };
+}
+
+function leagueMarketDetail(item: LeagueMarket): Detail {
+  return {
+    title: `${item.league} · ${item.match}`,
+    kicker: "Fixtures & odds",
+    fields: [["Kickoff", item.kickoff], ["Country", item.country], ["League", item.league], ["Match", item.match], ["Market", item.market], ["Odds", item.odds], ["Users", String(item.users)], ["Stake", `${item.stake}u`], ["Exposure", `${item.exposure}u`], ["Status", item.status]],
+    actions: ["Open bet slips", "Adjust odds note", "Suspend market", "Export fixture"],
+    note: item.status === "Risk review" ? "This market is flagged because exposure or user behavior needs manual review before promotion." : "Fixture row is ready for operator monitoring and odds review.",
   };
 }
 

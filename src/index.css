@@ -495,6 +495,10 @@ nav button:hover,
   grid-template-columns: 120px 110px minmax(180px, 1fr) 120px 150px 70px 70px minmax(180px, 1fr);
 }
 
+.league-table .data-row {
+  grid-template-columns: 138px 120px minmax(200px, 1fr) minmax(160px, 0.9fr) 92px 64px 74px 92px 100px 70px;
+}
+
 .data-head {
   background: transparent;
   color: #64748b;
@@ -609,6 +613,114 @@ nav button:hover,
 .submit-withdraw:hover {
   border-color: rgba(45, 212, 191, 0.58);
   background: rgba(20, 184, 166, 0.24);
+}
+
+.five-leagues-page {
+  --league-green: #22c55e;
+  --league-gold: #facc15;
+}
+
+.league-hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(360px, 0.72fr);
+  gap: 16px;
+  align-items: stretch;
+  overflow: hidden;
+  border: 1px solid rgba(34, 197, 94, 0.22);
+  background:
+    linear-gradient(135deg, rgba(20, 83, 45, 0.62), rgba(8, 13, 20, 0.86) 58%),
+    linear-gradient(90deg, rgba(250, 204, 21, 0.12), transparent 52%);
+  padding: 20px;
+}
+
+.league-hero h2 {
+  margin: 0 0 8px;
+  font-size: clamp(30px, 4vw, 52px);
+  line-height: 0.98;
+}
+
+.league-hero span {
+  color: #b7c6d9;
+  line-height: 1.65;
+}
+
+.league-hero-stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.league-hero-stats button,
+.league-card {
+  border: 1px solid rgba(148, 163, 184, 0.14);
+  background: rgba(2, 6, 23, 0.42);
+  color: inherit;
+  text-align: left;
+}
+
+.league-hero-stats button {
+  padding: 14px;
+}
+
+.league-hero-stats span,
+.league-card span,
+.league-card small {
+  display: block;
+  color: #94a3b8;
+  font-size: 12px;
+}
+
+.league-hero-stats strong {
+  display: block;
+  margin-top: 8px;
+  color: #f8fafc;
+  font-size: 28px;
+}
+
+.league-card-grid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.league-card {
+  min-height: 150px;
+  padding: 16px;
+}
+
+.league-card:hover,
+.league-hero-stats button:hover {
+  border-color: rgba(34, 197, 94, 0.44);
+  background: rgba(20, 83, 45, 0.28);
+}
+
+.league-card strong {
+  display: block;
+  margin: 10px 0 8px;
+  color: #f8fafc;
+  font-size: 21px;
+}
+
+.league-card em {
+  display: inline-flex;
+  margin-top: 14px;
+  border: 1px solid rgba(148, 163, 184, 0.14);
+  background: rgba(15, 23, 42, 0.56);
+  color: #cbd5e1;
+  padding: 6px 8px;
+  font-size: 11px;
+  font-style: normal;
+  font-weight: 850;
+}
+
+.league-card em.live {
+  border-color: rgba(34, 197, 94, 0.32);
+  background: rgba(22, 163, 74, 0.15);
+  color: #bbf7d0;
+}
+
+.league-controls {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
 .daily-grid {
@@ -928,6 +1040,7 @@ nav button:hover,
   .metrics-grid,
   .triple-grid,
   .compact-metrics,
+  .league-card-grid,
   .daily-grid,
   .control-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -936,6 +1049,10 @@ nav button:hover,
   .wallet-band {
     align-items: flex-start;
     flex-direction: column;
+  }
+
+  .league-hero {
+    grid-template-columns: 1fr;
   }
 }
 
@@ -958,6 +1075,8 @@ nav button:hover,
   .split-grid,
   .triple-grid,
   .compact-metrics,
+  .league-card-grid,
+  .league-hero-stats,
   .daily-grid,
   .control-grid {
     grid-template-columns: 1fr;
