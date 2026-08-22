@@ -1,0 +1,32 @@
+name: ol-companion
+
+services:
+  ol-backend:
+    build:
+      context: ./backend
+    ports:
+      - "3002:3002"
+    env_file: ./backend/.env
+    environment:
+      NODE_ENV: production
+      CORS_ORIGIN: "http://nas:4202"
+      SHARED_DATA_DIR: /app/shared-data
+      # Comma-separated list of host substrings forced into locked-demo mode.
+      # Any request whose Host (or X-Forwarded-Host) contains one of these is
+      # treated as public showcase: PIN is bypassed, writes return 403, the
+      # frontend shows a "Mode démo verrouillée" badge.
+      # Default covers Cloudflare quick tunnels.
+      DEMO_FORCED_HOSTS: "trycloudflare.com,cfargotunnel.com"
+    volumes:
+      - /volume2/docker/developpeur/data/ol:/app/data
+      - /volume2/docker/developpeur/data/shared:/app/shared-data
+    restart: unless-stopped
+
+  ol-frontend:
+    build:
+      context: ./frontend
+    ports:
+      - "4202:80"
+    depends_on:
+      - ol-backend
+    restart: unless-stopped
