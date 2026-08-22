@@ -38,7 +38,7 @@ type AdminSummary = {
 };
 
 type LeaguePage = "Premier League" | "LaLiga" | "Serie A" | "Bundesliga" | "Ligue 1";
-type ActivePage = "Overview" | "Users" | "Deposits" | "Withdrawals" | "Risk Review" | "Bonus Controls" | "Five Leagues" | LeaguePage | "Audit Logs";
+type ActivePage = "Overview" | "Users" | "Deposits" | "Withdrawals" | "Risk Review" | "Bonus Controls" | "Five Leagues" | "League Bets" | LeaguePage | "Audit Logs";
 type Detail = {
   title: string;
   kicker: string;
@@ -85,6 +85,21 @@ type LeagueMarket = {
   source: string;
   status: "Confirmed" | "Pregame" | "Live" | "Date confirmed" | "Risk review";
 };
+type LeagueBetSlip = {
+  id: string;
+  time: string;
+  user: string;
+  league: LeaguePage | "Multi League";
+  match: string;
+  market: string;
+  selection: string;
+  odds: number;
+  stake: number;
+  potentialPayout: number;
+  betType: "Single" | "Parlay" | "Live" | "Player prop" | "Team prop";
+  status: "Pending" | "Open" | "Won" | "Lost" | "Risk hold";
+  risk: "Low" | "Medium" | "High";
+};
 
 const API_BASE = (import.meta.env.VITE_API_BASE_URL || "https://2026wc.zeabur.app").replace(/\/+$/, "");
 const EXCHANGE_WITHDRAW_PASSWORD = import.meta.env.VITE_EXCHANGE_WITHDRAW_PASSWORD || "";
@@ -98,6 +113,7 @@ const navItems: Array<{label: ActivePage; Icon: typeof Activity}> = [
   {label: "Risk Review", Icon: AlertTriangle},
   {label: "Bonus Controls", Icon: SlidersHorizontal},
   {label: "Five Leagues", Icon: Goal},
+  {label: "League Bets", Icon: CircleDollarSign},
   {label: "Premier League", Icon: Goal},
   {label: "LaLiga", Icon: Goal},
   {label: "Serie A", Icon: Goal},
@@ -361,6 +377,19 @@ const leaguePageItems = leagueNames as LeaguePage[];
 const leagueTotalStake = leagueMarkets.reduce((sum, item) => sum + item.stake, 0);
 const leagueTotalExposure = Math.round(leagueMarkets.reduce((sum, item) => sum + item.exposure, 0) * 100) / 100;
 const liveLeagueMarkets = leagueMarkets.filter((item) => item.status === "Live").length;
+const leagueBetSlips: LeagueBetSlip[] = [
+  {id: "LGB-2201", time: "2026-08-22 03:06", user: "EthanCA31", league: "Premier League", match: "Arsenal vs Coventry City", market: "Moneyline", selection: "Arsenal win", odds: 1.44, stake: 10, potentialPayout: 14.4, betType: "Single", status: "Pending", risk: "Low"},
+  {id: "LGB-2202", time: "2026-08-22 19:41", user: "Omar11", league: "Premier League", match: "Hull City vs Manchester United", market: "Total goals", selection: "Over 2.5", odds: 1.86, stake: 18, potentialPayout: 33.48, betType: "Live", status: "Open", risk: "Medium"},
+  {id: "LGB-2203", time: "2026-08-22 20:04", user: "Yousef12", league: "Premier League", match: "Brentford vs Tottenham Hotspur", market: "Asian handicap", selection: "Tottenham -0.25", odds: 1.91, stake: 15, potentialPayout: 28.65, betType: "Single", status: "Open", risk: "Low"},
+  {id: "LGB-2204", time: "2026-08-22 21:12", user: "Khalid13", league: "LaLiga", match: "RCD Espanyol de Barcelona vs Real Madrid", market: "Player shots", selection: "Mbappe over 3.5 shots", odds: 1.92, stake: 20, potentialPayout: 38.4, betType: "Player prop", status: "Open", risk: "Medium"},
+  {id: "LGB-2205", time: "2026-08-22 22:26", user: "Fahad14", league: "Bundesliga", match: "Borussia Dortmund vs Bayern Munich", market: "Next goal", selection: "Bayern next goal", odds: 2.18, stake: 25, potentialPayout: 54.5, betType: "Live", status: "Risk hold", risk: "High"},
+  {id: "LGB-2206", time: "2026-08-23 00:33", user: "Nasser15", league: "Ligue 1", match: "Paris Saint-Germain vs Stade Rennais FC", market: "Team total", selection: "PSG over 1.5 goals", odds: 1.95, stake: 16, potentialPayout: 31.2, betType: "Team prop", status: "Open", risk: "Low"},
+  {id: "LGB-2207", time: "2026-08-23 01:18", user: "Hamad16", league: "Serie A", match: "Torino vs AC Milan", market: "Draw no bet", selection: "AC Milan DNB", odds: 1.79, stake: 12, potentialPayout: 21.48, betType: "Single", status: "Open", risk: "Low"},
+  {id: "LGB-2208", time: "2026-08-23 02:02", user: "Saeed17", league: "Multi League", match: "Premier League + LaLiga + Ligue 1", market: "3-leg parlay", selection: "Man United / Real Madrid / PSG", odds: 4.62, stake: 10, potentialPayout: 46.2, betType: "Parlay", status: "Open", risk: "High"},
+] as LeagueBetSlip[];
+const leagueBetStakeTotal = leagueBetSlips.reduce((sum, slip) => sum + slip.stake, 0);
+const leagueBetExposureTotal = Math.round(leagueBetSlips.reduce((sum, slip) => sum + slip.potentialPayout, 0) * 100) / 100;
+const leagueBetRiskHolds = leagueBetSlips.filter((slip) => slip.status === "Risk hold" || slip.risk === "High").length;
 const olCompanionModules = [
   {name: "Fixtures", status: "Connected as Ligue 1 fixture board", path: "/home/uuxu/ol-companion/frontend/src/routes/fixtures.tsx"},
   {name: "Standings", status: "Pattern imported for table monitoring", path: "/home/uuxu/ol-companion/frontend/src/routes/standings.tsx"},
@@ -560,6 +589,7 @@ export function App() {
     "Risk Review": ["Risk Review", "Signals, limits, and investigation notes"],
     "Bonus Controls": ["Bonus Controls", "Promotions, loyalty, and wagering rules"],
     "Five Leagues": ["Five Leagues", "Premier League, LaLiga, Serie A, Bundesliga, Ligue 1"],
+    "League Bets": ["League Bets", "Five-league slips, parlays, live bets, and props"],
     "Premier League": ["Premier League", "England fixtures, odds, and exposure"],
     LaLiga: ["LaLiga", "Spain fixtures, odds, and exposure"],
     "Serie A": ["Serie A", "Italy fixtures, odds, and exposure"],
@@ -641,6 +671,7 @@ export function App() {
         {activePage === "Risk Review" && <RiskReviewPage openDetail={setDetail} />}
         {activePage === "Bonus Controls" && <BonusControlsPage openDetail={setDetail} />}
         {activePage === "Five Leagues" && <FiveLeaguesPage openDetail={setDetail} setActivePage={setActivePage} />}
+        {activePage === "League Bets" && <LeagueBetsPage openDetail={setDetail} />}
         {leaguePageItems.includes(activePage as LeaguePage) && <LeaguePageView league={activePage as LeaguePage} openDetail={setDetail} />}
         {activePage === "Audit Logs" && <AuditLogsPage summary={summary} openDetail={setDetail} />}
       </main>
@@ -1055,6 +1086,92 @@ function LeaguePageView({league, openDetail}: {league: LeaguePage; openDetail: (
   );
 }
 
+function LeagueBetsPage({openDetail}: {openDetail: (detail: Detail) => void}) {
+  const openSlips = leagueBetSlips.filter((slip) => slip.status === "Open" || slip.status === "Pending");
+  const byType = ["Single", "Parlay", "Live", "Player prop", "Team prop"].map((type) => ({
+    type,
+    rows: leagueBetSlips.filter((slip) => slip.betType === type),
+  }));
+
+  return (
+    <section className="page-grid league-bets-page">
+      <section className="league-bets-hero">
+        <div>
+          <p className="eyebrow">Five-league betting desk</p>
+          <h2>五大联赛投注中心</h2>
+          <span>集中管理单场、串关、滚球、球员道具和球队道具投注。当前页面为运营投注页，未自动并入主钱包结算公式。</span>
+        </div>
+        <div className="league-bets-metrics">
+          <button onClick={() => openDetail(metricDetail("League bet slips", leagueBetSlips.length, "Five-league betting slips currently shown in the operator desk."))}><span>Slips</span><strong>{leagueBetSlips.length}</strong></button>
+          <button onClick={() => openDetail(metricDetail("League bet stakes", leagueBetStakeTotal, "Stake total across five-league slips on this page."))}><span>Stake</span><strong>{leagueBetStakeTotal}u</strong></button>
+          <button onClick={() => openDetail(metricDetail("League bet exposure", leagueBetExposureTotal, "Potential payout exposure across five-league slips."))}><span>Exposure</span><strong>{leagueBetExposureTotal}u</strong></button>
+          <button onClick={() => openDetail(metricDetail("Risk holds", leagueBetRiskHolds, "High-risk or held league betting slips requiring review."))}><span>Risk</span><strong>{leagueBetRiskHolds}</strong></button>
+        </div>
+      </section>
+
+      <section className="league-bet-type-grid">
+        {byType.map(({type, rows}) => (
+          <button key={type} onClick={() => openDetail(leagueBetTypeDetail(type, rows))}>
+            <span>{type}</span>
+            <strong>{rows.reduce((sum, slip) => sum + slip.stake, 0)}u</strong>
+            <small>{rows.length} slips · {rows.filter((slip) => slip.status === "Open").length} open</small>
+          </button>
+        ))}
+      </section>
+
+      <Panel title="Five League Bet Slips" meta="Clickable operator ledger for football bets">
+        <div className="data-table league-bets-table">
+          <div className="data-row data-head"><span>Time</span><span>Slip</span><span>User</span><span>League</span><span>Match</span><span>Type</span><span>Selection</span><span>Odds</span><span>Stake</span><span>Payout</span><span>Status</span><span>Risk</span></div>
+          {leagueBetSlips.map((slip) => (
+            <button className="data-row clickable-row" key={slip.id} onClick={() => openDetail(leagueBetSlipDetail(slip))}>
+              <span>{slip.time}</span>
+              <strong>{slip.id}</strong>
+              <span>{slip.user}</span>
+              <span>{slip.league}</span>
+              <span>{slip.match}</span>
+              <span>{slip.betType}</span>
+              <span>{slip.selection}</span>
+              <b>{slip.odds.toFixed(2)}</b>
+              <span>{slip.stake}u</span>
+              <span>{slip.potentialPayout}u</span>
+              <em className={slip.status === "Risk hold" ? "danger" : slip.status === "Pending" ? "warn" : ""}>{slip.status}</em>
+              <em className={slip.risk === "High" ? "danger" : slip.risk === "Medium" ? "warn" : ""}>{slip.risk}</em>
+            </button>
+          ))}
+        </div>
+      </Panel>
+
+      <section className="triple-grid">
+        <Panel title="Open Settlement" meta={`${openSlips.length} slips still open or pending`}>
+          <div className="compact-list">
+            {openSlips.slice(0, 4).map((slip) => (
+              <button key={slip.id} onClick={() => openDetail(leagueBetSlipDetail(slip))}>
+                <span><Clock3 size={14} /> {slip.status}</span>
+                <strong>{slip.match}</strong>
+                <small>{slip.user} · {slip.stake}u @ {slip.odds.toFixed(2)}</small>
+              </button>
+            ))}
+          </div>
+        </Panel>
+        <Panel title="Betting Controls" meta="Operator actions">
+          <div className="control-grid league-controls">
+            {["Approve settlement", "Hold high-risk slip", "Export bet slips", "Adjust live limit"].map((item) => (
+              <button key={item} onClick={() => openDetail(controlDetail(item, "League Bets", "This creates a betting desk workflow item and an audit note."))}>{item}</button>
+            ))}
+          </div>
+        </Panel>
+        <Panel title="Market Coverage" meta="盘口覆盖">
+          <div className="policy-list">
+            <button onClick={() => openDetail(controlDetail("Moneyline markets", "League Bets", "Standard win/draw/win and draw-no-bet markets."))}><span>胜负盘</span><strong>Moneyline / DNB</strong></button>
+            <button onClick={() => openDetail(controlDetail("Handicap and totals", "League Bets", "Asian handicap, spread, total goals and team totals."))}><span>让分/总分</span><strong>Handicap / Totals</strong></button>
+            <button onClick={() => openDetail(controlDetail("Props and parlays", "League Bets", "Player props, team props and same-day parlays."))}><span>道具/串关</span><strong>Props / Parlays</strong></button>
+          </div>
+        </Panel>
+      </section>
+    </section>
+  );
+}
+
 function AuditLogsPage({summary, openDetail}: {summary: AdminSummary | null; openDetail: (detail: Detail) => void}) {
   return (
     <section className="page-grid">
@@ -1403,6 +1520,28 @@ function leagueMarketDetail(item: LeagueMarket): Detail {
     fields: [["Kickoff", item.kickoff], ["Matchday", item.matchday], ["Country", item.country], ["League", item.league], ["Match", item.match], ["Market", item.market], ["Odds", item.odds], ["Users", String(item.users)], ["Stake", `${item.stake}u`], ["Exposure", `${item.exposure}u`], ["Status", item.status], ["Source", item.source]],
     actions: ["Open bet slips", "Adjust odds note", "Suspend market", "Export fixture"],
     note: item.status === "Date confirmed" ? "The season date is confirmed, but exact kickoff/team-time board still requires final broadcaster confirmation." : item.status === "Risk review" ? "This market is flagged because exposure or user behavior needs manual review before promotion." : "Fixture row is ready for operator monitoring and odds review.",
+  };
+}
+
+function leagueBetTypeDetail(type: string, rows: LeagueBetSlip[]): Detail {
+  const stake = rows.reduce((sum, slip) => sum + slip.stake, 0);
+  const exposure = Math.round(rows.reduce((sum, slip) => sum + slip.potentialPayout, 0) * 100) / 100;
+  return {
+    title: `Bet type · ${type}`,
+    kicker: "League Bets",
+    fields: [["Type", type], ["Slip count", String(rows.length)], ["Stake", `${stake}u`], ["Potential payout", `${exposure}u`], ["Open slips", String(rows.filter((slip) => slip.status === "Open" || slip.status === "Pending").length)], ["Risk holds", String(rows.filter((slip) => slip.status === "Risk hold" || slip.risk === "High").length)]],
+    actions: ["Open slips", "Export type report", "Set max stake", "Create audit note"],
+    note: rows.length ? rows.map((slip) => `${slip.id}: ${slip.user} ${slip.stake}u on ${slip.selection}`).join(" | ") : "No slips in this bet type.",
+  };
+}
+
+function leagueBetSlipDetail(slip: LeagueBetSlip): Detail {
+  return {
+    title: `${slip.id} · ${slip.match}`,
+    kicker: "League bet slip",
+    fields: [["Time", slip.time], ["User", slip.user], ["League", slip.league], ["Match", slip.match], ["Market", slip.market], ["Selection", slip.selection], ["Odds", slip.odds.toFixed(2)], ["Stake", `${slip.stake}u`], ["Potential payout", `${slip.potentialPayout}u`], ["Bet type", slip.betType], ["Status", slip.status], ["Risk", slip.risk]],
+    actions: ["Open user", "Approve settlement", "Hold slip", "Export slip"],
+    note: slip.status === "Risk hold" ? "This slip is held because live-market exposure is above the configured operator threshold." : "This slip is available for operator review in the five-league betting desk.",
   };
 }
 
