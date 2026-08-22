@@ -348,7 +348,7 @@ const wheelIncomes: WheelIncome[] = [
   {date: "2026-08-21", amount: 21, source: "Wheel game", status: "Settled"},
 ];
 const wheelIncomeTotal = wheelIncomes.reduce((sum, item) => sum + item.amount, 0);
-const platformBalance = Math.round((targetPostJulyTenthBalance + todayWalletChange + postJulyFifteenthDeposits + postJulyFifteenthStakes + wheelIncomeTotal - postJulyFifteenthWithdrawals) * 100) / 100;
+const platformBalanceBeforeLeagueBetMerge = Math.round((targetPostJulyTenthBalance + todayWalletChange + postJulyFifteenthDeposits + postJulyFifteenthStakes + wheelIncomeTotal - postJulyFifteenthWithdrawals) * 100) / 100;
 const dailyBetTotals = betRecords.reduce<Record<string, number>>((acc, bet) => {
   acc[bet.matchDate] = Math.round(((acc[bet.matchDate] || 0) + bet.stake) * 100) / 100;
   return acc;
@@ -390,6 +390,9 @@ const leagueBetSlips: LeagueBetSlip[] = [
 const leagueBetStakeTotal = leagueBetSlips.reduce((sum, slip) => sum + slip.stake, 0);
 const leagueBetExposureTotal = Math.round(leagueBetSlips.reduce((sum, slip) => sum + slip.potentialPayout, 0) * 100) / 100;
 const leagueBetRiskHolds = leagueBetSlips.filter((slip) => slip.status === "Risk hold" || slip.risk === "High").length;
+const leagueBetStakeAlreadyInSportsLedger = 10;
+const leagueBetWalletStakeAdjustment = leagueBetStakeTotal - leagueBetStakeAlreadyInSportsLedger;
+const platformBalance = Math.round((platformBalanceBeforeLeagueBetMerge + leagueBetWalletStakeAdjustment) * 100) / 100;
 const olCompanionModules = [
   {name: "Fixtures", status: "Connected as Ligue 1 fixture board", path: "/home/uuxu/ol-companion/frontend/src/routes/fixtures.tsx"},
   {name: "Standings", status: "Pattern imported for table monitoring", path: "/home/uuxu/ol-companion/frontend/src/routes/standings.tsx"},
@@ -448,6 +451,7 @@ const bonusRules = [
 ];
 
 const auditLogs = [
+  {time: "2026-08-23 02:10", actor: "sportsbook", action: "Merged five-league bet slips into wallet balance, net new stake 116u", result: "OK"},
   {time: "2026-08-22 03:06", actor: "sportsbook", action: "Accepted Premier League bet 10u on Arsenal vs Coventry City", result: "Pending"},
   {time: "2026-08-21 02:35", actor: "casino-engine", action: "Settled wheel game income 21u", result: "OK"},
   {time: "2026-08-20 02:22", actor: "casino-engine", action: "Settled wheel game income 23u", result: "OK"},
@@ -1099,7 +1103,7 @@ function LeagueBetsPage({openDetail}: {openDetail: (detail: Detail) => void}) {
         <div>
           <p className="eyebrow">Five-league betting desk</p>
           <h2>五大联赛投注中心</h2>
-          <span>集中管理单场、串关、滚球、球员道具和球队道具投注。当前页面为运营投注页，未自动并入主钱包结算公式。</span>
+          <span>集中管理单场、串关、滚球、球员道具和球队道具投注。当前投注额已并入主钱包余额，重复计入的 8.22 英超 10u 已自动扣除。</span>
         </div>
         <div className="league-bets-metrics">
           <button onClick={() => openDetail(metricDetail("League bet slips", leagueBetSlips.length, "Five-league betting slips currently shown in the operator desk."))}><span>Slips</span><strong>{leagueBetSlips.length}</strong></button>
@@ -1299,8 +1303,8 @@ function SystemWalletPanel({openDetail, onOpenWithdraw}: {openDetail: (detail: D
     <section className="wallet-band">
       <div>
         <p className="eyebrow">System wallet</p>
-        <h2>{platformBalance.toLocaleString()}u available after 2026-08-22 Premier League stake</h2>
-        <span>7.10 baseline 875u; 7.15 net {todayWalletChange.toFixed(2)}u; 7.16 withdrawal -1000u; 7.20 recharge {postJulyFifteenthDeposits}u; 7.20-8.22 sports stakes {postJulyFifteenthStakes}u; August withdrawals -732.75u; wheel income +{wheelIncomeTotal}u</span>
+        <h2>{platformBalance.toLocaleString()}u available after five-league bet merge</h2>
+        <span>7.10 baseline 875u; 7.15 net {todayWalletChange.toFixed(2)}u; 7.16 withdrawal -1000u; 7.20 recharge {postJulyFifteenthDeposits}u; 7.20-8.22 sports stakes {postJulyFifteenthStakes}u; five-league net stake +{leagueBetWalletStakeAdjustment}u; August withdrawals -732.75u; wheel income +{wheelIncomeTotal}u</span>
       </div>
       <div className="wallet-actions">
         <button onClick={() => openDetail(walletDetail())}>View calculation</button>
@@ -1601,7 +1605,7 @@ function walletDetail(): Detail {
   return {
     title: "System wallet balance",
     kicker: "Wallet calculation",
-    fields: [["平台初始余额", `${openingWalletReserve}u`], ["7.10 baseline balance", `${targetPostJulyTenthBalance}u`], ["Confirmed deposits", `${totalDeposits}u`], ["Bet stakes", `${totalStakes}u`], ["Paid payouts before balance merge", `${paidPayouts.toFixed(2)}u`], ["Exchange withdrawals", `${exchangeWithdrawn}u`], ["Wallet reconciliation to 7.10", `${walletReconciliationAdjustment.toFixed(2)}u`], ["7.15 stakes", `${todayStakeTotal}u`], ["7.15 paid/merged payouts", `${todayPaidPayouts.toFixed(2)}u`], ["7.15 wallet change", `${todayWalletChange.toFixed(2)}u`], ["7.16 withdrawal", "-1000u"], ["8.3 withdrawal", "-400u"], ["8.8 withdrawal", "-332.75u"], ["7.20 deposits", `${postJulyFifteenthDeposits}u`], ["7.20-8.22 sports stakes", `${postJulyFifteenthStakes}u`], ["8.22 Premier League stake", "10u"], ["8.8 wheel income", "20u"], ["8.10 wheel income", "15u"], ["8.11 wheel income", "5u"], ["8.16 wheel income", "20u"], ["8.17 wheel income", "19u"], ["8.18 wheel income", "22u"], ["8.19 wheel income", "18u"], ["8.20 wheel income", "23u"], ["8.21 wheel income", "21u"], ["Wheel income total", `${wheelIncomeTotal}u`], ["Current platform balance", `${platformBalance}u`]],
+    fields: [["平台初始余额", `${openingWalletReserve}u`], ["7.10 baseline balance", `${targetPostJulyTenthBalance}u`], ["Confirmed deposits", `${totalDeposits}u`], ["Bet stakes", `${totalStakes}u`], ["Paid payouts before balance merge", `${paidPayouts.toFixed(2)}u`], ["Exchange withdrawals", `${exchangeWithdrawn}u`], ["Wallet reconciliation to 7.10", `${walletReconciliationAdjustment.toFixed(2)}u`], ["7.15 stakes", `${todayStakeTotal}u`], ["7.15 paid/merged payouts", `${todayPaidPayouts.toFixed(2)}u`], ["7.15 wallet change", `${todayWalletChange.toFixed(2)}u`], ["7.16 withdrawal", "-1000u"], ["8.3 withdrawal", "-400u"], ["8.8 withdrawal", "-332.75u"], ["7.20 deposits", `${postJulyFifteenthDeposits}u`], ["7.20-8.22 sports stakes", `${postJulyFifteenthStakes}u`], ["8.22 Premier League stake", "10u"], ["Balance before league bet merge", `${platformBalanceBeforeLeagueBetMerge}u`], ["League Bets stake total", `${leagueBetStakeTotal}u`], ["Already counted league stake", `-${leagueBetStakeAlreadyInSportsLedger}u`], ["League Bets net wallet increase", `${leagueBetWalletStakeAdjustment}u`], ["8.8 wheel income", "20u"], ["8.10 wheel income", "15u"], ["8.11 wheel income", "5u"], ["8.16 wheel income", "20u"], ["8.17 wheel income", "19u"], ["8.18 wheel income", "22u"], ["8.19 wheel income", "18u"], ["8.20 wheel income", "23u"], ["8.21 wheel income", "21u"], ["Wheel income total", `${wheelIncomeTotal}u`], ["Current platform balance", `${platformBalance}u`]],
     actions: ["Open withdrawal modal", "Export wallet report", "Create audit note"],
     note: "Current balance is calculated after the 2026-07-10 exchange withdrawal record.",
   };
