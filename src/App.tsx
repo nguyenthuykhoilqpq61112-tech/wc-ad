@@ -37,7 +37,8 @@ type AdminSummary = {
   updatedAt: string;
 };
 
-type ActivePage = "Overview" | "Users" | "Deposits" | "Withdrawals" | "Risk Review" | "Bonus Controls" | "Five Leagues" | "Audit Logs";
+type LeaguePage = "Premier League" | "LaLiga" | "Serie A" | "Bundesliga" | "Ligue 1";
+type ActivePage = "Overview" | "Users" | "Deposits" | "Withdrawals" | "Risk Review" | "Bonus Controls" | "Five Leagues" | LeaguePage | "Audit Logs";
 type Detail = {
   title: string;
   kicker: string;
@@ -75,12 +76,14 @@ type LeagueMarket = {
   country: string;
   kickoff: string;
   match: string;
+  matchday: string;
   market: string;
   odds: string;
   stake: number;
   users: number;
   exposure: number;
-  status: "Pregame" | "Live" | "Risk review";
+  source: string;
+  status: "Confirmed" | "Pregame" | "Live" | "Date confirmed" | "Risk review";
 };
 
 const API_BASE = (import.meta.env.VITE_API_BASE_URL || "https://2026wc.zeabur.app").replace(/\/+$/, "");
@@ -95,6 +98,11 @@ const navItems: Array<{label: ActivePage; Icon: typeof Activity}> = [
   {label: "Risk Review", Icon: AlertTriangle},
   {label: "Bonus Controls", Icon: SlidersHorizontal},
   {label: "Five Leagues", Icon: Goal},
+  {label: "Premier League", Icon: Goal},
+  {label: "LaLiga", Icon: Goal},
+  {label: "Serie A", Icon: Goal},
+  {label: "Bundesliga", Icon: Goal},
+  {label: "Ligue 1", Icon: Goal},
   {label: "Audit Logs", Icon: Database},
 ];
 
@@ -324,21 +332,33 @@ const dailyBetTotals = betRecords.reduce<Record<string, number>>((acc, bet) => {
 }, {});
 
 const leagueMarkets: LeagueMarket[] = [
-  {league: "Premier League", country: "England", kickoff: "2026-08-22 19:30", match: "Manchester City vs Arsenal", market: "Moneyline / Over 2.5", odds: "2.05 / 1.83", stake: 184, users: 18, exposure: 377.2, status: "Live"},
-  {league: "Premier League", country: "England", kickoff: "2026-08-23 00:30", match: "Liverpool vs Chelsea", market: "Asian handicap -0.25", odds: "1.91", stake: 126, users: 13, exposure: 240.66, status: "Pregame"},
-  {league: "LaLiga", country: "Spain", kickoff: "2026-08-22 22:15", match: "Real Madrid vs Sevilla", market: "Home win / Team total", odds: "1.56 / 1.92", stake: 142, users: 14, exposure: 272.64, status: "Pregame"},
-  {league: "LaLiga", country: "Spain", kickoff: "2026-08-24 03:00", match: "Barcelona vs Valencia", market: "Both teams to score", odds: "1.78", stake: 88, users: 9, exposure: 156.64, status: "Risk review"},
-  {league: "Serie A", country: "Italy", kickoff: "2026-08-23 02:45", match: "Inter Milan vs Napoli", market: "Draw no bet", odds: "1.74", stake: 117, users: 11, exposure: 203.58, status: "Pregame"},
-  {league: "Serie A", country: "Italy", kickoff: "2026-08-24 00:00", match: "Juventus vs Roma", market: "Under 2.5", odds: "1.86", stake: 74, users: 7, exposure: 137.64, status: "Pregame"},
-  {league: "Bundesliga", country: "Germany", kickoff: "2026-08-22 21:30", match: "Bayern Munich vs Dortmund", market: "Live next goal", odds: "2.18", stake: 155, users: 16, exposure: 337.9, status: "Live"},
-  {league: "Bundesliga", country: "Germany", kickoff: "2026-08-23 23:30", match: "Leipzig vs Leverkusen", market: "Spread -0.5", odds: "2.02", stake: 69, users: 6, exposure: 139.38, status: "Pregame"},
-  {league: "Ligue 1", country: "France", kickoff: "2026-08-23 03:00", match: "Paris SG vs Lyon", market: "Player shots over", odds: "1.95", stake: 103, users: 10, exposure: 200.85, status: "Pregame"},
-  {league: "Ligue 1", country: "France", kickoff: "2026-08-24 02:45", match: "Marseille vs Monaco", market: "Double chance", odds: "1.67", stake: 58, users: 5, exposure: 96.86, status: "Pregame"},
+  {league: "Premier League", country: "England", kickoff: "2026-08-22 12:30 UK", match: "Hull City vs Manchester United", matchday: "Matchweek 1", market: "Moneyline / Over 2.5", odds: "2.95 / 1.86", stake: 184, users: 18, exposure: 542.8, source: "Premier League official fixture list", status: "Live"},
+  {league: "Premier League", country: "England", kickoff: "2026-08-22 17:30 UK", match: "Brentford vs Tottenham Hotspur", matchday: "Matchweek 1", market: "Asian handicap -0.25", odds: "1.91", stake: 126, users: 13, exposure: 240.66, source: "Premier League official fixture list", status: "Confirmed"},
+  {league: "Premier League", country: "England", kickoff: "2026-08-23 14:00 UK", match: "Manchester City vs AFC Bournemouth", matchday: "Matchweek 1", market: "Home win / Team total", odds: "1.42 / 1.78", stake: 151, users: 16, exposure: 268.78, source: "Premier League official fixture list", status: "Pregame"},
+  {league: "Premier League", country: "England", kickoff: "2026-08-23 16:30 UK", match: "Newcastle United vs Liverpool", matchday: "Matchweek 1", market: "Double chance / Total goals", odds: "1.67 / 1.84", stake: 139, users: 14, exposure: 255.76, source: "Premier League official fixture list", status: "Pregame"},
+  {league: "LaLiga", country: "Spain", kickoff: "2026-08-22 19:30 local", match: "RCD Espanyol de Barcelona vs Real Madrid", matchday: "Matchday 2", market: "Away win / Player shots", odds: "1.58 / 1.92", stake: 142, users: 14, exposure: 272.64, source: "LALIGA Real Madrid official schedule", status: "Pregame"},
+  {league: "LaLiga", country: "Spain", kickoff: "2026-08-26 19:00 local", match: "Real Madrid vs Real Sociedad", matchday: "Matchday 3", market: "Home win / Team total", odds: "1.62 / 1.88", stake: 88, users: 9, exposure: 165.44, source: "LALIGA Real Madrid official schedule", status: "Confirmed"},
+  {league: "LaLiga", country: "Spain", kickoff: "2026-08-27 21:00 local", match: "Real Madrid vs FC Barcelona", matchday: "Matchday 1 listing", market: "1X2 / Both teams to score", odds: "2.28 / 1.74", stake: 169, users: 17, exposure: 385.32, source: "FC Barcelona official calendar listing", status: "Risk review"},
+  {league: "Serie A", country: "Italy", kickoff: "2026-08-23 TBD", match: "Serie A Matchday 1 opening slate", matchday: "Matchday 1", market: "Round winner futures", odds: "1.74", stake: 117, users: 11, exposure: 203.58, source: "Serie A fixtures released; kickoff times set later", status: "Date confirmed"},
+  {league: "Serie A", country: "Italy", kickoff: "2026-08-23 TBD", match: "Atalanta vs Sassuolo", matchday: "Matchday 1 watchlist", market: "Moneyline / Under 3.5", odds: "1.66 / 1.81", stake: 74, users: 7, exposure: 133.94, source: "ESPN schedule crawl", status: "Pregame"},
+  {league: "Serie A", country: "Italy", kickoff: "2026-08-23 TBD", match: "Torino vs AC Milan", matchday: "Matchday 1 watchlist", market: "Away draw no bet", odds: "1.79", stake: 92, users: 8, exposure: 164.68, source: "ESPN schedule crawl", status: "Pregame"},
+  {league: "Bundesliga", country: "Germany", kickoff: "2026-08-22 11:30 local", match: "Borussia Dortmund vs Bayern Munich", matchday: "Franz Beckenbauer Supercup", market: "Live next goal", odds: "2.18", stake: 155, users: 16, exposure: 337.9, source: "Bundesliga official Supercup page", status: "Live"},
+  {league: "Bundesliga", country: "Germany", kickoff: "2026-08-28 - 2026-08-30", match: "Bundesliga Matchday 1", matchday: "Matchday 1", market: "Opening round futures", odds: "1.92", stake: 69, users: 6, exposure: 132.48, source: "Bundesliga official 2026/27 calendar", status: "Date confirmed"},
+  {league: "Ligue 1", country: "France", kickoff: "2026-08-21 weekend", match: "Olympique de Marseille vs RC Strasbourg Alsace", matchday: "Matchday 1", market: "Home win / Total goals", odds: "1.77 / 1.86", stake: 103, users: 10, exposure: 191.58, source: "Ligue 1 official calendar release", status: "Pregame"},
+  {league: "Ligue 1", country: "France", kickoff: "2026-08-22 weekend", match: "Paris Saint-Germain vs Stade Rennais FC", matchday: "Matchday 1", market: "Home win / Player shots over", odds: "1.35 / 1.95", stake: 158, users: 15, exposure: 308.1, source: "Ligue 1 and PSG official calendar release", status: "Pregame"},
+  {league: "Ligue 1", country: "France", kickoff: "2026-08-30 20:45 local", match: "LOSC vs Paris Saint-Germain", matchday: "Matchday 2 top-ten match", market: "Away draw no bet", odds: "1.72", stake: 58, users: 5, exposure: 99.76, source: "Ligue 1 official calendar release", status: "Confirmed"},
 ];
 const leagueNames = Array.from(new Set(leagueMarkets.map((item) => item.league)));
+const leaguePageItems = leagueNames as LeaguePage[];
 const leagueTotalStake = leagueMarkets.reduce((sum, item) => sum + item.stake, 0);
 const leagueTotalExposure = Math.round(leagueMarkets.reduce((sum, item) => sum + item.exposure, 0) * 100) / 100;
 const liveLeagueMarkets = leagueMarkets.filter((item) => item.status === "Live").length;
+const olCompanionModules = [
+  {name: "Fixtures", status: "Connected as Ligue 1 fixture board", path: "/home/uuxu/ol-companion/frontend/src/routes/fixtures.tsx"},
+  {name: "Standings", status: "Pattern imported for table monitoring", path: "/home/uuxu/ol-companion/frontend/src/routes/standings.tsx"},
+  {name: "Live match", status: "SSE/live-card pattern mapped to admin live desk", path: "/home/uuxu/ol-companion/frontend/src/routes/match.tsx"},
+  {name: "News", status: "RSS/news card pattern mapped to operator notes", path: "/home/uuxu/ol-companion/frontend/src/routes/news.tsx"},
+];
 
 const depositQueue: DepositRecord[] = [
   ...adminUsers.map((user, index) => ({
@@ -525,6 +545,11 @@ export function App() {
     "Risk Review": ["Risk Review", "Signals, limits, and investigation notes"],
     "Bonus Controls": ["Bonus Controls", "Promotions, loyalty, and wagering rules"],
     "Five Leagues": ["Five Leagues", "Premier League, LaLiga, Serie A, Bundesliga, Ligue 1"],
+    "Premier League": ["Premier League", "England fixtures, odds, and exposure"],
+    LaLiga: ["LaLiga", "Spain fixtures, odds, and exposure"],
+    "Serie A": ["Serie A", "Italy fixtures, odds, and exposure"],
+    Bundesliga: ["Bundesliga", "Germany fixtures, odds, and exposure"],
+    "Ligue 1": ["Ligue 1", "France fixtures, OL Companion feed"],
     "Audit Logs": ["Audit Logs", "Operator and system activity trail"],
   } satisfies Record<ActivePage, [string, string]>;
 
@@ -600,7 +625,8 @@ export function App() {
         {activePage === "Withdrawals" && <WithdrawalsPage openDetail={setDetail} onOpenWithdraw={() => setWithdrawOpen(true)} />}
         {activePage === "Risk Review" && <RiskReviewPage openDetail={setDetail} />}
         {activePage === "Bonus Controls" && <BonusControlsPage openDetail={setDetail} />}
-        {activePage === "Five Leagues" && <FiveLeaguesPage openDetail={setDetail} />}
+        {activePage === "Five Leagues" && <FiveLeaguesPage openDetail={setDetail} setActivePage={setActivePage} />}
+        {leaguePageItems.includes(activePage as LeaguePage) && <LeaguePageView league={activePage as LeaguePage} openDetail={setDetail} />}
         {activePage === "Audit Logs" && <AuditLogsPage summary={summary} openDetail={setDetail} />}
       </main>
       {detail && <DetailDrawer detail={detail} onClose={() => setDetail(null)} />}
@@ -830,7 +856,7 @@ function BonusControlsPage({openDetail}: {openDetail: (detail: Detail) => void})
   );
 }
 
-function FiveLeaguesPage({openDetail}: {openDetail: (detail: Detail) => void}) {
+function FiveLeaguesPage({openDetail, setActivePage}: {openDetail: (detail: Detail) => void; setActivePage: (page: ActivePage) => void}) {
   return (
     <section className="page-grid five-leagues-page">
       <section className="league-hero">
@@ -862,7 +888,7 @@ function FiveLeaguesPage({openDetail}: {openDetail: (detail: Detail) => void}) {
           const exposure = Math.round(rows.reduce((sum, item) => sum + item.exposure, 0) * 100) / 100;
           const live = rows.some((item) => item.status === "Live");
           return (
-            <button className="league-card" key={league} onClick={() => openDetail(leagueDetail(league))}>
+            <button className="league-card" key={league} onClick={() => setActivePage(league as LeaguePage)}>
               <span>{rows[0].country}</span>
               <strong>{league}</strong>
               <small>{rows.length} fixtures · {stake}u stake · {exposure}u exposure</small>
@@ -923,6 +949,93 @@ function FiveLeaguesPage({openDetail}: {openDetail: (detail: Detail) => void}) {
           </div>
         </Panel>
       </section>
+    </section>
+  );
+}
+
+function LeaguePageView({league, openDetail}: {league: LeaguePage; openDetail: (detail: Detail) => void}) {
+  const rows = leagueMarkets.filter((item) => item.league === league);
+  const stake = rows.reduce((sum, item) => sum + item.stake, 0);
+  const exposure = Math.round(rows.reduce((sum, item) => sum + item.exposure, 0) * 100) / 100;
+  const next = rows[0];
+  const isLigueOne = league === "Ligue 1";
+
+  return (
+    <section className="page-grid league-detail-page">
+      <section className="league-detail-hero">
+        <div>
+          <p className="eyebrow">{next?.country || "Europe"} football desk</p>
+          <h2>{league}</h2>
+          <span>{next ? `Next board: ${next.kickoff} · ${next.match}` : "No fixture loaded."}</span>
+        </div>
+        <div className="league-detail-metrics">
+          <button onClick={() => openDetail(leagueDetail(league))}><span>Fixtures</span><strong>{rows.length}</strong></button>
+          <button onClick={() => openDetail(metricDetail(`${league} stake`, stake, `${league} standalone betting stake total.`))}><span>Stake</span><strong>{stake}u</strong></button>
+          <button onClick={() => openDetail(metricDetail(`${league} exposure`, exposure, `${league} maximum payout exposure.`))}><span>Exposure</span><strong>{exposure}u</strong></button>
+        </div>
+      </section>
+
+      <Panel title={`${league} Fixture Time Board`} meta="Checked on 2026-08-22; times shown exactly where confirmed by source">
+        <div className="data-table league-detail-table">
+          <div className="data-row data-head"><span>Kickoff</span><span>Matchday</span><span>Match</span><span>Market</span><span>Odds</span><span>Users</span><span>Stake</span><span>Exposure</span><span>Status</span><span>Source</span></div>
+          {rows.map((item) => (
+            <button className="data-row clickable-row" key={`${item.league}-${item.match}`} onClick={() => openDetail(leagueMarketDetail(item))}>
+              <span>{item.kickoff}</span>
+              <span>{item.matchday}</span>
+              <strong>{item.match}</strong>
+              <span>{item.market}</span>
+              <b>{item.odds}</b>
+              <span>{item.users}</span>
+              <span>{item.stake}u</span>
+              <span>{item.exposure}u</span>
+              <em className={item.status === "Risk review" ? "warn" : item.status === "Live" ? "" : item.status === "Date confirmed" ? "warn" : ""}>{item.status}</em>
+              <span>{item.source}</span>
+            </button>
+          ))}
+        </div>
+      </Panel>
+
+      <section className="triple-grid">
+        <Panel title="Market Controls" meta={`${league} operator actions`}>
+          <div className="control-grid league-controls">
+            {["Open odds editor", "Suspend fixture", "Set exposure cap", "Export league slips"].map((item) => (
+              <button key={item} onClick={() => openDetail(controlDetail(item, league, "This action applies only to this league page."))}>{item}</button>
+            ))}
+          </div>
+        </Panel>
+        <Panel title="Parlay Board" meta="串关和滚球监控">
+          <div className="policy-list">
+            <button onClick={() => openDetail(controlDetail(`${league} 2-leg parlay`, league, "Two-leg parlay pool for this league."))}><span>2-leg parlay</span><strong>{Math.round(stake * 0.18)}u active</strong></button>
+            <button onClick={() => openDetail(controlDetail(`${league} live betting`, league, "Live betting pool and odds movement."))}><span>Live betting</span><strong>{rows.filter((item) => item.status === "Live").length} live rows</strong></button>
+            <button onClick={() => openDetail(controlDetail(`${league} player props`, league, "Player props and team props board."))}><span>Player props</span><strong>Shots / goals / assists</strong></button>
+          </div>
+        </Panel>
+        <Panel title="Source Monitor" meta="Data freshness">
+          <div className="compact-list">
+            {[...new Set(rows.map((item) => item.source))].map((source) => (
+              <button key={source} onClick={() => openDetail(controlDetail(source, `${league} source`, "This row shows the source used for the current fixture-time board."))}>
+                <span><CheckCircle2 size={14} /> Source</span>
+                <strong>{source}</strong>
+                <small>Checked 2026-08-22 Asia/Shanghai.</small>
+              </button>
+            ))}
+          </div>
+        </Panel>
+      </section>
+
+      {isLigueOne && (
+        <Panel title="OL Companion Integration" meta="Connected from /home/uuxu/ol-companion">
+          <div className="ol-module-grid">
+            {olCompanionModules.map((item) => (
+              <button key={item.name} onClick={() => openDetail(olCompanionDetail(item))}>
+                <span>{item.name}</span>
+                <strong>{item.status}</strong>
+                <small>{item.path}</small>
+              </button>
+            ))}
+          </div>
+        </Panel>
+      )}
     </section>
   );
 }
@@ -1272,9 +1385,19 @@ function leagueMarketDetail(item: LeagueMarket): Detail {
   return {
     title: `${item.league} · ${item.match}`,
     kicker: "Fixtures & odds",
-    fields: [["Kickoff", item.kickoff], ["Country", item.country], ["League", item.league], ["Match", item.match], ["Market", item.market], ["Odds", item.odds], ["Users", String(item.users)], ["Stake", `${item.stake}u`], ["Exposure", `${item.exposure}u`], ["Status", item.status]],
+    fields: [["Kickoff", item.kickoff], ["Matchday", item.matchday], ["Country", item.country], ["League", item.league], ["Match", item.match], ["Market", item.market], ["Odds", item.odds], ["Users", String(item.users)], ["Stake", `${item.stake}u`], ["Exposure", `${item.exposure}u`], ["Status", item.status], ["Source", item.source]],
     actions: ["Open bet slips", "Adjust odds note", "Suspend market", "Export fixture"],
-    note: item.status === "Risk review" ? "This market is flagged because exposure or user behavior needs manual review before promotion." : "Fixture row is ready for operator monitoring and odds review.",
+    note: item.status === "Date confirmed" ? "The season date is confirmed, but exact kickoff/team-time board still requires final broadcaster confirmation." : item.status === "Risk review" ? "This market is flagged because exposure or user behavior needs manual review before promotion." : "Fixture row is ready for operator monitoring and odds review.",
+  };
+}
+
+function olCompanionDetail(item: typeof olCompanionModules[number]): Detail {
+  return {
+    title: `OL Companion · ${item.name}`,
+    kicker: "Ligue 1 integration",
+    fields: [["Module", item.name], ["Status", item.status], ["Local source", item.path], ["Repository", "https://github.com/Sylad/ol-companion"], ["Mode", "Embedded into admin league page as an operator module"]],
+    actions: ["Open module notes", "Map to live desk", "Create source audit", "Export Ligue 1 board"],
+    note: "The downloaded project is a full Ligue 1 companion app. This admin integrates its fixtures, standings, live-match, and news concepts without adding a second backend service to the Zeabur deployment.",
   };
 }
 
