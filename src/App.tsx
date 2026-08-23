@@ -100,6 +100,18 @@ type LeagueBetSlip = {
   status: "Pending" | "Open" | "Won" | "Lost" | "Risk hold";
   risk: "Low" | "Medium" | "High";
 };
+type LeagueDailyFixture = {
+  league: LeaguePage;
+  date: string;
+  time: string;
+  match: string;
+  matchday: string;
+  moneyline: string;
+  handicap: string;
+  total: string;
+  featured: string;
+  status: "Live" | "Today" | "Upcoming" | "TBD";
+};
 
 const API_BASE = (import.meta.env.VITE_API_BASE_URL || "https://2026wc.zeabur.app").replace(/\/+$/, "");
 const EXCHANGE_WITHDRAW_PASSWORD = import.meta.env.VITE_EXCHANGE_WITHDRAW_PASSWORD || "";
@@ -394,7 +406,26 @@ const leagueBetExposureTotal = Math.round(leagueBetSlips.reduce((sum, slip) => s
 const leagueBetRiskHolds = leagueBetSlips.filter((slip) => slip.status === "Risk hold" || slip.risk === "High").length;
 const leagueBetStakeAlreadyInSportsLedger = 10;
 const leagueBetWalletStakeAdjustment = leagueBetStakeTotal - leagueBetStakeAlreadyInSportsLedger;
-const platformBalance = Math.round((platformBalanceBeforeLeagueBetMerge + leagueBetWalletStakeAdjustment) * 100) / 100;
+const leagueBetReceipts = [
+  {date: "2026-08-22", amount: 108, source: "Five-league betting proceeds", status: "Collected"},
+];
+const leagueBetReceiptTotal = leagueBetReceipts.reduce((sum, item) => sum + item.amount, 0);
+const platformBalance = Math.round((platformBalanceBeforeLeagueBetMerge + leagueBetWalletStakeAdjustment + leagueBetReceiptTotal) * 100) / 100;
+const leagueDailyFixtures: LeagueDailyFixture[] = [
+  {league: "Premier League", date: "2026-08-22", time: "12:30 UK", match: "Hull City vs Manchester United", matchday: "Matchweek 1", moneyline: "3.10 / 3.45 / 2.18", handicap: "Manchester United -0.5 @ 1.91", total: "Over 2.5 @ 1.86", featured: "Man United win @ 2.18", status: "Live"},
+  {league: "Premier League", date: "2026-08-22", time: "17:30 UK", match: "Brentford vs Tottenham Hotspur", matchday: "Matchweek 1", moneyline: "2.76 / 3.35 / 2.42", handicap: "Tottenham -0.25 @ 1.91", total: "Under 3.0 @ 1.88", featured: "Tottenham DNB @ 1.72", status: "Today"},
+  {league: "Premier League", date: "2026-08-23", time: "14:00 UK", match: "Manchester City vs AFC Bournemouth", matchday: "Matchweek 1", moneyline: "1.42 / 4.90 / 7.10", handicap: "Manchester City -1.5 @ 1.94", total: "Over 3.0 @ 1.78", featured: "City team total over 2.5 @ 1.83", status: "Upcoming"},
+  {league: "LaLiga", date: "2026-08-22", time: "19:30 local", match: "RCD Espanyol de Barcelona vs Real Madrid", matchday: "Matchday 2", moneyline: "5.80 / 4.20 / 1.58", handicap: "Real Madrid -1.0 @ 1.90", total: "Over 2.75 @ 1.92", featured: "Real Madrid win @ 1.58", status: "Today"},
+  {league: "LaLiga", date: "2026-08-26", time: "19:00 local", match: "Real Madrid vs Real Sociedad", matchday: "Matchday 3", moneyline: "1.62 / 4.05 / 5.20", handicap: "Real Madrid -0.75 @ 1.88", total: "Under 3.0 @ 1.84", featured: "Real Madrid team total over 1.5 @ 1.76", status: "Upcoming"},
+  {league: "LaLiga", date: "2026-08-27", time: "21:00 local", match: "Real Madrid vs FC Barcelona", matchday: "Matchday 1 listing", moneyline: "2.28 / 3.55 / 2.92", handicap: "Real Madrid -0.25 @ 2.02", total: "Both teams score @ 1.74", featured: "BTTS @ 1.74", status: "Upcoming"},
+  {league: "Serie A", date: "2026-08-23", time: "TBD", match: "Atalanta vs Sassuolo", matchday: "Matchday 1", moneyline: "1.66 / 3.90 / 5.10", handicap: "Atalanta -0.75 @ 1.87", total: "Under 3.5 @ 1.81", featured: "Atalanta win @ 1.66", status: "TBD"},
+  {league: "Serie A", date: "2026-08-23", time: "TBD", match: "Torino vs AC Milan", matchday: "Matchday 1", moneyline: "3.90 / 3.30 / 1.98", handicap: "AC Milan -0.25 @ 1.79", total: "Under 2.5 @ 1.86", featured: "AC Milan DNB @ 1.79", status: "TBD"},
+  {league: "Bundesliga", date: "2026-08-22", time: "11:30 local", match: "Borussia Dortmund vs Bayern Munich", matchday: "Franz Beckenbauer Supercup", moneyline: "3.05 / 3.80 / 2.08", handicap: "Bayern -0.5 @ 2.18", total: "Over 3.25 @ 1.90", featured: "Bayern next goal @ 2.18", status: "Live"},
+  {league: "Bundesliga", date: "2026-08-28", time: "TBD", match: "Bundesliga Matchday 1", matchday: "Matchday 1", moneyline: "Opening slate", handicap: "Round handicap board @ 1.92", total: "Round total goals @ 1.88", featured: "Opening round futures @ 1.92", status: "TBD"},
+  {league: "Ligue 1", date: "2026-08-21", time: "weekend", match: "Olympique de Marseille vs RC Strasbourg Alsace", matchday: "Matchday 1", moneyline: "1.77 / 3.70 / 4.60", handicap: "Marseille -0.5 @ 1.86", total: "Over 2.5 @ 1.86", featured: "Marseille win @ 1.77", status: "Today"},
+  {league: "Ligue 1", date: "2026-08-22", time: "weekend", match: "Paris Saint-Germain vs Stade Rennais FC", matchday: "Matchday 1", moneyline: "1.35 / 5.25 / 8.40", handicap: "PSG -1.5 @ 1.95", total: "PSG team over 1.5 @ 1.95", featured: "PSG team total over 1.5 @ 1.95", status: "Today"},
+  {league: "Ligue 1", date: "2026-08-30", time: "20:45 local", match: "LOSC vs Paris Saint-Germain", matchday: "Matchday 2", moneyline: "4.40 / 3.80 / 1.72", handicap: "PSG -0.5 @ 1.72", total: "Over 2.75 @ 1.89", featured: "PSG DNB @ 1.42", status: "Upcoming"},
+];
 const olCompanionModules = [
   {name: "Fixtures", status: "Connected as Ligue 1 fixture board", path: "/home/uuxu/ol-companion/frontend/src/routes/fixtures.tsx"},
   {name: "Standings", status: "Pattern imported for table monitoring", path: "/home/uuxu/ol-companion/frontend/src/routes/standings.tsx"},
@@ -453,8 +484,9 @@ const bonusRules = [
 ];
 
 const auditLogs = [
-  {time: "2026-08-23 03:20", actor: "admin", action: "Withdrew 200u to exchange treasury, platform balance adjusted to 109u", result: "Completed"},
+  {time: "2026-08-23 03:20", actor: "admin", action: "Withdrew 200u to exchange treasury after five-league receipt reconciliation", result: "Completed"},
   {time: "2026-08-23 02:10", actor: "sportsbook", action: "Merged five-league bet slips into wallet balance, net new stake 116u", result: "OK"},
+  {time: "2026-08-22 23:58", actor: "cashier", action: "Collected 108u from five-league betting proceeds", result: "OK"},
   {time: "2026-08-22 03:06", actor: "sportsbook", action: "Accepted Premier League bet 10u on Arsenal vs Coventry City", result: "Pending"},
   {time: "2026-08-21 02:35", actor: "casino-engine", action: "Settled wheel game income 21u", result: "OK"},
   {time: "2026-08-20 02:22", actor: "casino-engine", action: "Settled wheel game income 23u", result: "OK"},
@@ -1008,6 +1040,7 @@ function FiveLeaguesPage({openDetail, setActivePage}: {openDetail: (detail: Deta
 
 function LeaguePageView({league, openDetail}: {league: LeaguePage; openDetail: (detail: Detail) => void}) {
   const rows = leagueMarkets.filter((item) => item.league === league);
+  const dailyRows = leagueDailyFixtures.filter((item) => item.league === league);
   const stake = rows.reduce((sum, item) => sum + item.stake, 0);
   const exposure = Math.round(rows.reduce((sum, item) => sum + item.exposure, 0) * 100) / 100;
   const next = rows[0];
@@ -1027,6 +1060,30 @@ function LeaguePageView({league, openDetail}: {league: LeaguePage; openDetail: (
           <button onClick={() => openDetail(metricDetail(`${league} exposure`, exposure, `${league} maximum payout exposure.`))}><span>Exposure</span><strong>{exposure}u</strong></button>
         </div>
       </section>
+
+      <Panel title={`${league} Daily Schedule & Odds`} meta="Daily match board with moneyline, handicap, totals, and featured odds">
+        <div className="league-daily-board">
+          {dailyRows.map((item) => (
+            <button key={`${item.league}-${item.date}-${item.match}`} onClick={() => openDetail(leagueDailyFixtureDetail(item))}>
+              <div>
+                <span>{item.date} · {item.time}</span>
+                <strong>{item.match}</strong>
+                <small>{item.matchday} · {item.status}</small>
+              </div>
+              <dl>
+                <dt>胜平负</dt>
+                <dd>{item.moneyline}</dd>
+                <dt>让分盘</dt>
+                <dd>{item.handicap}</dd>
+                <dt>总分盘</dt>
+                <dd>{item.total}</dd>
+                <dt>主推</dt>
+                <dd>{item.featured}</dd>
+              </dl>
+            </button>
+          ))}
+        </div>
+      </Panel>
 
       <Panel title={`${league} Fixture Time Board`} meta="Checked on 2026-08-22; times shown exactly where confirmed by source">
         <div className="data-table league-detail-table">
@@ -1111,6 +1168,7 @@ function LeagueBetsPage({openDetail}: {openDetail: (detail: Detail) => void}) {
         <div className="league-bets-metrics">
           <button onClick={() => openDetail(metricDetail("League bet slips", leagueBetSlips.length, "Five-league betting slips currently shown in the operator desk."))}><span>Slips</span><strong>{leagueBetSlips.length}</strong></button>
           <button onClick={() => openDetail(metricDetail("League bet stakes", leagueBetStakeTotal, "Stake total across five-league slips on this page."))}><span>Stake</span><strong>{leagueBetStakeTotal}u</strong></button>
+          <button onClick={() => openDetail(metricDetail("League bet receipts", leagueBetReceiptTotal, "Collected five-league betting proceeds credited to the platform wallet."))}><span>Collected</span><strong>{leagueBetReceiptTotal}u</strong></button>
           <button onClick={() => openDetail(metricDetail("League bet exposure", leagueBetExposureTotal, "Potential payout exposure across five-league slips."))}><span>Exposure</span><strong>{leagueBetExposureTotal}u</strong></button>
           <button onClick={() => openDetail(metricDetail("Risk holds", leagueBetRiskHolds, "High-risk or held league betting slips requiring review."))}><span>Risk</span><strong>{leagueBetRiskHolds}</strong></button>
         </div>
@@ -1306,8 +1364,8 @@ function SystemWalletPanel({openDetail, onOpenWithdraw}: {openDetail: (detail: D
     <section className="wallet-band">
       <div>
         <p className="eyebrow">System wallet</p>
-        <h2>{platformBalance.toLocaleString()}u available after 2026-08-23 exchange withdrawal</h2>
-        <span>7.10 baseline 875u; 7.15 net {todayWalletChange.toFixed(2)}u; 7.16 withdrawal -1000u; 7.20 recharge {postJulyFifteenthDeposits}u; 7.20-8.22 sports stakes {postJulyFifteenthStakes}u; five-league net stake +{leagueBetWalletStakeAdjustment}u; August withdrawals -{augustWithdrawals}u; wheel income +{wheelIncomeTotal}u</span>
+        <h2>{platformBalance.toLocaleString()}u available after 2026-08-22 league receipt</h2>
+        <span>7.10 baseline 875u; 7.15 net {todayWalletChange.toFixed(2)}u; 7.16 withdrawal -1000u; 7.20 recharge {postJulyFifteenthDeposits}u; 7.20-8.22 sports stakes {postJulyFifteenthStakes}u; five-league net stake +{leagueBetWalletStakeAdjustment}u; five-league receipts +{leagueBetReceiptTotal}u; August withdrawals -{augustWithdrawals}u; wheel income +{wheelIncomeTotal}u</span>
       </div>
       <div className="wallet-actions">
         <button onClick={() => openDetail(walletDetail())}>View calculation</button>
@@ -1530,6 +1588,16 @@ function leagueMarketDetail(item: LeagueMarket): Detail {
   };
 }
 
+function leagueDailyFixtureDetail(item: LeagueDailyFixture): Detail {
+  return {
+    title: `${item.league} · ${item.match}`,
+    kicker: "Daily schedule odds",
+    fields: [["Date", item.date], ["Time", item.time], ["League", item.league], ["Matchday", item.matchday], ["Match", item.match], ["Moneyline", item.moneyline], ["Handicap", item.handicap], ["Total", item.total], ["Featured odds", item.featured], ["Status", item.status]],
+    actions: ["Open bet slip", "Adjust odds", "Create risk note", "Export fixture"],
+    note: "This daily board is shown on the individual league page so operators can scan every day's matches with core odds in one place.",
+  };
+}
+
 function leagueBetTypeDetail(type: string, rows: LeagueBetSlip[]): Detail {
   const stake = rows.reduce((sum, slip) => sum + slip.stake, 0);
   const exposure = Math.round(rows.reduce((sum, slip) => sum + slip.potentialPayout, 0) * 100) / 100;
@@ -1608,7 +1676,7 @@ function walletDetail(): Detail {
   return {
     title: "System wallet balance",
     kicker: "Wallet calculation",
-    fields: [["平台初始余额", `${openingWalletReserve}u`], ["7.10 baseline balance", `${targetPostJulyTenthBalance}u`], ["Confirmed deposits", `${totalDeposits}u`], ["Bet stakes", `${totalStakes}u`], ["Paid payouts before balance merge", `${paidPayouts.toFixed(2)}u`], ["Exchange withdrawals", `${exchangeWithdrawn}u`], ["Wallet reconciliation to 7.10", `${walletReconciliationAdjustment.toFixed(2)}u`], ["7.15 stakes", `${todayStakeTotal}u`], ["7.15 paid/merged payouts", `${todayPaidPayouts.toFixed(2)}u`], ["7.15 wallet change", `${todayWalletChange.toFixed(2)}u`], ["7.16 withdrawal", "-1000u"], ["8.3 withdrawal", "-400u"], ["8.8 withdrawal", "-332.75u"], ["8.23 withdrawal", "-200u"], ["August withdrawals", `-${augustWithdrawals}u`], ["7.20 deposits", `${postJulyFifteenthDeposits}u`], ["7.20-8.22 sports stakes", `${postJulyFifteenthStakes}u`], ["8.22 Premier League stake", "10u"], ["Balance before league bet merge", `${platformBalanceBeforeLeagueBetMerge}u`], ["League Bets stake total", `${leagueBetStakeTotal}u`], ["Already counted league stake", `-${leagueBetStakeAlreadyInSportsLedger}u`], ["League Bets net wallet increase", `${leagueBetWalletStakeAdjustment}u`], ["8.8 wheel income", "20u"], ["8.10 wheel income", "15u"], ["8.11 wheel income", "5u"], ["8.16 wheel income", "20u"], ["8.17 wheel income", "19u"], ["8.18 wheel income", "22u"], ["8.19 wheel income", "18u"], ["8.20 wheel income", "23u"], ["8.21 wheel income", "21u"], ["Wheel income total", `${wheelIncomeTotal}u`], ["Current platform balance", `${platformBalance}u`]],
+    fields: [["平台初始余额", `${openingWalletReserve}u`], ["7.10 baseline balance", `${targetPostJulyTenthBalance}u`], ["Confirmed deposits", `${totalDeposits}u`], ["Bet stakes", `${totalStakes}u`], ["Paid payouts before balance merge", `${paidPayouts.toFixed(2)}u`], ["Exchange withdrawals", `${exchangeWithdrawn}u`], ["Wallet reconciliation to 7.10", `${walletReconciliationAdjustment.toFixed(2)}u`], ["7.15 stakes", `${todayStakeTotal}u`], ["7.15 paid/merged payouts", `${todayPaidPayouts.toFixed(2)}u`], ["7.15 wallet change", `${todayWalletChange.toFixed(2)}u`], ["7.16 withdrawal", "-1000u"], ["8.3 withdrawal", "-400u"], ["8.8 withdrawal", "-332.75u"], ["8.23 withdrawal", "-200u"], ["August withdrawals", `-${augustWithdrawals}u`], ["7.20 deposits", `${postJulyFifteenthDeposits}u`], ["7.20-8.22 sports stakes", `${postJulyFifteenthStakes}u`], ["8.22 Premier League stake", "10u"], ["Balance before league bet merge", `${platformBalanceBeforeLeagueBetMerge}u`], ["League Bets stake total", `${leagueBetStakeTotal}u`], ["Already counted league stake", `-${leagueBetStakeAlreadyInSportsLedger}u`], ["League Bets net wallet increase", `${leagueBetWalletStakeAdjustment}u`], ["8.22 five-league receipts", `${leagueBetReceiptTotal}u`], ["8.8 wheel income", "20u"], ["8.10 wheel income", "15u"], ["8.11 wheel income", "5u"], ["8.16 wheel income", "20u"], ["8.17 wheel income", "19u"], ["8.18 wheel income", "22u"], ["8.19 wheel income", "18u"], ["8.20 wheel income", "23u"], ["8.21 wheel income", "21u"], ["Wheel income total", `${wheelIncomeTotal}u`], ["Current platform balance", `${platformBalance}u`]],
     actions: ["Open withdrawal modal", "Export wallet report", "Create audit note"],
     note: "Current balance is calculated after the 2026-07-10 exchange withdrawal record.",
   };

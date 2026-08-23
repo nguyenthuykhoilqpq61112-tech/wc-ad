@@ -847,7 +847,7 @@ nav button:hover,
 }
 
 .league-bets-metrics {
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(5, minmax(0, 1fr));
 }
 
 .league-bet-type-grid {
@@ -883,6 +883,60 @@ nav button:hover,
   margin: 8px 0 4px;
   color: #f8fafc;
   font-size: 28px;
+}
+
+.league-daily-board {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.league-daily-board button {
+  display: grid;
+  grid-template-columns: minmax(170px, 0.8fr) minmax(0, 1.2fr);
+  gap: 14px;
+  min-height: 156px;
+  border: 1px solid rgba(148, 163, 184, 0.12);
+  background: rgba(15, 23, 42, 0.5);
+  color: inherit;
+  padding: 14px;
+  text-align: left;
+}
+
+.league-daily-board button:hover {
+  border-color: rgba(45, 212, 191, 0.36);
+  background: rgba(20, 184, 166, 0.11);
+}
+
+.league-daily-board span,
+.league-daily-board small,
+.league-daily-board dt {
+  color: #94a3b8;
+  font-size: 12px;
+}
+
+.league-daily-board strong {
+  display: block;
+  margin: 8px 0;
+  color: #f8fafc;
+  font-size: 18px;
+  line-height: 1.25;
+}
+
+.league-daily-board dl {
+  display: grid;
+  grid-template-columns: 62px minmax(0, 1fr);
+  gap: 7px 10px;
+  margin: 0;
+}
+
+.league-daily-board dd {
+  min-width: 0;
+  margin: 0;
+  color: #e2e8f0;
+  font-size: 12px;
+  font-weight: 800;
+  overflow-wrap: anywhere;
 }
 
 .daily-grid {
@@ -1204,6 +1258,7 @@ nav button:hover,
   .compact-metrics,
   .league-card-grid,
   .ol-module-grid,
+  .league-daily-board,
   .league-bet-type-grid,
   .daily-grid,
   .control-grid {
@@ -1254,8 +1309,13 @@ nav button:hover,
   .ol-module-grid,
   .league-bets-metrics,
   .league-bet-type-grid,
+  .league-daily-board,
   .daily-grid,
   .control-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .league-daily-board button {
     grid-template-columns: 1fr;
   }
 
