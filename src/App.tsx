@@ -403,7 +403,7 @@ const leagueMarkets: LeagueMarket[] = [
   {league: "Bundesliga", country: "Germany", kickoff: "2026-08-22 18:30 CEST", match: "Borussia Dortmund vs Bayern Munich", matchday: "Franz Beckenbauer Supercup", market: "Bayern win / Next goal", odds: "2.08 / 2.18", stake: 40, users: 3, exposure: 85.3, source: "Bundesliga official Supercup page", status: "Live"},
   {league: "Bundesliga", country: "Germany", kickoff: "2026-08-28 20:30 CEST", match: "Bayern Munich vs VfB Stuttgart", matchday: "Matchday 1", market: "Opening round futures", odds: "1.92", stake: 0, users: 0, exposure: 0, source: "Bundesliga official 2026/27 calendar", status: "Date confirmed"},
   {league: "Ligue 1", country: "France", kickoff: "2026-08-21 opening weekend", match: "Olympique de Marseille vs RC Strasbourg Alsace", matchday: "Matchday 1", market: "Home win / Total goals", odds: "1.77 / 1.86", stake: 24, users: 2, exposure: 44.64, source: "Ligue 1 official calendar release", status: "Pregame"},
-  {league: "Ligue 1", country: "France", kickoff: "2026-08-23 20:45 CEST", match: "Paris Saint-Germain vs Stade Rennais FC", matchday: "Matchday 1", market: "Home win / Player shots over", odds: "1.35 / 1.95", stake: 43, users: 3, exposure: 83.85, source: "PSG official match page", status: "Pregame"},
+  {league: "Ligue 1", country: "France", kickoff: "2026-08-23 20:45 CEST", match: "Paris Saint-Germain vs Stade Rennais FC", matchday: "Matchday 1", market: "Home win", odds: "1.35", stake: 27, users: 2, exposure: 36.45, source: "PSG official match page", status: "Pregame"},
   {league: "Ligue 1", country: "France", kickoff: "2026-08-30 20:45 local", match: "LOSC vs Paris Saint-Germain", matchday: "Matchday 2 top-ten match", market: "Away draw no bet", odds: "1.72", stake: 0, users: 0, exposure: 0, source: "Ligue 1 official calendar release", status: "Confirmed"},
 ];
 const leagueNames = Array.from(new Set(leagueMarkets.map((item) => item.league)));
@@ -426,7 +426,10 @@ const leagueBetSlips: LeagueBetSlip[] = [
   {id: "LGB-2208", time: "2026-08-22 21:33", user: "Tariq18", league: "Serie A", match: "Torino vs AC Milan", market: "Draw no bet", selection: "AC Milan DNB", odds: 1.79, stake: 18, potentialPayout: 32.22, betType: "Single", status: "Open", risk: "Low"},
   {id: "LGB-2209", time: "2026-08-22 22:10", user: "Majid19", league: "Serie A", match: "Atalanta vs Sassuolo", market: "Total goals", selection: "Under 3.5", odds: 1.81, stake: 13, potentialPayout: 23.53, betType: "Single", status: "Open", risk: "Low"},
   {id: "LGB-2301", time: "2026-08-23 13:42", user: "CalebCA37", league: "Premier League", match: "Manchester City vs AFC Bournemouth", market: "Team total", selection: "Manchester City over 1.5 goals", odds: 1.78, stake: 15, potentialPayout: 26.7, betType: "Team prop", status: "Open", risk: "Low"},
-  {id: "LGB-2302", time: "2026-08-23 20:18", user: "RyanUS38", league: "Ligue 1", match: "Paris Saint-Germain vs Stade Rennais FC", market: "Moneyline", selection: "PSG win", odds: 1.35, stake: 15, potentialPayout: 20.25, betType: "Single", status: "Open", risk: "Low"},
+  {id: "LGB-2302", time: "2026-08-23 17:30", user: "MarcoIT39", league: "Serie A", match: "Frosinone vs Juventus", market: "Moneyline", selection: "Juventus win", odds: 1.62, stake: 12, potentialPayout: 19.44, betType: "Single", status: "Open", risk: "Low"},
+  {id: "LGB-2303", time: "2026-08-23 19:45", user: "LucaIT40", league: "Serie A", match: "Atalanta vs Sassuolo", market: "Moneyline", selection: "Atalanta win", odds: 1.66, stake: 13, potentialPayout: 21.58, betType: "Single", status: "Open", risk: "Low"},
+  {id: "LGB-2304", time: "2026-08-23 20:45", user: "NoahEU41", league: "Serie A", match: "Torino vs AC Milan", market: "Draw no bet", selection: "AC Milan DNB", odds: 1.79, stake: 18, potentialPayout: 32.22, betType: "Single", status: "Open", risk: "Low"},
+  {id: "LGB-2305", time: "2026-08-23 20:18", user: "RyanUS38", league: "Ligue 1", match: "Paris Saint-Germain vs Stade Rennais FC", market: "Moneyline", selection: "PSG win", odds: 1.35, stake: 27, potentialPayout: 36.45, betType: "Single", status: "Open", risk: "Low"},
 ] as LeagueBetSlip[];
 const leagueBetStakeTotal = leagueBetSlips.reduce((sum, slip) => sum + slip.stake, 0);
 const leagueBetExposureTotal = Math.round(leagueBetSlips.reduce((sum, slip) => sum + slip.potentialPayout, 0) * 100) / 100;
@@ -439,7 +442,7 @@ const leagueBetReceipts = [
   {date: "2026-08-20", amount: 10, source: "Bundesliga early betting proceeds", status: "Collected"},
   {date: "2026-08-21", amount: 10, source: "Premier League opening betting proceeds", status: "Collected"},
   {date: "2026-08-22", amount: 208, source: "Five-league betting proceeds", status: "Collected"},
-  {date: "2026-08-23", amount: 30, source: "Five-league Sunday betting proceeds", status: "Collected"},
+  {date: "2026-08-23", amount: 85, source: "Five-league Sunday betting proceeds", status: "Collected"},
 ];
 const leagueBetReceiptTotal = leagueBetReceipts.reduce((sum, item) => sum + item.amount, 0);
 const platformBalance = Math.round((platformBalanceBeforeLeagueBetMerge + leagueBetWalletStakeAdjustment + leagueBetReceiptTotal) * 100) / 100;
@@ -516,11 +519,14 @@ const bonusRules = [
 ];
 
 const auditLogs = [
-  {time: "2026-08-23 20:18", actor: "sportsbook", action: "Accepted Ligue 1 bet 15u on PSG vs Stade Rennais, PSG win @ 1.35", result: "Open"},
+  {time: "2026-08-23 20:45", actor: "sportsbook", action: "Accepted Serie A bet 18u on Torino vs AC Milan, AC Milan DNB @ 1.79", result: "Open"},
+  {time: "2026-08-23 20:18", actor: "sportsbook", action: "Accepted Ligue 1 bet 27u on PSG vs Stade Rennais, PSG win @ 1.35", result: "Open"},
+  {time: "2026-08-23 19:45", actor: "sportsbook", action: "Accepted Serie A bet 13u on Atalanta vs Sassuolo, Atalanta win @ 1.66", result: "Open"},
+  {time: "2026-08-23 17:30", actor: "sportsbook", action: "Accepted Serie A bet 12u on Frosinone vs Juventus, Juventus win @ 1.62", result: "Open"},
   {time: "2026-08-23 13:42", actor: "sportsbook", action: "Accepted Premier League bet 15u on Manchester City vs Bournemouth, City team total over 1.5 @ 1.78", result: "Open"},
-  {time: "2026-08-23 20:30", actor: "cashier", action: "Collected 30u from 8.23 five-league betting proceeds", result: "OK"},
+  {time: "2026-08-23 20:30", actor: "cashier", action: "Collected 85u from 8.23 five-league betting proceeds", result: "OK"},
   {time: "2026-08-23 03:20", actor: "admin", action: "Withdrew 240u to exchange treasury after five-league receipt reconciliation", result: "Completed"},
-  {time: "2026-08-23 02:10", actor: "sportsbook", action: "Reconciled five-league bet slips to receipt ledger, previous total stake 255u", result: "OK"},
+  {time: "2026-08-23 02:10", actor: "sportsbook", action: "Reconciled 8.23 five-league slips to 85u; cumulative five-league stake 340u", result: "OK"},
   {time: "2026-08-22 23:58", actor: "cashier", action: "Collected 208u from 8.22 five-league betting proceeds", result: "OK"},
   {time: "2026-08-21 23:10", actor: "cashier", action: "Collected 10u from Premier League opening bet", result: "OK"},
   {time: "2026-08-22 03:06", actor: "sportsbook", action: "Accepted Premier League bet 10u on Arsenal vs Coventry City", result: "Pending"},
@@ -1200,7 +1206,7 @@ function LeagueBetsPage({openDetail}: {openDetail: (detail: Detail) => void}) {
         <div>
           <p className="eyebrow">Five-league betting desk</p>
           <h2>五大联赛投注中心</h2>
-          <span>集中管理单场、串关、滚球、球员道具和球队道具投注。五大联赛收入按收款流水入账：8.22 为 208u，8.23 为 30u，合计 285u。</span>
+          <span>集中管理单场、串关、滚球、球员道具和球队道具投注。五大联赛收入按收款流水入账：8.22 为 208u，8.23 为 85u，合计 340u。</span>
         </div>
         <div className="league-bets-metrics">
           <button onClick={() => openDetail(metricDetail("League bet slips", leagueBetSlips.length, "Five-league betting slips currently shown in the operator desk."))}><span>Slips</span><strong>{leagueBetSlips.length}</strong></button>
@@ -1713,9 +1719,9 @@ function walletDetail(): Detail {
   return {
     title: "System wallet balance",
     kicker: "Wallet calculation",
-    fields: [["平台初始余额", `${openingWalletReserve}u`], ["7.10 baseline balance", `${targetPostJulyTenthBalance}u`], ["Confirmed deposits", `${totalDeposits}u`], ["Bet stakes", `${totalStakes}u`], ["Paid payouts before balance merge", `${paidPayouts.toFixed(2)}u`], ["Exchange withdrawals", `${exchangeWithdrawn}u`], ["Wallet reconciliation to 7.10", `${walletReconciliationAdjustment.toFixed(2)}u`], ["7.15 stakes", `${todayStakeTotal}u`], ["7.15 paid/merged payouts", `${todayPaidPayouts.toFixed(2)}u`], ["7.15 wallet change", `${todayWalletChange.toFixed(2)}u`], ["7.16 withdrawal", "-1000u"], ["8.3 withdrawal", "-400u"], ["8.8 withdrawal", "-332.75u"], ["8.23 withdrawal", "-240u"], ["August withdrawals", `-${augustWithdrawals}u`], ["7.20 deposits", `${postJulyFifteenthDeposits}u`], ["7.20-8.22 sports stakes", `${postJulyFifteenthStakes}u`], ["Balance before league receipts", `${platformBalanceBeforeLeagueBetMerge}u`], ["League Bets stake total", `${leagueBetStakeTotal}u`], ["Already counted league stake", `-${leagueBetStakeAlreadyInSportsLedger}u`], ["League Bets net wallet increase", `${leagueBetWalletStakeAdjustment}u`], ["Five-league receipt total", `${leagueBetReceiptTotal}u`], ["8.23 five-league receipts", "30u"], ["8.22 five-league receipts", "208u"], ["8.21 Premier League receipt", "10u"], ["8.18-8.20 early receipts", "37u"], ["8.8 wheel income", "20u"], ["8.10 wheel income", "15u"], ["8.11 wheel income", "5u"], ["8.16 wheel income", "20u"], ["8.17 wheel income", "19u"], ["8.18 wheel income", "22u"], ["8.19 wheel income", "18u"], ["8.20 wheel income", "23u"], ["8.21 wheel income", "21u"], ["Wheel income total", `${wheelIncomeTotal}u`], ["Current platform balance", `${platformBalance}u`]],
+    fields: [["平台初始余额", `${openingWalletReserve}u`], ["7.10 baseline balance", `${targetPostJulyTenthBalance}u`], ["Confirmed deposits", `${totalDeposits}u`], ["Bet stakes", `${totalStakes}u`], ["Paid payouts before balance merge", `${paidPayouts.toFixed(2)}u`], ["Exchange withdrawals", `${exchangeWithdrawn}u`], ["Wallet reconciliation to 7.10", `${walletReconciliationAdjustment.toFixed(2)}u`], ["7.15 stakes", `${todayStakeTotal}u`], ["7.15 paid/merged payouts", `${todayPaidPayouts.toFixed(2)}u`], ["7.15 wallet change", `${todayWalletChange.toFixed(2)}u`], ["7.16 withdrawal", "-1000u"], ["8.3 withdrawal", "-400u"], ["8.8 withdrawal", "-332.75u"], ["8.23 withdrawal", "-240u"], ["August withdrawals", `-${augustWithdrawals}u`], ["7.20 deposits", `${postJulyFifteenthDeposits}u`], ["7.20-8.22 sports stakes", `${postJulyFifteenthStakes}u`], ["Balance before league receipts", `${platformBalanceBeforeLeagueBetMerge}u`], ["League Bets stake total", `${leagueBetStakeTotal}u`], ["Already counted league stake", `-${leagueBetStakeAlreadyInSportsLedger}u`], ["League Bets net wallet increase", `${leagueBetWalletStakeAdjustment}u`], ["Five-league receipt total", `${leagueBetReceiptTotal}u`], ["8.23 five-league receipts", "85u"], ["8.22 five-league receipts", "208u"], ["8.21 Premier League receipt", "10u"], ["8.18-8.20 early receipts", "37u"], ["8.8 wheel income", "20u"], ["8.10 wheel income", "15u"], ["8.11 wheel income", "5u"], ["8.16 wheel income", "20u"], ["8.17 wheel income", "19u"], ["8.18 wheel income", "22u"], ["8.19 wheel income", "18u"], ["8.20 wheel income", "23u"], ["8.21 wheel income", "21u"], ["Wheel income total", `${wheelIncomeTotal}u`], ["Current platform balance", `${platformBalance}u`]],
     actions: ["Open withdrawal modal", "Export wallet report", "Create audit note"],
-    note: "Current balance is calculated after 8.22 five-league receipts and the 8.23 exchange treasury withdrawal.",
+    note: "Current balance is calculated after 8.23 five-league receipts and the 8.23 exchange treasury withdrawal.",
   };
 }
 
