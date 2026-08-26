@@ -513,6 +513,15 @@ function buildDateLedgerRows(): DateLedgerRow[] {
   });
   addLedgerAmount(rows, ledgerReconciliationDate, "reconciliation", walletReconciliationAdjustment, `Wallet reconciliation to 7.10 baseline ${targetPostJulyTenthBalance}u`);
 
+  // Keep the historical August calendar continuous so every date can be opened,
+  // including days where no source record was supplied.
+  for (let day = 2; day <= 25; day += 1) {
+    const date = `2026-08-${String(day).padStart(2, "0")}`;
+    if (!rows[date]) {
+      rows[date] = {deposits: 0, sportsStakes: 0, leagueStake: 0, leagueReceipts: 0, wheelIncome: 0, payouts: 0, exchangeWithdrawals: 0, reconciliation: 0, items: ["No recorded wallet movement for this date."]};
+    }
+  }
+
   let balanceAfter = openingWalletReserve;
   return Object.entries(rows)
     .sort(([a], [b]) => a.localeCompare(b))
