@@ -1463,11 +1463,14 @@ function AuditLogsPage({summary, openDetail}: {summary: AdminSummary | null; ope
 }
 
 function LedgerByDatePage({openDetail}: {openDetail: (detail: Detail) => void}) {
+  const [selectedDate, setSelectedDate] = useState(dateLedgerRows.at(-1)?.date ?? "2026-08-25");
   const totalDepositsByDate = dateLedgerRows.reduce((sum, row) => sum + row.deposits, 0);
   const totalSportsStakesByDate = dateLedgerRows.reduce((sum, row) => sum + row.sportsStakes, 0);
   const totalLeagueReceiptsByDate = dateLedgerRows.reduce((sum, row) => sum + row.leagueReceipts, 0);
   const totalWheelByDate = dateLedgerRows.reduce((sum, row) => sum + row.wheelIncome, 0);
   const totalWithdrawalsByDate = dateLedgerRows.reduce((sum, row) => sum + row.exchangeWithdrawals, 0);
+  const selectedLedgerRow = dateLedgerRows.find((row) => row.date === selectedDate) ?? dateLedgerRows.at(-1);
+  const selectedIncomeRow = dailyIncomeRows.find((row) => row.period === selectedDate);
 
   return (
     <section className="page-grid ledger-page">
@@ -1496,6 +1499,22 @@ function LedgerByDatePage({openDetail}: {openDetail: (detail: Detail) => void}) 
             </button>
           ))}
         </div>
+      </Panel>
+
+      <Panel title="Income Calendar" meta="Choose a date to view that day's total income and records">
+        <div className="date-picker-row">
+          <label>
+            <span>Select date</span>
+            <input type="date" min="2026-08-02" max={dateLedgerRows.at(-1)?.date} value={selectedDate} onChange={(event) => setSelectedDate(event.target.value)} />
+          </label>
+          <button onClick={() => selectedIncomeRow && openDetail(incomeSummaryDetail("Daily income", selectedIncomeRow))} disabled={!selectedIncomeRow}>Open income details</button>
+        </div>
+        {selectedLedgerRow && <div className="selected-date-summary">
+          <div><span>{selectedDate} total income</span><strong>{selectedIncomeRow?.total ?? 0}u</strong></div>
+          <div><span>Net wallet movement</span><strong>{selectedLedgerRow.net}u</strong></div>
+          <div><span>Records</span><strong>{selectedLedgerRow.items.length}</strong></div>
+        </div>}
+        {selectedLedgerRow && <p className="detail-note">{selectedLedgerRow.items.join(" | ")}</p>}
       </Panel>
 
       <section className="split-grid">
