@@ -509,6 +509,11 @@ nav button:hover,
   grid-template-columns: 150px 94px 110px 120px minmax(210px, 1fr) 100px minmax(170px, 0.9fr) 70px 70px 86px 92px 74px;
 }
 
+.ledger-table .data-row {
+  grid-template-columns: 120px repeat(8, minmax(82px, 0.7fr)) 100px;
+  min-width: 1080px;
+}
+
 .data-head {
   background: transparent;
   color: #64748b;
