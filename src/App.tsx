@@ -865,7 +865,7 @@ export function App() {
 
         {error && <div className="banner-error"><AlertTriangle size={18} />{error}</div>}
 
-        {activePage === "Overview" && <OverviewPage summary={summary} totalUserCount={combinedUsers.length} filteredUsers={filteredUsers} openDetail={setDetail} onOpenWithdraw={() => setWithdrawOpen(true)} />}
+        {activePage === "Overview" && <OverviewPage summary={summary} totalUserCount={combinedUsers.length} filteredUsers={filteredUsers} openDetail={setDetail} onOpenWithdraw={() => setWithdrawOpen(true)} setActivePage={setActivePage} />}
         {activePage === "Users" && <UsersPage summary={summary} filteredUsers={filteredUsers} openDetail={setDetail} />}
         {activePage === "Deposits" && <DepositsPage openDetail={setDetail} />}
         {activePage === "Withdrawals" && <WithdrawalsPage openDetail={setDetail} onOpenWithdraw={() => setWithdrawOpen(true)} />}
@@ -909,7 +909,7 @@ export function App() {
   );
 }
 
-function OverviewPage({summary, totalUserCount, filteredUsers, openDetail, onOpenWithdraw}: {summary: AdminSummary | null; totalUserCount: number; filteredUsers: PlatformUser[]; openDetail: (detail: Detail) => void; onOpenWithdraw: () => void}) {
+function OverviewPage({summary, totalUserCount, filteredUsers, openDetail, onOpenWithdraw, setActivePage}: {summary: AdminSummary | null; totalUserCount: number; filteredUsers: PlatformUser[]; openDetail: (detail: Detail) => void; onOpenWithdraw: () => void; setActivePage: (page: ActivePage) => void}) {
   return (
     <>
       <section className="metrics-grid">
@@ -920,6 +920,18 @@ function OverviewPage({summary, totalUserCount, filteredUsers, openDetail, onOpe
         <Metric title="Platform balance" value={platformBalance} icon={<ShieldCheck size={20} />} onClick={() => openDetail(walletDetail())} />
       </section>
       <SystemWalletPanel openDetail={openDetail} onOpenWithdraw={onOpenWithdraw} />
+      <Panel title="Cashflow Ledger" meta="Latest daily income and wallet movements">
+        <div className="compact-list">
+          {dateLedgerRows.slice(-5).map((row) => (
+            <button key={row.date} onClick={() => openDetail(dateLedgerDetail(row))}>
+              <span>{row.date}</span>
+              <strong>{row.net > 0 ? "+" : ""}{row.net}u net · {row.balanceAfter}u balance</strong>
+              <small>{row.items.length} record{row.items.length === 1 ? "" : "s"} · click to open details</small>
+            </button>
+          ))}
+          <button onClick={() => setActivePage("Ledger by Date")}><span>Full history</span><strong>Open Ledger by Date</strong><small>View every daily row and income summary</small></button>
+        </div>
+      </Panel>
       <DailyBetStatsPanel openDetail={openDetail} />
       <section className="split-grid">
         <UsersPanel users={filteredUsers} updatedAt={summary?.updatedAt} openDetail={openDetail} />
