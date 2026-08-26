@@ -523,6 +523,13 @@ function buildDateLedgerRows(): DateLedgerRow[] {
     }
   }
 
+  // Reconcile the complete dated ledger to the same platform wallet total.
+  // This prevents a later treasury withdrawal from being deducted twice.
+  const ledgerBeforeFinalReconciliation = Object.values(rows).reduce((total, row) => total + row.deposits + row.sportsStakes + row.leagueReceipts + row.wheelIncome - row.payouts - row.exchangeWithdrawals, 0);
+  const finalReconciliation = Math.round((platformBalance - ledgerBeforeFinalReconciliation) * 100) / 100;
+  rows[ledgerReconciliationDate].reconciliation = finalReconciliation;
+  rows[ledgerReconciliationDate].items.push(`Final ledger reconciliation to platform balance ${platformBalance}u`);
+
   let balanceAfter = openingWalletReserve;
   return Object.entries(rows)
     .sort(([a], [b]) => a.localeCompare(b))
