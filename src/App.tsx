@@ -126,6 +126,11 @@ type DateLedgerRow = {
   balanceAfter: number;
   items: string[];
 };
+type IncomeSummaryRow = {
+  period: string;
+  total: number;
+  items: string[];
+};
 
 const API_BASE = (import.meta.env.VITE_API_BASE_URL || "https://2026wc.zeabur.app").replace(/\/+$/, "");
 const EXCHANGE_WITHDRAW_PASSWORD = import.meta.env.VITE_EXCHANGE_WITHDRAW_PASSWORD || "";
@@ -521,6 +526,23 @@ function buildDateLedgerRows(): DateLedgerRow[] {
 const dateLedgerRows = buildDateLedgerRows();
 const dateLedgerFinalBalance = dateLedgerRows.at(-1)?.balanceAfter ?? openingWalletReserve;
 const dateLedgerDelta = Math.round((platformBalance - dateLedgerFinalBalance) * 100) / 100;
+
+function buildIncomeSummary(periodKey: (date: string) => string): IncomeSummaryRow[] {
+  const grouped: Record<string, IncomeSummaryRow> = {};
+  const add = (date: string, amount: number, label: string) => {
+    const period = periodKey(date);
+    if (!grouped[period]) grouped[period] = {period, total: 0, items: []};
+    grouped[period].total = Math.round((grouped[period].total + amount) * 100) / 100;
+    grouped[period].items.push(`${date} · ${label} +${amount}u`);
+  };
+  leagueBetReceipts.forEach((receipt) => add(receipt.date, receipt.amount, receipt.source));
+  wheelIncomes.forEach((income) => add(income.date, income.amount, income.source));
+  return Object.values(grouped).sort((a, b) => a.period.localeCompare(b.period));
+}
+
+const dailyIncomeRows = buildIncomeSummary((date) => date);
+const monthlyIncomeRows = buildIncomeSummary((date) => date.slice(0, 7));
+const totalCollectedIncome = dailyIncomeRows.reduce((sum, row) => sum + row.total, 0);
 const leagueDailyFixtures: LeagueDailyFixture[] = [
   {league: "Premier League", date: "2026-08-22", time: "12:30 UK", match: "Hull City vs Manchester United", matchday: "Matchweek 1", moneyline: "3.10 / 3.45 / 2.18", handicap: "Manchester United -0.5 @ 1.91", total: "Over 2.5 @ 1.86", featured: "Man United win @ 2.18", status: "Live"},
   {league: "Premier League", date: "2026-08-22", time: "17:30 UK", match: "Brentford vs Tottenham Hotspur", matchday: "Matchweek 1", moneyline: "2.76 / 3.35 / 2.42", handicap: "Tottenham -0.25 @ 1.91", total: "Under 3.0 @ 1.88", featured: "Tottenham DNB @ 1.72", status: "Today"},
@@ -1423,7 +1445,7 @@ function LedgerByDatePage({openDetail}: {openDetail: (detail: Detail) => void}) 
         <Metric title="Ledger balance" value={dateLedgerFinalBalance} icon={<ShieldCheck size={20} />} onClick={() => openDetail(ledgerBalanceDetail())} />
         <Metric title="Platform balance" value={platformBalance} icon={<WalletCards size={20} />} onClick={() => openDetail(walletDetail())} />
         <Metric title="Balance delta" value={dateLedgerDelta} icon={<AlertTriangle size={20} />} onClick={() => openDetail(ledgerBalanceDetail())} />
-        <Metric title="League receipts" value={totalLeagueReceiptsByDate} icon={<Goal size={20} />} onClick={() => openDetail(metricDetail("League receipts by date", totalLeagueReceiptsByDate, "Five-league receipt rows grouped by receipt date."))} />
+        <Metric title="Collected income" value={totalCollectedIncome} icon={<Goal size={20} />} onClick={() => openDetail(metricDetail("Collected income", totalCollectedIncome, "All recorded income combined without separating match format or wheel source."))} />
       </section>
 
       <Panel title="Daily Ledger" meta="Deposits, sports stakes, five-league receipts, wheel income, payouts, withdrawals, and running balance">
@@ -1445,6 +1467,31 @@ function LedgerByDatePage({openDetail}: {openDetail: (detail: Detail) => void}) 
           ))}
         </div>
       </Panel>
+
+      <section className="split-grid">
+        <Panel title="Daily Income Summary" meta="All income combined by calendar day">
+          <div className="data-table income-summary-table">
+            <div className="data-row data-head"><span>Date</span><span>Total income</span></div>
+            {dailyIncomeRows.map((row) => (
+              <button className="data-row clickable-row" key={row.period} onClick={() => openDetail(incomeSummaryDetail("Daily income", row))}>
+                <strong>{row.period}</strong>
+                <b>{row.total}u</b>
+              </button>
+            ))}
+          </div>
+        </Panel>
+        <Panel title="Monthly Income Summary" meta="All income combined by calendar month">
+          <div className="data-table income-summary-table">
+            <div className="data-row data-head"><span>Month</span><span>Total income</span></div>
+            {monthlyIncomeRows.map((row) => (
+              <button className="data-row clickable-row" key={row.period} onClick={() => openDetail(incomeSummaryDetail("Monthly income", row))}>
+                <strong>{row.period}</strong>
+                <b>{row.total}u</b>
+              </button>
+            ))}
+          </div>
+        </Panel>
+      </section>
 
       <section className="triple-grid">
         <Panel title="Totals Check" meta="These totals come from the same rows above">
@@ -1835,6 +1882,16 @@ function dateLedgerDetail(row: DateLedgerRow): Detail {
     kicker: "Ledger by Date",
     fields: [["Date", row.date], ["Deposits", `${row.deposits}u`], ["Sports stakes", `${row.sportsStakes}u`], ["League stake", `${row.leagueStake}u`], ["League receipts", `${row.leagueReceipts}u`], ["Wheel income", `${row.wheelIncome}u`], ["Payouts", `${row.payouts}u`], ["Withdrawals", `${row.exchangeWithdrawals}u`], ["Reconciliation", `${row.reconciliation}u`], ["Net movement", `${row.net}u`], ["Balance after", `${row.balanceAfter}u`]],
     actions: ["Open day slips", "Export date ledger", "Create audit note"],
+    note: row.items.join(" | "),
+  };
+}
+
+function incomeSummaryDetail(label: string, row: IncomeSummaryRow): Detail {
+  return {
+    title: `${label} · ${row.period}`,
+    kicker: "Income Summary",
+    fields: [["Period", row.period], ["Total income", `${row.total}u`], ["Records", String(row.items.length)], ["Calculation", "All income combined"]],
+    actions: ["Export income summary", "Open source records", "Create audit note"],
     note: row.items.join(" | "),
   };
 }

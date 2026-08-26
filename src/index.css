@@ -514,6 +514,11 @@ nav button:hover,
   min-width: 1080px;
 }
 
+.income-summary-table .data-row {
+  grid-template-columns: minmax(150px, 1fr) 120px;
+  min-width: 0;
+}
+
 .data-head {
   background: transparent;
   color: #64748b;
