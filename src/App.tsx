@@ -403,7 +403,8 @@ const wheelIncomes: WheelIncome[] = [
   {date: "2026-08-21", amount: 21, source: "Wheel game", status: "Settled"},
 ];
 const wheelIncomeTotal = wheelIncomes.reduce((sum, item) => sum + item.amount, 0);
-const platformBalanceBeforeLeagueBetMerge = Math.round((targetPostJulyTenthBalance + todayWalletChange + postJulyFifteenthDeposits + postJulyFifteenthStakes + wheelIncomeTotal - postJulyFifteenthWithdrawals) * 100) / 100;
+const historicalWithdrawalAlreadyInBaseline = exchangeWithdrawals.find((item) => item.date === "2026-07-16")?.amount ?? 0;
+const platformBalanceBeforeLeagueBetMerge = Math.round((targetPostJulyTenthBalance + todayWalletChange + postJulyFifteenthDeposits + postJulyFifteenthStakes + wheelIncomeTotal - postJulyFifteenthWithdrawals + historicalWithdrawalAlreadyInBaseline) * 100) / 100;
 const dailyBetTotals = betRecords.reduce<Record<string, number>>((acc, bet) => {
   acc[bet.matchDate] = Math.round(((acc[bet.matchDate] || 0) + bet.stake) * 100) / 100;
   return acc;
