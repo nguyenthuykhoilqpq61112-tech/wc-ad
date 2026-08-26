@@ -523,10 +523,6 @@ function buildDateLedgerRows(): DateLedgerRow[] {
     });
 }
 
-const dateLedgerRows = buildDateLedgerRows();
-const dateLedgerFinalBalance = dateLedgerRows.at(-1)?.balanceAfter ?? openingWalletReserve;
-const dateLedgerDelta = Math.round((platformBalance - dateLedgerFinalBalance) * 100) / 100;
-
 function buildIncomeSummary(periodKey: (date: string) => string): IncomeSummaryRow[] {
   const grouped: Record<string, IncomeSummaryRow> = {};
   const add = (date: string, amount: number, label: string) => {
@@ -540,9 +536,6 @@ function buildIncomeSummary(periodKey: (date: string) => string): IncomeSummaryR
   return Object.values(grouped).sort((a, b) => a.period.localeCompare(b.period));
 }
 
-const dailyIncomeRows = buildIncomeSummary((date) => date);
-const monthlyIncomeRows = buildIncomeSummary((date) => date.slice(0, 7));
-const totalCollectedIncome = dailyIncomeRows.reduce((sum, row) => sum + row.total, 0);
 const leagueDailyFixtures: LeagueDailyFixture[] = [
   {league: "Premier League", date: "2026-08-22", time: "12:30 UK", match: "Hull City vs Manchester United", matchday: "Matchweek 1", moneyline: "3.10 / 3.45 / 2.18", handicap: "Manchester United -0.5 @ 1.91", total: "Over 2.5 @ 1.86", featured: "Man United win @ 2.18", status: "Live"},
   {league: "Premier League", date: "2026-08-22", time: "17:30 UK", match: "Brentford vs Tottenham Hotspur", matchday: "Matchweek 1", moneyline: "2.76 / 3.35 / 2.42", handicap: "Tottenham -0.25 @ 1.91", total: "Under 3.0 @ 1.88", featured: "Tottenham DNB @ 1.72", status: "Today"},
@@ -589,6 +582,13 @@ const depositQueue: DepositRecord[] = [
     age: "2026-07-20 01:18",
   })),
 ];
+
+const dateLedgerRows = buildDateLedgerRows();
+const dateLedgerFinalBalance = dateLedgerRows.at(-1)?.balanceAfter ?? openingWalletReserve;
+const dateLedgerDelta = Math.round((platformBalance - dateLedgerFinalBalance) * 100) / 100;
+const dailyIncomeRows = buildIncomeSummary((date) => date);
+const monthlyIncomeRows = buildIncomeSummary((date) => date.slice(0, 7));
+const totalCollectedIncome = dailyIncomeRows.reduce((sum, row) => sum + row.total, 0);
 
 const withdrawalQueue = betRecords
   .filter((bet) => bet.result === "Won - contact support" || bet.result === "Paid")
