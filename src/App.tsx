@@ -419,7 +419,7 @@ const leagueMarkets: LeagueMarket[] = [
   {league: "LaLiga", country: "Spain", kickoff: "2026-08-22 21:30 CEST", match: "RCD Espanyol de Barcelona vs Real Madrid", matchday: "Matchday 2", market: "Away win / Player shots", odds: "1.58 / 1.92", stake: 47, users: 3, exposure: 86.72, source: "Real Madrid official match preview", status: "Pregame"},
   {league: "LaLiga", country: "Spain", kickoff: "2026-08-25 19:00 CEST", match: "Valencia vs Real Betis", matchday: "LALIGA EA SPORTS", market: "Live 1X2 / correct score / total goals", odds: "2.42 / 3.10 / 2.88", stake: 95, users: 3, exposure: 275.5, source: "LALIGA official live match board", status: "Live"},
   {league: "LaLiga", country: "Spain", kickoff: "2026-08-26 19:00 local", match: "Real Madrid vs Real Sociedad", matchday: "Matchday 3", market: "Home win / Team total", odds: "1.62 / 1.88", stake: 0, users: 0, exposure: 0, source: "LALIGA calendar", status: "Confirmed"},
-  {league: "LaLiga", country: "Spain", kickoff: "2026-08-27 21:00 local", match: "Real Madrid vs FC Barcelona", matchday: "Matchday 1 listing", market: "1X2 / Both teams to score", odds: "2.28 / 1.74", stake: 0, users: 0, exposure: 0, source: "LALIGA calendar", status: "Risk review"},
+  {league: "LaLiga", country: "Spain", kickoff: "2026-08-27 21:00 CEST", match: "FC Barcelona vs Athletic Club", matchday: "Matchday 1", market: "1X2 / Both teams to score", odds: "1.64 / 1.74", stake: 30, users: 2, exposure: 49.2, source: "LALIGA official first matchday schedule", status: "Confirmed"},
   {league: "Serie A", country: "Italy", kickoff: "2026-08-23 17:30 CEST", match: "Frosinone vs Juventus", matchday: "Matchday 1", market: "Away win", odds: "1.62", stake: 12, users: 1, exposure: 19.44, source: "Juventus official matchroom", status: "Pregame"},
   {league: "Serie A", country: "Italy", kickoff: "2026-08-23 19:45 CEST", match: "Atalanta vs Sassuolo", matchday: "Matchday 1", market: "Moneyline / Under 3.5", odds: "1.66 / 1.81", stake: 13, users: 1, exposure: 23.53, source: "Juventus official Matchday 1 listing", status: "Pregame"},
   {league: "Serie A", country: "Italy", kickoff: "2026-08-23 20:45 CEST", match: "Torino vs AC Milan", matchday: "Matchday 1", market: "Away draw no bet", odds: "1.79", stake: 18, users: 2, exposure: 32.22, source: "AC Milan official schedule", status: "Pregame"},
@@ -458,6 +458,8 @@ const leagueBetSlips: LeagueBetSlip[] = [
   {id: "LGB-2501", time: "2026-08-25 18:52", user: "MasonUS35", league: "LaLiga", match: "Valencia vs Real Betis", market: "Moneyline", selection: "Valencia win", odds: 2.42, stake: 35, potentialPayout: 84.7, betType: "Single", status: "Open", risk: "Medium"},
   {id: "LGB-2502", time: "2026-08-25 19:08", user: "AidenCA36", league: "LaLiga", match: "Valencia vs Real Betis", market: "Correct score", selection: "0-0 live score hold", odds: 6.2, stake: 25, potentialPayout: 155, betType: "Live", status: "Risk hold", risk: "High"},
   {id: "LGB-2503", time: "2026-08-25 19:26", user: "CarterUS37", league: "LaLiga", match: "Valencia vs Real Betis", market: "Total goals", selection: "Under 2.5", odds: 1.62, stake: 35, potentialPayout: 56.7, betType: "Single", status: "Open", risk: "Low"},
+  {id: "LGB-2701", time: "2026-08-27 19:42", user: "Omar11", league: "LaLiga", match: "FC Barcelona vs Athletic Club", market: "Moneyline", selection: "FC Barcelona win", odds: 1.64, stake: 15, potentialPayout: 24.6, betType: "Single", status: "Pending", risk: "Low"},
+  {id: "LGB-2702", time: "2026-08-27 20:06", user: "Yousef12", league: "LaLiga", match: "FC Barcelona vs Athletic Club", market: "Both teams to score", selection: "Yes", odds: 1.74, stake: 15, potentialPayout: 26.1, betType: "Single", status: "Pending", risk: "Low"},
 ] as LeagueBetSlip[];
 const leagueBetStakeTotal = leagueBetSlips.reduce((sum, slip) => sum + slip.stake, 0);
 const leagueBetExposureTotal = Math.round(leagueBetSlips.reduce((sum, slip) => sum + slip.potentialPayout, 0) * 100) / 100;
@@ -474,6 +476,7 @@ const leagueBetReceipts = [
   {date: "2026-08-24", amount: 60, source: "Serie A Bologna vs Lazio betting proceeds", status: "Collected"},
   {date: "2026-08-25", amount: 95, source: "LaLiga Valencia vs Real Betis betting proceeds", status: "Collected"},
   {date: "2026-08-26", amount: 50, source: "Five-league betting proceeds", status: "Collected"},
+  {date: "2026-08-27", amount: 30, source: "LaLiga FC Barcelona vs Athletic Club betting proceeds", status: "Collected"},
 ];
 const leagueBetReceiptTotal = leagueBetReceipts.reduce((sum, item) => sum + item.amount, 0);
 const platformBalance = Math.round((platformBalanceBeforeLeagueBetMerge + leagueBetWalletStakeAdjustment + leagueBetReceiptTotal) * 100) / 100;
@@ -562,7 +565,7 @@ const leagueDailyFixtures: LeagueDailyFixture[] = [
   {league: "LaLiga", date: "2026-08-22", time: "19:30 local", match: "RCD Espanyol de Barcelona vs Real Madrid", matchday: "Matchday 2", moneyline: "5.80 / 4.20 / 1.58", handicap: "Real Madrid -1.0 @ 1.90", total: "Over 2.75 @ 1.92", featured: "Real Madrid win @ 1.58", status: "Today"},
   {league: "LaLiga", date: "2026-08-25", time: "19:00 CEST", match: "Valencia vs Real Betis", matchday: "LALIGA EA SPORTS", moneyline: "2.42 / 3.10 / 2.88", handicap: "Valencia -0.25 @ 1.94", total: "Under 2.5 @ 1.62", featured: "Live correct score 0-0 @ 6.20", status: "Live"},
   {league: "LaLiga", date: "2026-08-26", time: "19:00 local", match: "Real Madrid vs Real Sociedad", matchday: "Matchday 3", moneyline: "1.62 / 4.05 / 5.20", handicap: "Real Madrid -0.75 @ 1.88", total: "Under 3.0 @ 1.84", featured: "Real Madrid team total over 1.5 @ 1.76", status: "Upcoming"},
-  {league: "LaLiga", date: "2026-08-27", time: "21:00 local", match: "Real Madrid vs FC Barcelona", matchday: "Matchday 1 listing", moneyline: "2.28 / 3.55 / 2.92", handicap: "Real Madrid -0.25 @ 2.02", total: "Both teams score @ 1.74", featured: "BTTS @ 1.74", status: "Upcoming"},
+  {league: "LaLiga", date: "2026-08-27", time: "21:00 CEST", match: "FC Barcelona vs Athletic Club", matchday: "Matchday 1", moneyline: "1.64 / 4.10 / 5.20", handicap: "FC Barcelona -0.75 @ 1.88", total: "Both teams score @ 1.74", featured: "Barcelona win @ 1.64", status: "Upcoming"},
   {league: "Serie A", date: "2026-08-23", time: "TBD", match: "Atalanta vs Sassuolo", matchday: "Matchday 1", moneyline: "1.66 / 3.90 / 5.10", handicap: "Atalanta -0.75 @ 1.87", total: "Under 3.5 @ 1.81", featured: "Atalanta win @ 1.66", status: "TBD"},
   {league: "Serie A", date: "2026-08-23", time: "TBD", match: "Torino vs AC Milan", matchday: "Matchday 1", moneyline: "3.90 / 3.30 / 1.98", handicap: "AC Milan -0.25 @ 1.79", total: "Under 2.5 @ 1.86", featured: "AC Milan DNB @ 1.79", status: "TBD"},
   {league: "Serie A", date: "2026-08-24", time: "17:30 CEST", match: "Bologna vs Lazio", matchday: "Matchday 1", moneyline: "2.72 / 3.25 / 2.58", handicap: "Lazio draw no bet @ 1.74", total: "Under 2.75 @ 1.83", featured: "Lazio DNB @ 1.74", status: "Upcoming"},
@@ -638,6 +641,10 @@ const bonusRules = [
 
 const auditLogs = [
   {time: "2026-08-26 23:40", actor: "cashier", action: "Collected 50u from 8.26 five-league betting proceeds", result: "OK"},
+  {time: "2026-08-27 23:58", actor: "system", action: "Updated Ledger by Date with 8.27 LaLiga income; cumulative five-league receipts 575u", result: "OK"},
+  {time: "2026-08-27 23:42", actor: "cashier", action: "Collected 30u from 8.27 LaLiga FC Barcelona vs Athletic Club betting proceeds", result: "OK"},
+  {time: "2026-08-27 20:06", actor: "sportsbook", action: "Accepted LaLiga bet 15u on FC Barcelona vs Athletic Club, Both teams to score @ 1.74", result: "Pending"},
+  {time: "2026-08-27 19:42", actor: "sportsbook", action: "Accepted LaLiga bet 15u on FC Barcelona vs Athletic Club, FC Barcelona win @ 1.64", result: "Pending"},
   {time: "2026-08-26 23:25", actor: "system", action: "Updated Ledger by Date with 8.26 income; cumulative five-league receipts 545u", result: "OK"},
   {time: "2026-08-02 23:40", actor: "admin", action: "Withdrew 1000u to exchange treasury", result: "Completed"},
   {time: "2026-08-25 23:48", actor: "system", action: "Updated Ledger by Date with 8.25 LaLiga receipt; cumulative five-league stake 495u", result: "OK"},
@@ -1349,7 +1356,7 @@ function LeagueBetsPage({openDetail}: {openDetail: (detail: Detail) => void}) {
         <div>
           <p className="eyebrow">Five-league betting desk</p>
           <h2>五大联赛投注中心</h2>
-          <span>集中管理单场、串关、滚球、球员道具和球队道具投注。五大联赛收入按收款流水入账：8.22 为 208u，8.23 为 85u，8.24 为 60u，8.25 为 95u，8.26 为 50u，合计 545u。</span>
+          <span>集中管理单场、串关、滚球、球员道具和球队道具投注。五大联赛收入按收款流水入账：8.22 为 208u，8.23 为 85u，8.24 为 60u，8.25 为 95u，8.26 为 50u，8.27 为 30u，合计 575u。</span>
         </div>
         <div className="league-bets-metrics">
           <button onClick={() => openDetail(metricDetail("League bet slips", leagueBetSlips.length, "Five-league betting slips currently shown in the operator desk."))}><span>Slips</span><strong>{leagueBetSlips.length}</strong></button>
@@ -1662,7 +1669,7 @@ function SystemWalletPanel({openDetail, onOpenWithdraw}: {openDetail: (detail: D
     <section className="wallet-band">
       <div>
         <p className="eyebrow">System wallet</p>
-        <h2>{platformBalance.toLocaleString()}u available after 2026-08-26 league receipt</h2>
+        <h2>{platformBalance.toLocaleString()}u available after 2026-08-27 league receipt</h2>
         <span>7.10 baseline 875u; 7.15 net {todayWalletChange.toFixed(2)}u; 7.16 withdrawal -1000u; 7.20 recharge {postJulyFifteenthDeposits}u; 7.20-8.22 sports stakes {postJulyFifteenthStakes}u; five-league net stake +{leagueBetWalletStakeAdjustment}u; five-league receipts +{leagueBetReceiptTotal}u; August withdrawals -{augustWithdrawals}u; wheel income +{wheelIncomeTotal}u</span>
       </div>
       <div className="wallet-actions">
