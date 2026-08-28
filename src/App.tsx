@@ -38,6 +38,7 @@ type AdminSummary = {
 };
 
 type LeaguePage = "Premier League" | "LaLiga" | "Serie A" | "Bundesliga" | "Ligue 1";
+type FixtureLeague = LeaguePage | "Liga de Expansión MX";
 type ActivePage = "Overview" | "Users" | "Deposits" | "Withdrawals" | "Risk Review" | "Bonus Controls" | "Five Leagues" | "League Bets" | "Ledger by Date" | LeaguePage | "Audit Logs";
 type Detail = {
   title: string;
@@ -101,7 +102,7 @@ type LeagueBetSlip = {
   risk: "Low" | "Medium" | "High";
 };
 type LeagueDailyFixture = {
-  league: LeaguePage;
+  league: FixtureLeague;
   date: string;
   time: string;
   match: string;
@@ -429,6 +430,7 @@ const leagueMarkets: LeagueMarket[] = [
   {league: "Ligue 1", country: "France", kickoff: "2026-08-21 opening weekend", match: "Olympique de Marseille vs RC Strasbourg Alsace", matchday: "Matchday 1", market: "Home win / Total goals", odds: "1.77 / 1.86", stake: 24, users: 2, exposure: 44.64, source: "Ligue 1 official calendar release", status: "Pregame"},
   {league: "Ligue 1", country: "France", kickoff: "2026-08-23 20:45 CEST", match: "Paris Saint-Germain vs Stade Rennais FC", matchday: "Matchday 1", market: "Home win", odds: "1.35", stake: 27, users: 2, exposure: 36.45, source: "PSG official match page", status: "Pregame"},
   {league: "Ligue 1", country: "France", kickoff: "2026-08-30 20:45 local", match: "LOSC vs Paris Saint-Germain", matchday: "Matchday 2 top-ten match", market: "Away draw no bet", odds: "1.72", stake: 0, users: 0, exposure: 0, source: "Ligue 1 official calendar release", status: "Confirmed"},
+  {league: "Liga de Expansión MX", country: "Mexico", kickoff: "2026-08-28 02:00 local", match: "Alebrijes Oaxaca vs Tapatío", matchday: "Matchday fixture", market: "1X2", odds: "1.97 / 3.46 / 3.22", stake: 20, users: 1, exposure: 39.4, source: "2026-08-28 football fixture listing", status: "Pregame"},
 ];
 const leagueNames = Array.from(new Set(leagueMarkets.map((item) => item.league)));
 const leaguePageItems = leagueNames as LeaguePage[];
@@ -460,6 +462,7 @@ const leagueBetSlips: LeagueBetSlip[] = [
   {id: "LGB-2503", time: "2026-08-25 19:26", user: "CarterUS37", league: "LaLiga", match: "Valencia vs Real Betis", market: "Total goals", selection: "Under 2.5", odds: 1.62, stake: 35, potentialPayout: 56.7, betType: "Single", status: "Open", risk: "Low"},
   {id: "LGB-2701", time: "2026-08-27 19:42", user: "Omar11", league: "LaLiga", match: "FC Barcelona vs Athletic Club", market: "Moneyline", selection: "FC Barcelona win", odds: 1.64, stake: 15, potentialPayout: 24.6, betType: "Single", status: "Pending", risk: "Low"},
   {id: "LGB-2702", time: "2026-08-27 20:06", user: "Yousef12", league: "LaLiga", match: "FC Barcelona vs Athletic Club", market: "Both teams to score", selection: "Yes", odds: 1.74, stake: 15, potentialPayout: 26.1, betType: "Single", status: "Pending", risk: "Low"},
+  {id: "LGB-2801", time: "2026-08-28 02:00", user: "Amina21", league: "Liga de Expansión MX", match: "Alebrijes Oaxaca vs Tapatío", market: "Moneyline", selection: "Alebrijes Oaxaca win", odds: 1.97, stake: 20, potentialPayout: 39.4, betType: "Single", status: "Pending", risk: "Low"},
 ] as LeagueBetSlip[];
 const leagueBetStakeTotal = leagueBetSlips.reduce((sum, slip) => sum + slip.stake, 0);
 const leagueBetExposureTotal = Math.round(leagueBetSlips.reduce((sum, slip) => sum + slip.potentialPayout, 0) * 100) / 100;
@@ -477,6 +480,7 @@ const leagueBetReceipts = [
   {date: "2026-08-25", amount: 95, source: "LaLiga Valencia vs Real Betis betting proceeds", status: "Collected"},
   {date: "2026-08-26", amount: 50, source: "Five-league betting proceeds", status: "Collected"},
   {date: "2026-08-27", amount: 30, source: "LaLiga FC Barcelona vs Athletic Club betting proceeds", status: "Collected"},
+  {date: "2026-08-28", amount: 20, source: "Alebrijes Oaxaca vs Tapatío betting proceeds", status: "Collected"},
 ];
 const leagueBetReceiptTotal = leagueBetReceipts.reduce((sum, item) => sum + item.amount, 0);
 const platformBalance = Math.round((platformBalanceBeforeLeagueBetMerge + leagueBetWalletStakeAdjustment + leagueBetReceiptTotal) * 100) / 100;
@@ -574,6 +578,7 @@ const leagueDailyFixtures: LeagueDailyFixture[] = [
   {league: "Ligue 1", date: "2026-08-21", time: "weekend", match: "Olympique de Marseille vs RC Strasbourg Alsace", matchday: "Matchday 1", moneyline: "1.77 / 3.70 / 4.60", handicap: "Marseille -0.5 @ 1.86", total: "Over 2.5 @ 1.86", featured: "Marseille win @ 1.77", status: "Today"},
   {league: "Ligue 1", date: "2026-08-22", time: "weekend", match: "Paris Saint-Germain vs Stade Rennais FC", matchday: "Matchday 1", moneyline: "1.35 / 5.25 / 8.40", handicap: "PSG -1.5 @ 1.95", total: "PSG team over 1.5 @ 1.95", featured: "PSG team total over 1.5 @ 1.95", status: "Today"},
   {league: "Ligue 1", date: "2026-08-30", time: "20:45 local", match: "LOSC vs Paris Saint-Germain", matchday: "Matchday 2", moneyline: "4.40 / 3.80 / 1.72", handicap: "PSG -0.5 @ 1.72", total: "Over 2.75 @ 1.89", featured: "PSG DNB @ 1.42", status: "Upcoming"},
+  {league: "Liga de Expansión MX", date: "2026-08-28", time: "02:00 local", match: "Alebrijes Oaxaca vs Tapatío", matchday: "Matchday fixture", moneyline: "1.97 / 3.46 / 3.22", handicap: "Alebrijes -0.25 @ 1.90", total: "Over 2.5 @ 1.88", featured: "Alebrijes win @ 1.97", status: "Today"},
 ];
 const olCompanionModules = [
   {name: "Fixtures", status: "Connected as Ligue 1 fixture board", path: "/home/uuxu/ol-companion/frontend/src/routes/fixtures.tsx"},
@@ -645,6 +650,8 @@ const auditLogs = [
   {time: "2026-08-27 23:42", actor: "cashier", action: "Collected 30u from 8.27 LaLiga FC Barcelona vs Athletic Club betting proceeds", result: "OK"},
   {time: "2026-08-27 20:06", actor: "sportsbook", action: "Accepted LaLiga bet 15u on FC Barcelona vs Athletic Club, Both teams to score @ 1.74", result: "Pending"},
   {time: "2026-08-27 19:42", actor: "sportsbook", action: "Accepted LaLiga bet 15u on FC Barcelona vs Athletic Club, FC Barcelona win @ 1.64", result: "Pending"},
+  {time: "2026-08-28 02:00", actor: "sportsbook", action: "Accepted 20u bet on Alebrijes Oaxaca vs Tapatío, Alebrijes Oaxaca win @ 1.97", result: "Pending"},
+  {time: "2026-08-28 02:20", actor: "cashier", action: "Collected 20u from Alebrijes Oaxaca vs Tapatío betting proceeds", result: "OK"},
   {time: "2026-08-26 23:25", actor: "system", action: "Updated Ledger by Date with 8.26 income; cumulative five-league receipts 545u", result: "OK"},
   {time: "2026-08-02 23:40", actor: "admin", action: "Withdrew 1000u to exchange treasury", result: "Completed"},
   {time: "2026-08-25 23:48", actor: "system", action: "Updated Ledger by Date with 8.25 LaLiga receipt; cumulative five-league stake 495u", result: "OK"},
