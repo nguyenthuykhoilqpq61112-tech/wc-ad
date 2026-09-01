@@ -371,6 +371,7 @@ const exchangeWithdrawals: ExchangeWithdrawal[] = [
   {date: "2026-08-03", amount: 400, status: "Completed", destination: "Exchange treasury"},
   {date: "2026-08-08", amount: 332.75, status: "Completed", destination: "Exchange treasury"},
   {date: "2026-08-23", amount: 240, status: "Completed", destination: "Exchange treasury"},
+  {date: "2026-09-01", amount: 800, status: "Processing", destination: "Exchange treasury (Est. 20% fee · ETA 9.2)"},
 ];
 const openingWalletReserve = 0;
 const totalDeposits = allUsers.reduce((sum, user) => sum + user.deposit, 0);
@@ -392,6 +393,7 @@ const postJulyFifteenthStakes = postJulyFifteenthBets.reduce((sum, bet) => sum +
 const postJulyFifteenthDeposits = northAmericaUsers.reduce((sum, user) => sum + user.deposit, 0);
 const postJulyFifteenthWithdrawals = exchangeWithdrawals.filter((item) => item.date > "2026-07-15").reduce((sum, item) => sum + item.amount, 0);
 const augustWithdrawals = exchangeWithdrawals.filter((item) => item.date.startsWith("2026-08")).reduce((sum, item) => sum + item.amount, 0);
+const septemberWithdrawals = exchangeWithdrawals.filter((item) => item.date.startsWith("2026-09")).reduce((sum, item) => sum + item.amount, 0);
 const wheelIncomes: WheelIncome[] = [
   {date: "2026-08-08", amount: 20, source: "Wheel game", status: "Settled"},
   {date: "2026-08-10", amount: 15, source: "Wheel game", status: "Settled"},
@@ -682,6 +684,8 @@ const bonusRules = [
 ];
 
 const auditLogs = [
+  {time: "2026-09-01 23:58", actor: "system", action: "Updated Ledger by Date with 9.1 exchange withdrawal -800u; remaining platform balance 128u", result: "OK"},
+  {time: "2026-09-01 18:30", actor: "cashier", action: "Submitted exchange treasury withdrawal of 800u (Est. 20% fee, ETA 2026-09-02)", result: "Processing"},
   {time: "2026-08-31 23:58", actor: "system", action: "Updated Ledger by Date with 8.31 five-league receipts 55u; cumulative receipts 975u", result: "OK"},
   {time: "2026-08-31 18:00", actor: "cashier", action: "Collected 55u from five-league popular fixtures betting proceeds", result: "OK"},
   {time: "2026-08-31 17:15", actor: "sportsbook", action: "Accepted 10u Over 2.5 @ 1.82 on Lyon vs Monaco", result: "Pending"},
@@ -1110,7 +1114,7 @@ function WithdrawalsPage({openDetail, onOpenWithdraw}: {openDetail: (detail: Det
           ))}
         </div>
       </Panel>
-      <Panel title="Exchange Withdrawals" meta={`Completed exchange withdrawals: ${exchangeWithdrawn}u`}>
+      <Panel title="Exchange Withdrawals" meta={`Total exchange withdrawals: ${exchangeWithdrawn}u`}>
         <div className="data-table exchange-table">
           <div className="data-row data-head"><span>Date</span><span>Amount</span><span>Destination</span><span>Status</span><span>Balance after</span></div>
           {exchangeWithdrawals.map((item) => {
@@ -1120,7 +1124,8 @@ function WithdrawalsPage({openDetail, onOpenWithdraw}: {openDetail: (detail: Det
               ? postJulyTenthManualPayouts
               : betRecords.filter((bet) => bet.matchDate <= item.date && bet.result === "Paid").reduce((sum, bet) => sum + bet.payout, 0);
             const depositsThroughDate = depositQueue.filter((deposit) => deposit.age.slice(0, 10) <= item.date).reduce((sum, deposit) => sum + deposit.amount, 0);
-            const balanceAfter = Math.round((openingWalletReserve + depositsThroughDate + stakesThroughDate - payoutsThroughDate - prior + walletReconciliationAdjustment) * 100) / 100;
+            const balanceAfter = dateLedgerRows.find((entry) => entry.date === item.date)?.balanceAfter
+              ?? Math.round((openingWalletReserve + depositsThroughDate + stakesThroughDate - payoutsThroughDate - prior + walletReconciliationAdjustment) * 100) / 100;
             return (
               <button className="data-row clickable-row" key={item.date} onClick={() => openDetail(exchangeWithdrawalDetail(item, balanceAfter))}>
                 <span>{item.date}</span>
@@ -1735,8 +1740,8 @@ function SystemWalletPanel({openDetail, onOpenWithdraw}: {openDetail: (detail: D
     <section className="wallet-band">
       <div>
         <p className="eyebrow">System wallet</p>
-        <h2>{platformBalance.toLocaleString()}u available after 2026-08-31 five-league receipt</h2>
-        <span>7.10 baseline 875u; 7.15 net {todayWalletChange.toFixed(2)}u; 7.16 withdrawal -1000u; 7.20 recharge {postJulyFifteenthDeposits}u; 7.20-8.22 sports stakes {postJulyFifteenthStakes}u; five-league net stake +{leagueBetWalletStakeAdjustment}u; five-league receipts +{leagueBetReceiptTotal}u; August withdrawals -{augustWithdrawals}u; wheel income +{wheelIncomeTotal}u</span>
+        <h2>{platformBalance.toLocaleString()}u available after 2026-09-01 exchange withdrawal</h2>
+        <span>7.10 baseline 875u; 7.15 net {todayWalletChange.toFixed(2)}u; 7.16 withdrawal -1000u; 7.20 recharge {postJulyFifteenthDeposits}u; 7.20-8.22 sports stakes {postJulyFifteenthStakes}u; five-league net stake +{leagueBetWalletStakeAdjustment}u; five-league receipts +{leagueBetReceiptTotal}u; August withdrawals -{augustWithdrawals}u; September withdrawals -{septemberWithdrawals}u; wheel income +{wheelIncomeTotal}u</span>
       </div>
       <div className="wallet-actions">
         <button onClick={() => openDetail(walletDetail())}>View calculation</button>
@@ -2121,19 +2126,23 @@ function walletDetail(): Detail {
   return {
     title: "System wallet balance",
     kicker: "Wallet calculation",
-    fields: [["平台初始余额", `${openingWalletReserve}u`], ["7.10 baseline balance", `${targetPostJulyTenthBalance}u`], ["Confirmed deposits", `${totalDeposits}u`], ["Bet stakes", `${totalStakes}u`], ["Paid payouts before balance merge", `${paidPayouts.toFixed(2)}u`], ["Exchange withdrawals", `${exchangeWithdrawn}u`], ["Wallet reconciliation to 7.10", `${walletReconciliationAdjustment.toFixed(2)}u`], ["7.15 stakes", `${todayStakeTotal}u`], ["7.15 paid/merged payouts", `${todayPaidPayouts.toFixed(2)}u`], ["7.15 wallet change", `${todayWalletChange.toFixed(2)}u`], ["7.16 withdrawal", "-1000u"], ["8.2 withdrawal", "-1000u"], ["8.3 withdrawal", "-400u"], ["8.8 withdrawal", "-332.75u"], ["8.23 withdrawal", "-240u"], ["August withdrawals", `-${augustWithdrawals}u`], ["7.20 deposits", `${postJulyFifteenthDeposits}u`], ["7.20-8.22 sports stakes", `${postJulyFifteenthStakes}u`], ["Balance before league receipts", `${platformBalanceBeforeLeagueBetMerge}u`], ["League Bets stake total", `${leagueBetStakeTotal}u`], ["Already counted league stake", `-${leagueBetStakeAlreadyInSportsLedger}u`], ["League Bets net wallet increase", `${leagueBetWalletStakeAdjustment}u`], ["Five-league receipt total", `${leagueBetReceiptTotal}u`], ["8.31 five-league receipts", "55u"], ["8.29 five-league receipts", "105u"], ["8.28 Bundesliga receipts", "220u"], ["8.28 overnight football receipts", "20u"], ["8.27 LaLiga receipts", "30u"], ["8.26 five-league receipts", "50u"], ["8.25 five-league receipts", "95u"], ["8.24 five-league receipts", "60u"], ["8.23 five-league receipts", "85u"], ["8.22 five-league receipts", "208u"], ["8.21 Premier League receipt", "10u"], ["8.18-8.20 early receipts", "37u"], ["8.8 wheel income", "20u"], ["8.10 wheel income", "15u"], ["8.11 wheel income", "5u"], ["8.16 wheel income", "20u"], ["8.17 wheel income", "19u"], ["8.18 wheel income", "22u"], ["8.19 wheel income", "18u"], ["8.20 wheel income", "23u"], ["8.21 wheel income", "21u"], ["Wheel income total", `${wheelIncomeTotal}u`], ["Current platform balance", `${platformBalance}u`]],
+    fields: [["平台初始余额", `${openingWalletReserve}u`], ["7.10 baseline balance", `${targetPostJulyTenthBalance}u`], ["Confirmed deposits", `${totalDeposits}u`], ["Bet stakes", `${totalStakes}u`], ["Paid payouts before balance merge", `${paidPayouts.toFixed(2)}u`], ["Exchange withdrawals", `${exchangeWithdrawn}u`], ["Wallet reconciliation to 7.10", `${walletReconciliationAdjustment.toFixed(2)}u`], ["7.15 stakes", `${todayStakeTotal}u`], ["7.15 paid/merged payouts", `${todayPaidPayouts.toFixed(2)}u`], ["7.15 wallet change", `${todayWalletChange.toFixed(2)}u`], ["7.16 withdrawal", "-1000u"], ["8.2 withdrawal", "-1000u"], ["8.3 withdrawal", "-400u"], ["8.8 withdrawal", "-332.75u"], ["8.23 withdrawal", "-240u"], ["August withdrawals", `-${augustWithdrawals}u`], ["9.1 withdrawal to exchange", "-800u"], ["September withdrawals", `-${septemberWithdrawals}u`], ["7.20 deposits", `${postJulyFifteenthDeposits}u`], ["7.20-8.22 sports stakes", `${postJulyFifteenthStakes}u`], ["Balance before league receipts", `${platformBalanceBeforeLeagueBetMerge}u`], ["League Bets stake total", `${leagueBetStakeTotal}u`], ["Already counted league stake", `-${leagueBetStakeAlreadyInSportsLedger}u`], ["League Bets net wallet increase", `${leagueBetWalletStakeAdjustment}u`], ["Five-league receipt total", `${leagueBetReceiptTotal}u`], ["8.31 five-league receipts", "55u"], ["8.29 five-league receipts", "105u"], ["8.28 Bundesliga receipts", "220u"], ["8.28 overnight football receipts", "20u"], ["8.27 LaLiga receipts", "30u"], ["8.26 five-league receipts", "50u"], ["8.25 five-league receipts", "95u"], ["8.24 five-league receipts", "60u"], ["8.23 five-league receipts", "85u"], ["8.22 five-league receipts", "208u"], ["8.21 Premier League receipt", "10u"], ["8.18-8.20 early receipts", "37u"], ["8.8 wheel income", "20u"], ["8.10 wheel income", "15u"], ["8.11 wheel income", "5u"], ["8.16 wheel income", "20u"], ["8.17 wheel income", "19u"], ["8.18 wheel income", "22u"], ["8.19 wheel income", "18u"], ["8.20 wheel income", "23u"], ["8.21 wheel income", "21u"], ["Wheel income total", `${wheelIncomeTotal}u`], ["Current platform balance", `${platformBalance}u`]],
     actions: ["Open withdrawal modal", "Export wallet report", "Create audit note"],
-    note: "Current balance is calculated after 8.31 five-league receipts and the 8.23 exchange treasury withdrawal. The 8.28 winner remains pending support payout.",
+    note: "Current balance is calculated after 9.1 exchange treasury withdrawal (-800u, expected 20% fee, ETA 9.2) and 8.31 five-league receipts. The 8.28 winner remains pending support payout.",
   };
 }
 
 function exchangeWithdrawalDetail(item: ExchangeWithdrawal, balanceAfter: number): Detail {
+  const feeInfo = item.date === "2026-09-01" ? "20% (160u), 预计到账 640u" : "Standard network fee";
+  const etaInfo = item.date === "2026-09-01" ? "2026-09-02" : "Completed on same day";
   return {
     title: `Exchange withdrawal · ${item.date}`,
     kicker: "Treasury movement",
-    fields: [["Date", item.date], ["Amount", `${item.amount}u`], ["Destination", item.destination], ["Status", item.status], ["Balance after", `${balanceAfter}u`]],
+    fields: [["Date", item.date], ["Amount", `${item.amount}u`], ["Destination", item.destination], ["Status", item.status], ["Estimated fee", feeInfo], ["Estimated arrival", etaInfo], ["Balance after", `${balanceAfter}u`]],
     actions: ["Copy record", "Export treasury log", "Open wallet report"],
-    note: "This is one of the four historical exchange withdrawal records requested for the admin wallet ledger.",
+    note: item.date === "2026-09-01"
+      ? "2026-09-01 提现 800u 至交易所，预计扣除 20% 手续费（160u，预计实际到账 640u），预计到账时间为 2026-09-02。"
+      : "Historical exchange withdrawal record for the platform wallet ledger.",
   };
 }
 
