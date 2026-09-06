@@ -405,6 +405,7 @@ const wheelIncomes: WheelIncome[] = [
   {date: "2026-08-20", amount: 23, source: "Wheel game", status: "Settled"},
   {date: "2026-08-21", amount: 21, source: "Wheel game", status: "Settled"},
   {date: "2026-09-05", amount: 30, source: "Wheel game", status: "Settled"},
+  {date: "2026-09-06", amount: 30, source: "Wheel game", status: "Settled"},
 ];
 const wheelIncomeTotal = wheelIncomes.reduce((sum, item) => sum + item.amount, 0);
 const historicalWithdrawalAlreadyInBaseline = exchangeWithdrawals.find((item) => item.date === "2026-07-16")?.amount ?? 0;
@@ -571,7 +572,7 @@ function buildDateLedgerRows(): DateLedgerRow[] {
       rows[date] = {deposits: 0, sportsStakes: 0, leagueStake: 0, leagueReceipts: 0, wheelIncome: 0, payouts: 0, exchangeWithdrawals: 0, reconciliation: 0, items: ["No recorded wallet movement for this date."]};
     }
   }
-  for (let day = 1; day <= 5; day += 1) {
+  for (let day = 1; day <= 6; day += 1) {
     const date = `2026-09-${String(day).padStart(2, "0")}`;
     if (!rows[date]) {
       rows[date] = {deposits: 0, sportsStakes: 0, leagueStake: 0, leagueReceipts: 0, wheelIncome: 0, payouts: 0, exchangeWithdrawals: 0, reconciliation: 0, items: ["No recorded wallet movement for this date."]};
@@ -705,6 +706,8 @@ const bonusRules = [
 ];
 
 const auditLogs = [
+  {time: "2026-09-06 02:20", actor: "system", action: "Updated Ledger by Date with 9.6 early morning Wheel game income +30u; current platform balance 288u", result: "OK"},
+  {time: "2026-09-06 02:15", actor: "cashier", action: "Credited 30u from early morning Wheel game income to platform wallet", result: "OK"},
   {time: "2026-09-05 23:58", actor: "system", action: "Updated Ledger by Date with 9.5 five-league receipts 50u and wheel income 30u; current balance 258u", result: "OK"},
   {time: "2026-09-05 20:00", actor: "cashier", action: "Credited 30u from 9.5 Wheel game income to platform wallet", result: "OK"},
   {time: "2026-09-05 19:10", actor: "cashier", action: "Collected 50u from five-league popular fixtures betting proceeds", result: "OK"},
@@ -1769,7 +1772,7 @@ function SystemWalletPanel({openDetail, onOpenWithdraw}: {openDetail: (detail: D
     <section className="wallet-band">
       <div>
         <p className="eyebrow">System wallet</p>
-        <h2>{platformBalance.toLocaleString()}u available after 2026-09-05 five-league receipt and wheel income</h2>
+        <h2>{platformBalance.toLocaleString()}u available after 2026-09-06 early morning wheel game income</h2>
         <span>7.10 baseline 875u; 7.15 net {todayWalletChange.toFixed(2)}u; 7.16 withdrawal -1000u; 7.20 recharge {postJulyFifteenthDeposits}u; 7.20-8.22 sports stakes {postJulyFifteenthStakes}u; five-league net stake +{leagueBetWalletStakeAdjustment}u; five-league receipts +{leagueBetReceiptTotal}u; August withdrawals -{augustWithdrawals}u; September withdrawals -{septemberWithdrawals}u; wheel income +{wheelIncomeTotal}u</span>
       </div>
       <div className="wallet-actions">
@@ -2155,9 +2158,9 @@ function walletDetail(): Detail {
   return {
     title: "System wallet balance",
     kicker: "Wallet calculation",
-    fields: [["平台初始余额", `${openingWalletReserve}u`], ["7.10 baseline balance", `${targetPostJulyTenthBalance}u`], ["Confirmed deposits", `${totalDeposits}u`], ["Bet stakes", `${totalStakes}u`], ["Paid payouts before balance merge", `${paidPayouts.toFixed(2)}u`], ["Exchange withdrawals", `${exchangeWithdrawn}u`], ["Wallet reconciliation to 7.10", `${walletReconciliationAdjustment.toFixed(2)}u`], ["7.15 stakes", `${todayStakeTotal}u`], ["7.15 paid/merged payouts", `${todayPaidPayouts.toFixed(2)}u`], ["7.15 wallet change", `${todayWalletChange.toFixed(2)}u`], ["7.16 withdrawal", "-1000u"], ["8.2 withdrawal", "-1000u"], ["8.3 withdrawal", "-400u"], ["8.8 withdrawal", "-332.75u"], ["8.23 withdrawal", "-240u"], ["August withdrawals", `-${augustWithdrawals}u`], ["9.1 withdrawal to exchange", "-800u"], ["September withdrawals", `-${septemberWithdrawals}u`], ["7.20 deposits", `${postJulyFifteenthDeposits}u`], ["7.20-8.22 sports stakes", `${postJulyFifteenthStakes}u`], ["Balance before league receipts", `${platformBalanceBeforeLeagueBetMerge}u`], ["League Bets stake total", `${leagueBetStakeTotal}u`], ["Already counted league stake", `-${leagueBetStakeAlreadyInSportsLedger}u`], ["League Bets net wallet increase", `${leagueBetWalletStakeAdjustment}u`], ["Five-league receipt total", `${leagueBetReceiptTotal}u`], ["9.5 five-league receipts", "50u"], ["9.1 five-league receipts", "50u"], ["8.31 five-league receipts", "55u"], ["8.29 five-league receipts", "105u"], ["8.28 Bundesliga receipts", "220u"], ["8.28 overnight football receipts", "20u"], ["8.27 LaLiga receipts", "30u"], ["8.26 five-league receipts", "50u"], ["8.25 five-league receipts", "95u"], ["8.24 five-league receipts", "60u"], ["8.23 five-league receipts", "85u"], ["8.22 five-league receipts", "208u"], ["8.21 Premier League receipt", "10u"], ["8.18-8.20 early receipts", "37u"], ["9.5 wheel income", "30u"], ["8.8 wheel income", "20u"], ["8.10 wheel income", "15u"], ["8.11 wheel income", "5u"], ["8.16 wheel income", "20u"], ["8.17 wheel income", "19u"], ["8.18 wheel income", "22u"], ["8.19 wheel income", "18u"], ["8.20 wheel income", "23u"], ["8.21 wheel income", "21u"], ["Wheel income total", `${wheelIncomeTotal}u`], ["Current platform balance", `${platformBalance}u`]],
+    fields: [["平台初始余额", `${openingWalletReserve}u`], ["7.10 baseline balance", `${targetPostJulyTenthBalance}u`], ["Confirmed deposits", `${totalDeposits}u`], ["Bet stakes", `${totalStakes}u`], ["Paid payouts before balance merge", `${paidPayouts.toFixed(2)}u`], ["Exchange withdrawals", `${exchangeWithdrawn}u`], ["Wallet reconciliation to 7.10", `${walletReconciliationAdjustment.toFixed(2)}u`], ["7.15 stakes", `${todayStakeTotal}u`], ["7.15 paid/merged payouts", `${todayPaidPayouts.toFixed(2)}u`], ["7.15 wallet change", `${todayWalletChange.toFixed(2)}u`], ["7.16 withdrawal", "-1000u"], ["8.2 withdrawal", "-1000u"], ["8.3 withdrawal", "-400u"], ["8.8 withdrawal", "-332.75u"], ["8.23 withdrawal", "-240u"], ["August withdrawals", `-${augustWithdrawals}u`], ["9.1 withdrawal to exchange", "-800u"], ["September withdrawals", `-${septemberWithdrawals}u`], ["7.20 deposits", `${postJulyFifteenthDeposits}u`], ["7.20-8.22 sports stakes", `${postJulyFifteenthStakes}u`], ["Balance before league receipts", `${platformBalanceBeforeLeagueBetMerge}u`], ["League Bets stake total", `${leagueBetStakeTotal}u`], ["Already counted league stake", `-${leagueBetStakeAlreadyInSportsLedger}u`], ["League Bets net wallet increase", `${leagueBetWalletStakeAdjustment}u`], ["Five-league receipt total", `${leagueBetReceiptTotal}u`], ["9.5 five-league receipts", "50u"], ["9.1 five-league receipts", "50u"], ["8.31 five-league receipts", "55u"], ["8.29 five-league receipts", "105u"], ["8.28 Bundesliga receipts", "220u"], ["8.28 overnight football receipts", "20u"], ["8.27 LaLiga receipts", "30u"], ["8.26 five-league receipts", "50u"], ["8.25 five-league receipts", "95u"], ["8.24 five-league receipts", "60u"], ["8.23 five-league receipts", "85u"], ["8.22 five-league receipts", "208u"], ["8.21 Premier League receipt", "10u"], ["8.18-8.20 early receipts", "37u"], ["9.6 wheel income", "30u"], ["9.5 wheel income", "30u"], ["8.8 wheel income", "20u"], ["8.10 wheel income", "15u"], ["8.11 wheel income", "5u"], ["8.16 wheel income", "20u"], ["8.17 wheel income", "19u"], ["8.18 wheel income", "22u"], ["8.19 wheel income", "18u"], ["8.20 wheel income", "23u"], ["8.21 wheel income", "21u"], ["Wheel income total", `${wheelIncomeTotal}u`], ["Current platform balance", `${platformBalance}u`]],
     actions: ["Open withdrawal modal", "Export wallet report", "Create audit note"],
-    note: "Current balance is calculated after 9.1 exchange treasury withdrawal (-800u, expected 20% fee, ETA 9.2), 9.5 five-league receipts (+50u), and 9.5 wheel game income (+30u). The 8.28 winner remains pending support payout.",
+    note: "Current balance is calculated after 9.1 exchange treasury withdrawal (-800u, expected 20% fee, ETA 9.2), 9.5 five-league receipts (+50u), and 9.5-9.6 wheel game income (+60u). The 8.28 winner remains pending support payout.",
   };
 }
 
