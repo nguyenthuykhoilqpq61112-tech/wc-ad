@@ -374,6 +374,7 @@ const exchangeWithdrawals: ExchangeWithdrawal[] = [
   {date: "2026-08-08", amount: 332.75, status: "Completed", destination: "Exchange treasury"},
   {date: "2026-08-23", amount: 240, status: "Completed", destination: "Exchange treasury"},
   {date: "2026-09-01", amount: 800, status: "Processing", destination: "Exchange treasury (Est. 20% fee · ETA 9.2)"},
+  {date: "2026-09-17", amount: 1000, status: "Processing", destination: "Exchange treasury (Est. 20% fee · ETA 9.18)"},
 ];
 const openingWalletReserve = 0;
 const totalDeposits = allUsers.reduce((sum, user) => sum + user.deposit, 0);
@@ -419,6 +420,10 @@ const crashIncomes: CrashIncome[] = [
   {date: "2026-09-11", amount: 25, source: "Crash game", status: "Settled"},
   {date: "2026-09-12", amount: 50, source: "Crash game", status: "Settled"},
   {date: "2026-09-13", amount: 20, source: "Crash game", status: "Settled"},
+  {date: "2026-09-14", amount: 70, source: "Crash game", status: "Settled"},
+  {date: "2026-09-15", amount: 50, source: "Crash game", status: "Settled"},
+  {date: "2026-09-16", amount: 30, source: "Crash game", status: "Settled"},
+  {date: "2026-09-17", amount: 10, source: "Crash game", status: "Settled"},
 ];
 const crashIncomeTotal = crashIncomes.reduce((sum, item) => sum + item.amount, 0);
 const historicalWithdrawalAlreadyInBaseline = exchangeWithdrawals.find((item) => item.date === "2026-07-16")?.amount ?? 0;
@@ -477,6 +482,12 @@ const leagueMarkets: LeagueMarket[] = [
   {league: "Ligue 1", country: "France", kickoff: "2026-09-12 20:45 CEST", match: "Paris Saint-Germain vs Stade de Reims", matchday: "Matchweek 5", market: "Moneyline", odds: "1.38", stake: 25, users: 1, exposure: 34.5, source: "Ligue 1 official calendar", status: "Pregame"},
   {league: "Premier League", country: "England", kickoff: "2026-09-13 17:30 BST", match: "Tottenham Hotspur vs Arsenal", matchday: "Matchweek 4", market: "Moneyline", odds: "1.75", stake: 20, users: 1, exposure: 35.0, source: "Premier League official fixture list", status: "Pregame"},
   {league: "Serie A", country: "Italy", kickoff: "2026-09-13 20:45 CEST", match: "Inter Milan vs Juventus", matchday: "Matchday 4", market: "Moneyline", odds: "1.80", stake: 15, users: 1, exposure: 27.0, source: "Serie A official fixture list", status: "Pregame"},
+  {league: "LaLiga", country: "Spain", kickoff: "2026-09-14 21:00 CEST", match: "Atlético de Madrid vs Valencia", matchday: "Matchday 5", market: "Moneyline", odds: "1.65", stake: 50, users: 1, exposure: 82.5, source: "LALIGA official next matches", status: "Pregame"},
+  {league: "Serie A", country: "Italy", kickoff: "2026-09-14 20:45 CEST", match: "Napoli vs Cagliari", matchday: "Matchday 4", market: "Moneyline", odds: "1.55", stake: 35, users: 1, exposure: 54.25, source: "Serie A official fixture list", status: "Pregame"},
+  {league: "Premier League", country: "England", kickoff: "2026-09-15 20:00 BST", match: "Aston Villa vs Everton", matchday: "Matchweek 4", market: "Moneyline", odds: "1.80", stake: 30, users: 1, exposure: 54.0, source: "Premier League official fixture list", status: "Pregame"},
+  {league: "Bundesliga", country: "Germany", kickoff: "2026-09-16 20:30 CEST", match: "RB Leipzig vs Union Berlin", matchday: "Matchday 4", market: "Moneyline", odds: "1.60", stake: 40, users: 1, exposure: 64.0, source: "Bundesliga official schedule", status: "Pregame"},
+  {league: "Ligue 1", country: "France", kickoff: "2026-09-16 21:00 CEST", match: "Olympique de Marseille vs OGC Nice", matchday: "Matchweek 5", market: "Moneyline", odds: "1.85", stake: 30, users: 1, exposure: 55.5, source: "Ligue 1 official calendar", status: "Pregame"},
+  {league: "LaLiga", country: "Spain", kickoff: "2026-09-17 21:30 CEST", match: "Real Betis vs Real Sociedad", matchday: "Matchday 5", market: "Moneyline", odds: "1.90", stake: 30, users: 1, exposure: 57.0, source: "LALIGA official next matches", status: "Pregame"},
 ];
 const leagueNames = Array.from(new Set(leagueMarkets.map((item) => item.league)));
 const leaguePageItems = leagueNames as LeaguePage[];
@@ -542,6 +553,12 @@ const leagueBetSlips: LeagueBetSlip[] = [
   {id: "LGB-91203", time: "2026-09-12 16:30", user: "Nasser15", league: "Ligue 1", match: "Paris Saint-Germain vs Stade de Reims", market: "Moneyline", selection: "Paris Saint-Germain win", odds: 1.38, stake: 25, potentialPayout: 34.5, betType: "Single", status: "Pending", risk: "Low"},
   {id: "LGB-91301", time: "2026-09-13 14:15", user: "LucasUS34", league: "Premier League", match: "Tottenham Hotspur vs Arsenal", market: "Moneyline", selection: "Arsenal win", odds: 1.75, stake: 20, potentialPayout: 35.0, betType: "Single", status: "Pending", risk: "Low"},
   {id: "LGB-91302", time: "2026-09-13 16:30", user: "MarcoIT39", league: "Serie A", match: "Inter Milan vs Juventus", market: "Moneyline", selection: "Inter Milan win", odds: 1.80, stake: 15, potentialPayout: 27.0, betType: "Single", status: "Pending", risk: "Low"},
+  {id: "LGB-91401", time: "2026-09-14 14:20", user: "Hamad16", league: "LaLiga", match: "Atlético de Madrid vs Valencia", market: "Moneyline", selection: "Atlético de Madrid win", odds: 1.65, stake: 50, potentialPayout: 82.5, betType: "Single", status: "Pending", risk: "Low"},
+  {id: "LGB-91402", time: "2026-09-14 16:40", user: "Omar11", league: "Serie A", match: "Napoli vs Cagliari", market: "Moneyline", selection: "Napoli win", odds: 1.55, stake: 35, potentialPayout: 54.25, betType: "Single", status: "Pending", risk: "Low"},
+  {id: "LGB-91501", time: "2026-09-15 15:30", user: "LucasUS34", league: "Premier League", match: "Aston Villa vs Everton", market: "Moneyline", selection: "Aston Villa win", odds: 1.80, stake: 30, potentialPayout: 54.0, betType: "Single", status: "Pending", risk: "Low"},
+  {id: "LGB-91601", time: "2026-09-16 14:10", user: "Yousef12", league: "Bundesliga", match: "RB Leipzig vs Union Berlin", market: "Moneyline", selection: "RB Leipzig win", odds: 1.60, stake: 40, potentialPayout: 64.0, betType: "Single", status: "Pending", risk: "Low"},
+  {id: "LGB-91602", time: "2026-09-16 17:00", user: "Nasser15", league: "Ligue 1", match: "Olympique de Marseille vs OGC Nice", market: "Moneyline", selection: "Marseille win", odds: 1.85, stake: 30, potentialPayout: 55.5, betType: "Single", status: "Pending", risk: "Low"},
+  {id: "LGB-91701", time: "2026-09-17 15:15", user: "LucaIT40", league: "LaLiga", match: "Real Betis vs Real Sociedad", market: "Moneyline", selection: "Real Betis win", odds: 1.90, stake: 30, potentialPayout: 57.0, betType: "Single", status: "Pending", risk: "Low"},
 ] as LeagueBetSlip[];
 const leagueBetStakeTotal = leagueBetSlips.reduce((sum, slip) => sum + slip.stake, 0);
 const leagueBetExposureTotal = Math.round(leagueBetSlips.reduce((sum, slip) => sum + slip.potentialPayout, 0) * 100) / 100;
@@ -572,6 +589,10 @@ const leagueBetReceipts = [
   {date: "2026-09-11", amount: 70, source: "Five-league popular fixtures betting proceeds", status: "Collected"},
   {date: "2026-09-12", amount: 105, source: "Five-league popular fixtures betting proceeds", status: "Collected"},
   {date: "2026-09-13", amount: 35, source: "Five-league popular fixtures betting proceeds", status: "Collected"},
+  {date: "2026-09-14", amount: 85, source: "Five-league popular fixtures betting proceeds", status: "Collected"},
+  {date: "2026-09-15", amount: 30, source: "Five-league popular fixtures betting proceeds", status: "Collected"},
+  {date: "2026-09-16", amount: 70, source: "Five-league popular fixtures betting proceeds", status: "Collected"},
+  {date: "2026-09-17", amount: 30, source: "Five-league popular fixtures betting proceeds", status: "Collected"},
 ];
 const leagueBetReceiptTotal = leagueBetReceipts.reduce((sum, item) => sum + item.amount, 0);
 const platformBalance = Math.round((platformBalanceBeforeLeagueBetMerge + leagueBetWalletStakeAdjustment + leagueBetReceiptTotal) * 100) / 100;
@@ -625,7 +646,7 @@ function buildDateLedgerRows(): DateLedgerRow[] {
       rows[date] = {deposits: 0, sportsStakes: 0, leagueStake: 0, leagueReceipts: 0, wheelIncome: 0, crashIncome: 0, payouts: 0, exchangeWithdrawals: 0, reconciliation: 0, items: ["No recorded wallet movement for this date."]};
     }
   }
-  for (let day = 1; day <= 14; day += 1) {
+  for (let day = 1; day <= 18; day += 1) {
     const date = `2026-09-${String(day).padStart(2, "0")}`;
     if (!rows[date]) {
       rows[date] = {deposits: 0, sportsStakes: 0, leagueStake: 0, leagueReceipts: 0, wheelIncome: 0, crashIncome: 0, payouts: 0, exchangeWithdrawals: 0, reconciliation: 0, items: ["No recorded wallet movement for this date."]};
@@ -709,6 +730,12 @@ const leagueDailyFixtures: LeagueDailyFixture[] = [
   {league: "Ligue 1", date: "2026-09-12", time: "20:45 CEST", match: "Paris Saint-Germain vs Stade de Reims", matchday: "Matchweek 5", moneyline: "1.38 / 5.20 / 8.50", handicap: "PSG -1.5 @ 1.80", total: "Over 3.0 @ 1.78", featured: "PSG win @ 1.38", status: "Today"},
   {league: "Premier League", date: "2026-09-13", time: "17:30 BST", match: "Tottenham Hotspur vs Arsenal", matchday: "Matchweek 4", moneyline: "3.40 / 3.60 / 1.75", handicap: "Arsenal -0.5 @ 1.75", total: "Over 2.75 @ 1.82", featured: "Arsenal win @ 1.75", status: "Today"},
   {league: "Serie A", date: "2026-09-13", time: "20:45 CEST", match: "Inter Milan vs Juventus", matchday: "Matchday 4", moneyline: "1.80 / 3.40 / 4.20", handicap: "Inter -0.5 @ 1.80", total: "Under 2.5 @ 1.75", featured: "Inter win @ 1.80", status: "Today"},
+  {league: "LaLiga", date: "2026-09-14", time: "21:00 CEST", match: "Atlético de Madrid vs Valencia", matchday: "Matchday 5", moneyline: "1.65 / 3.80 / 5.20", handicap: "Atlético -0.75 @ 1.82", total: "Over 2.5 @ 1.78", featured: "Atlético win @ 1.65", status: "Today"},
+  {league: "Serie A", date: "2026-09-14", time: "20:45 CEST", match: "Napoli vs Cagliari", matchday: "Matchday 4", moneyline: "1.55 / 4.10 / 5.80", handicap: "Napoli -1.0 @ 1.85", total: "Over 2.75 @ 1.80", featured: "Napoli win @ 1.55", status: "Today"},
+  {league: "Premier League", date: "2026-09-15", time: "20:00 BST", match: "Aston Villa vs Everton", matchday: "Matchweek 4", moneyline: "1.80 / 3.60 / 4.40", handicap: "Villa -0.5 @ 1.80", total: "Under 2.5 @ 1.82", featured: "Villa win @ 1.80", status: "Today"},
+  {league: "Bundesliga", date: "2026-09-16", time: "20:30 CEST", match: "RB Leipzig vs Union Berlin", matchday: "Matchday 4", moneyline: "1.60 / 4.00 / 5.40", handicap: "Leipzig -1.0 @ 1.88", total: "Over 2.75 @ 1.82", featured: "Leipzig win @ 1.60", status: "Today"},
+  {league: "Ligue 1", date: "2026-09-16", time: "21:00 CEST", match: "Olympique de Marseille vs OGC Nice", matchday: "Matchweek 5", moneyline: "1.85 / 3.50 / 4.20", handicap: "Marseille -0.5 @ 1.85", total: "Under 2.5 @ 1.75", featured: "Marseille win @ 1.85", status: "Today"},
+  {league: "LaLiga", date: "2026-09-17", time: "21:30 CEST", match: "Real Betis vs Real Sociedad", matchday: "Matchday 5", moneyline: "1.90 / 3.40 / 4.00", handicap: "Betis -0.25 @ 1.90", total: "Under 2.5 @ 1.80", featured: "Betis win @ 1.90", status: "Today"},
 ];
 const olCompanionModules = [
   {name: "Fixtures", status: "Connected as Ligue 1 fixture board", path: "/home/uuxu/ol-companion/frontend/src/routes/fixtures.tsx"},
@@ -775,6 +802,25 @@ const bonusRules = [
 ];
 
 const auditLogs = [
+  {time: "2026-09-17 23:58", actor: "system", action: "Updated Ledger by Date with 9.17 receipts 30u, crash game 10u, and exchange withdrawal -1000u; current platform balance 283u", result: "OK"},
+  {time: "2026-09-17 21:00", actor: "cashier", action: "Submitted exchange treasury withdrawal of 1000u (Est. 20% fee, ETA 2026-09-18)", result: "Processing"},
+  {time: "2026-09-17 20:30", actor: "cashier", action: "Credited 10u from 9.17 Crash game income to platform wallet", result: "OK"},
+  {time: "2026-09-17 19:15", actor: "cashier", action: "Collected 30u from 9.17 five-league popular fixtures betting proceeds", result: "OK"},
+  {time: "2026-09-17 15:15", actor: "sportsbook", action: "Accepted 30u Real Betis win @ 1.90 on Real Betis vs Real Sociedad", result: "Pending"},
+  {time: "2026-09-16 23:58", actor: "system", action: "Updated Ledger by Date with 9.16 five-league receipts 70u and crash game income 30u; current platform balance 1243u", result: "OK"},
+  {time: "2026-09-16 20:30", actor: "cashier", action: "Credited 30u from 9.16 Crash game income to platform wallet", result: "OK"},
+  {time: "2026-09-16 19:15", actor: "cashier", action: "Collected 70u from 9.16 five-league popular fixtures betting proceeds", result: "OK"},
+  {time: "2026-09-16 17:00", actor: "sportsbook", action: "Accepted 30u Marseille win @ 1.85 on Marseille vs Nice", result: "Pending"},
+  {time: "2026-09-16 14:10", actor: "sportsbook", action: "Accepted 40u RB Leipzig win @ 1.60 on RB Leipzig vs Union Berlin", result: "Pending"},
+  {time: "2026-09-15 23:58", actor: "system", action: "Updated Ledger by Date with 9.15 five-league receipts 30u and crash game income 50u; current platform balance 1143u", result: "OK"},
+  {time: "2026-09-15 20:30", actor: "cashier", action: "Credited 50u from 9.15 Crash game income to platform wallet", result: "OK"},
+  {time: "2026-09-15 19:15", actor: "cashier", action: "Collected 30u from 9.15 five-league popular fixtures betting proceeds", result: "OK"},
+  {time: "2026-09-15 15:30", actor: "sportsbook", action: "Accepted 30u Aston Villa win @ 1.80 on Aston Villa vs Everton", result: "Pending"},
+  {time: "2026-09-14 23:58", actor: "system", action: "Updated Ledger by Date with 9.14 five-league receipts 85u and crash game income 70u; current platform balance 1063u", result: "OK"},
+  {time: "2026-09-14 20:30", actor: "cashier", action: "Credited 70u from 9.14 Crash game income to platform wallet", result: "OK"},
+  {time: "2026-09-14 19:15", actor: "cashier", action: "Collected 85u from 9.14 five-league popular fixtures betting proceeds", result: "OK"},
+  {time: "2026-09-14 16:40", actor: "sportsbook", action: "Accepted 35u Napoli win @ 1.55 on Napoli vs Cagliari", result: "Pending"},
+  {time: "2026-09-14 14:20", actor: "sportsbook", action: "Accepted 50u Atlético de Madrid win @ 1.65 on Atlético vs Valencia", result: "Pending"},
   {time: "2026-09-13 23:58", actor: "system", action: "Updated Ledger by Date with 9.13 five-league receipts 35u and crash game income 20u; current platform balance 908u", result: "OK"},
   {time: "2026-09-13 20:30", actor: "cashier", action: "Credited 20u from 9.13 Crash game income to platform wallet", result: "OK"},
   {time: "2026-09-13 19:15", actor: "cashier", action: "Collected 35u from 9.13 five-league popular fixtures betting proceeds", result: "OK"},
@@ -1567,7 +1613,7 @@ function LeagueBetsPage({openDetail}: {openDetail: (detail: Detail) => void}) {
         <div>
           <p className="eyebrow">Five-league betting desk</p>
           <h2>五大联赛投注中心</h2>
-          <span>集中管理单场、串关、滚球、球员道具和球队道具投注。联赛收入按收款流水入账：8.22 为 208u，8.23 为 85u，8.24 为 60u，8.25 为 95u，8.26 为 50u，8.27 为 30u，8.28 为 240u，8.29 为 105u，8.31 为 55u，9.1 为 50u，9.5 为 50u，9.7 为 50u，9.8 为 50u，9.9 为 50u，9.10 为 50u，9.11 为 70u，9.12 为 105u，9.13 为 35u，合计 1485u。</span>
+          <span>集中管理单场、串关、滚球、球员道具和球队道具投注。联赛收入按收款流水入账：8.22 为 208u，8.23 为 85u，8.24 为 60u，8.25 为 95u，8.26 为 50u，8.27 为 30u，8.28 为 240u，8.29 为 105u，8.31 为 55u，9.1 为 50u，9.5 为 50u，9.7 为 50u，9.8 为 50u，9.9 为 50u，9.10 为 50u，9.11 为 70u，9.12 为 105u，9.13 为 35u，9.14 为 85u，9.15 为 30u，9.16 为 70u，9.17 为 30u，合计 1700u。</span>
         </div>
         <div className="league-bets-metrics">
           <button onClick={() => openDetail(metricDetail("League bet slips", leagueBetSlips.length, "Five-league betting slips currently shown in the operator desk."))}><span>Slips</span><strong>{leagueBetSlips.length}</strong></button>
@@ -1883,7 +1929,7 @@ function SystemWalletPanel({openDetail, onOpenWithdraw}: {openDetail: (detail: D
     <section className="wallet-band">
       <div>
         <p className="eyebrow">System wallet</p>
-        <h2>{platformBalance.toLocaleString()}u available after 2026-09-13 five-league receipt and game income</h2>
+        <h2>{platformBalance.toLocaleString()}u available after 2026-09-17 withdrawal and game income</h2>
         <span>7.10 baseline 875u; 7.15 net {todayWalletChange.toFixed(2)}u; 7.16 withdrawal -1000u; 7.20 recharge {postJulyFifteenthDeposits}u; 7.20-8.22 sports stakes {postJulyFifteenthStakes}u; five-league net stake +{leagueBetWalletStakeAdjustment}u; five-league receipts +{leagueBetReceiptTotal}u; August withdrawals -{augustWithdrawals}u; September withdrawals -{septemberWithdrawals}u; wheel income +{wheelIncomeTotal}u; crash game income +{crashIncomeTotal}u</span>
       </div>
       <div className="wallet-actions">
@@ -2269,21 +2315,23 @@ function walletDetail(): Detail {
   return {
     title: "System wallet balance",
     kicker: "Wallet calculation",
-    fields: [["平台初始余额", `${openingWalletReserve}u`], ["7.10 baseline balance", `${targetPostJulyTenthBalance}u`], ["Confirmed deposits", `${totalDeposits}u`], ["Bet stakes", `${totalStakes}u`], ["Paid payouts before balance merge", `${paidPayouts.toFixed(2)}u`], ["Exchange withdrawals", `${exchangeWithdrawn}u`], ["Wallet reconciliation to 7.10", `${walletReconciliationAdjustment.toFixed(2)}u`], ["7.15 stakes", `${todayStakeTotal}u`], ["7.15 paid/merged payouts", `${todayPaidPayouts.toFixed(2)}u`], ["7.15 wallet change", `${todayWalletChange.toFixed(2)}u`], ["7.16 withdrawal", "-1000u"], ["8.2 withdrawal", "-1000u"], ["8.3 withdrawal", "-400u"], ["8.8 withdrawal", "-332.75u"], ["8.23 withdrawal", "-240u"], ["August withdrawals", `-${augustWithdrawals}u`], ["9.1 withdrawal to exchange", "-800u"], ["September withdrawals", `-${septemberWithdrawals}u`], ["7.20 deposits", `${postJulyFifteenthDeposits}u`], ["7.20-8.22 sports stakes", `${postJulyFifteenthStakes}u`], ["Balance before league receipts", `${platformBalanceBeforeLeagueBetMerge}u`], ["League Bets stake total", `${leagueBetStakeTotal}u`], ["Already counted league stake", `-${leagueBetStakeAlreadyInSportsLedger}u`], ["League Bets net wallet increase", `${leagueBetWalletStakeAdjustment}u`], ["Five-league receipt total", `${leagueBetReceiptTotal}u`], ["9.13 five-league receipts", "35u"], ["9.12 five-league receipts", "105u"], ["9.11 five-league receipts", "70u"], ["9.10 five-league receipts", "50u"], ["9.9 five-league receipts", "50u"], ["9.8 five-league receipts", "50u"], ["9.7 five-league receipts", "50u"], ["9.5 five-league receipts", "50u"], ["9.1 five-league receipts", "50u"], ["8.31 five-league receipts", "55u"], ["8.29 five-league receipts", "105u"], ["8.28 Bundesliga receipts", "220u"], ["8.28 overnight football receipts", "20u"], ["8.27 LaLiga receipts", "30u"], ["8.26 five-league receipts", "50u"], ["8.25 five-league receipts", "95u"], ["8.24 five-league receipts", "60u"], ["8.23 five-league receipts", "85u"], ["8.22 five-league receipts", "208u"], ["8.21 Premier League receipt", "10u"], ["8.18-8.20 early receipts", "37u"], ["9.13 crash game income", "20u"], ["9.12 crash game income", "50u"], ["9.11 crash game income", "25u"], ["9.10 crash game income", "25u"], ["Crash game income total", `${crashIncomeTotal}u`], ["9.9 wheel income", "30u"], ["9.8 wheel income", "30u"], ["9.6 late night wheel income", "10u"], ["9.6 evening wheel income", "20u"], ["9.6 morning wheel income", "30u"], ["9.5 wheel income", "30u"], ["8.8 wheel income", "20u"], ["8.10 wheel income", "15u"], ["8.11 wheel income", "5u"], ["8.16 wheel income", "20u"], ["8.17 wheel income", "19u"], ["8.18 wheel income", "22u"], ["8.19 wheel income", "18u"], ["8.20 wheel income", "23u"], ["8.21 wheel income", "21u"], ["Wheel income total", `${wheelIncomeTotal}u`], ["Current platform balance", `${platformBalance}u`]],
+    fields: [["平台初始余额", `${openingWalletReserve}u`], ["7.10 baseline balance", `${targetPostJulyTenthBalance}u`], ["Confirmed deposits", `${totalDeposits}u`], ["Bet stakes", `${totalStakes}u`], ["Paid payouts before balance merge", `${paidPayouts.toFixed(2)}u`], ["Exchange withdrawals", `${exchangeWithdrawn}u`], ["Wallet reconciliation to 7.10", `${walletReconciliationAdjustment.toFixed(2)}u`], ["7.15 stakes", `${todayStakeTotal}u`], ["7.15 paid/merged payouts", `${todayPaidPayouts.toFixed(2)}u`], ["7.15 wallet change", `${todayWalletChange.toFixed(2)}u`], ["7.16 withdrawal", "-1000u"], ["8.2 withdrawal", "-1000u"], ["8.3 withdrawal", "-400u"], ["8.8 withdrawal", "-332.75u"], ["8.23 withdrawal", "-240u"], ["August withdrawals", `-${augustWithdrawals}u`], ["9.1 withdrawal to exchange", "-800u"], ["9.17 withdrawal to exchange", "-1000u"], ["September withdrawals", `-${septemberWithdrawals}u`], ["7.20 deposits", `${postJulyFifteenthDeposits}u`], ["7.20-8.22 sports stakes", `${postJulyFifteenthStakes}u`], ["Balance before league receipts", `${platformBalanceBeforeLeagueBetMerge}u`], ["League Bets stake total", `${leagueBetStakeTotal}u`], ["Already counted league stake", `-${leagueBetStakeAlreadyInSportsLedger}u`], ["League Bets net wallet increase", `${leagueBetWalletStakeAdjustment}u`], ["Five-league receipt total", `${leagueBetReceiptTotal}u`], ["9.17 five-league receipts", "30u"], ["9.16 five-league receipts", "70u"], ["9.15 five-league receipts", "30u"], ["9.14 five-league receipts", "85u"], ["9.13 five-league receipts", "35u"], ["9.12 five-league receipts", "105u"], ["9.11 five-league receipts", "70u"], ["9.10 five-league receipts", "50u"], ["9.9 five-league receipts", "50u"], ["9.8 five-league receipts", "50u"], ["9.7 five-league receipts", "50u"], ["9.5 five-league receipts", "50u"], ["9.1 five-league receipts", "50u"], ["8.31 five-league receipts", "55u"], ["8.29 five-league receipts", "105u"], ["8.28 Bundesliga receipts", "220u"], ["8.28 overnight football receipts", "20u"], ["8.27 LaLiga receipts", "30u"], ["8.26 five-league receipts", "50u"], ["8.25 five-league receipts", "95u"], ["8.24 five-league receipts", "60u"], ["8.23 five-league receipts", "85u"], ["8.22 five-league receipts", "208u"], ["8.21 Premier League receipt", "10u"], ["8.18-8.20 early receipts", "37u"], ["9.17 crash game income", "10u"], ["9.16 crash game income", "30u"], ["9.15 crash game income", "50u"], ["9.14 crash game income", "70u"], ["9.13 crash game income", "20u"], ["9.12 crash game income", "50u"], ["9.11 crash game income", "25u"], ["9.10 crash game income", "25u"], ["Crash game income total", `${crashIncomeTotal}u`], ["9.9 wheel income", "30u"], ["9.8 wheel income", "30u"], ["9.6 late night wheel income", "10u"], ["9.6 evening wheel income", "20u"], ["9.6 morning wheel income", "30u"], ["9.5 wheel income", "30u"], ["8.8 wheel income", "20u"], ["8.10 wheel income", "15u"], ["8.11 wheel income", "5u"], ["8.16 wheel income", "20u"], ["8.17 wheel income", "19u"], ["8.18 wheel income", "22u"], ["8.19 wheel income", "18u"], ["8.20 wheel income", "23u"], ["8.21 wheel income", "21u"], ["Wheel income total", `${wheelIncomeTotal}u`], ["Current platform balance", `${platformBalance}u`]],
     actions: ["Open withdrawal modal", "Export wallet report", "Create audit note"],
-    note: "Current balance is calculated after 9.1 exchange treasury withdrawal (-800u, expected 20% fee, ETA 9.2), 9.5-9.13 five-league receipts (+460u), 9.5-9.9 wheel game income (+150u), and 9.10-9.13 crash game income (+120u). The 8.28 winner remains pending support payout.",
+    note: "Current balance is calculated after 9.1 (-800u) and 9.17 (-1000u) exchange treasury withdrawals, 9.5-9.17 five-league receipts (+675u), 9.5-9.9 wheel game income (+150u), and 9.10-9.17 crash game income (+280u). The 8.28 winner remains pending support payout.",
   };
 }
 
 function exchangeWithdrawalDetail(item: ExchangeWithdrawal, balanceAfter: number): Detail {
-  const feeInfo = item.date === "2026-09-01" ? "20% (160u), 预计到账 640u" : "Standard network fee";
-  const etaInfo = item.date === "2026-09-01" ? "2026-09-02" : "Completed on same day";
+  const feeInfo = item.date === "2026-09-01" ? "20% (160u), 预计到账 640u" : item.date === "2026-09-17" ? "20% (200u), 预计到账 800u" : "Standard network fee";
+  const etaInfo = item.date === "2026-09-01" ? "2026-09-02" : item.date === "2026-09-17" ? "2026-09-18" : "Completed on same day";
   return {
     title: `Exchange withdrawal · ${item.date}`,
     kicker: "Treasury movement",
     fields: [["Date", item.date], ["Amount", `${item.amount}u`], ["Destination", item.destination], ["Status", item.status], ["Estimated fee", feeInfo], ["Estimated arrival", etaInfo], ["Balance after", `${balanceAfter}u`]],
     actions: ["Copy record", "Export treasury log", "Open wallet report"],
-    note: item.date === "2026-09-01"
+    note: item.date === "2026-09-17"
+      ? "2026-09-17 提现 1000u 至交易所，预计扣除 20% 手续费（200u，预计实际到账 800u），预计到账时间为 2026-09-18。"
+      : item.date === "2026-09-01"
       ? "2026-09-01 提现 800u 至交易所，预计扣除 20% 手续费（160u，预计实际到账 640u），预计到账时间为 2026-09-02。"
       : "Historical exchange withdrawal record for the platform wallet ledger.",
   };
