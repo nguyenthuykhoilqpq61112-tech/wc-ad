@@ -1665,7 +1665,7 @@ function LeagueBetsPage({openDetail}: {openDetail: (detail: Detail) => void}) {
         <div>
           <p className="eyebrow">Five-league betting desk</p>
           <h2>五大联赛投注中心</h2>
-          <span>集中管理单场、串关、滚球、球员道具和球队道具投注。联赛收入按收款流水入账：8.22 为 208u，8.23 为 85u，8.24 为 60u，8.25 为 95u，8.26 为 50u，8.27 为 30u，8.28 为 240u，8.29 为 105u，8.31 为 55u，9.1 为 50u，9.5 为 50u，9.7 为 50u，9.8 为 50u，9.9 为 50u，9.10 为 50u，9.11 为 70u，9.12 为 105u，9.13 为 35u，9.14 为 85u，9.15 为 30u，9.16 为 70u，9.17 为 40u，合计 1710u。</span>
+          <span>集中管理单场、串关、滚球、球员道具和球队道具投注。联赛收入按收款流水入账：8.22 为 208u，8.23 为 85u，8.24 为 60u，8.25 为 95u，8.26 为 50u，8.27 为 30u，8.28 为 240u，8.29 为 105u，8.31 为 55u，9.1 为 50u，9.5 为 50u，9.7 为 50u，9.8 为 50u，9.9 为 50u，9.10 为 50u，9.11 为 70u，9.12 为 105u，9.13 为 35u，9.14 为 85u，9.15 为 30u，9.16 为 70u，9.17 为 40u，9.18 为 110u，合计 1820u。</span>
         </div>
         <div className="league-bets-metrics">
           <button onClick={() => openDetail(metricDetail("League bet slips", leagueBetSlips.length, "Five-league betting slips currently shown in the operator desk."))}><span>Slips</span><strong>{leagueBetSlips.length}</strong></button>
