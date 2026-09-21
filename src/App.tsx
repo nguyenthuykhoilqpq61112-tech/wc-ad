@@ -428,6 +428,7 @@ const crashIncomes: CrashIncome[] = [
   {date: "2026-09-18", amount: 10, source: "Crash game", status: "Settled"},
   {date: "2026-09-19", amount: 10, source: "Crash game", status: "Settled"},
   {date: "2026-09-20", amount: 15, source: "Crash game", status: "Settled"},
+  {date: "2026-09-21", amount: 15, source: "Crash game", status: "Settled"},
 ];
 const crashIncomeTotal = crashIncomes.reduce((sum, item) => sum + item.amount, 0);
 const historicalWithdrawalAlreadyInBaseline = exchangeWithdrawals.find((item) => item.date === "2026-07-16")?.amount ?? 0;
@@ -499,6 +500,8 @@ const leagueMarkets: LeagueMarket[] = [
   {league: "Serie A", country: "Italy", kickoff: "2026-09-19 18:00 CEST", match: "Juventus vs Napoli", matchday: "Matchday 5", market: "Moneyline", odds: "1.80", stake: 30, users: 1, exposure: 54.0, source: "Serie A official fixture list", status: "Pregame"},
   {league: "Premier League", country: "England", kickoff: "2026-09-20 16:30 BST", match: "Manchester City vs Arsenal", matchday: "Matchweek 5", market: "Moneyline", odds: "1.85", stake: 45, users: 1, exposure: 83.25, source: "Premier League official fixture list", status: "Pregame"},
   {league: "Serie A", country: "Italy", kickoff: "2026-09-20 20:45 CEST", match: "Inter Milan vs AC Milan", matchday: "Matchday 5", market: "Moneyline", odds: "1.95", stake: 30, users: 1, exposure: 58.5, source: "Serie A official fixture list", status: "Pregame"},
+  {league: "LaLiga", country: "Spain", kickoff: "2026-09-21 21:00 CEST", match: "Real Betis vs RCD Mallorca", matchday: "Matchday 6", market: "Moneyline", odds: "1.90", stake: 40, users: 1, exposure: 76.0, source: "LaLiga official fixture list", status: "Pregame"},
+  {league: "Serie A", country: "Italy", kickoff: "2026-09-21 20:45 CEST", match: "Atalanta vs Como", matchday: "Matchday 5", market: "Moneyline", odds: "1.50", stake: 25, users: 1, exposure: 37.5, source: "Serie A official fixture list", status: "Pregame"},
 ];
 const leagueNames = Array.from(new Set(leagueMarkets.map((item) => item.league)));
 const leaguePageItems = leagueNames as LeaguePage[];
@@ -577,6 +580,8 @@ const leagueBetSlips: LeagueBetSlip[] = [
   {id: "LGB-91902", time: "2026-09-19 16:45", user: "LucaIT40", league: "Serie A", match: "Juventus vs Napoli", market: "Moneyline", selection: "Juventus win", odds: 1.80, stake: 30, potentialPayout: 54.0, betType: "Single", status: "Pending", risk: "Low"},
   {id: "LGB-92001", time: "2026-09-20 14:10", user: "Hamad16", league: "Premier League", match: "Manchester City vs Arsenal", market: "Moneyline", selection: "Manchester City win", odds: 1.85, stake: 45, potentialPayout: 83.25, betType: "Single", status: "Pending", risk: "Low"},
   {id: "LGB-92002", time: "2026-09-20 17:30", user: "MarcoIT39", league: "Serie A", match: "Inter Milan vs AC Milan", market: "Moneyline", selection: "Inter Milan win", odds: 1.95, stake: 30, potentialPayout: 58.5, betType: "Single", status: "Pending", risk: "Low"},
+  {id: "LGB-92101", time: "2026-09-21 15:20", user: "LucasUS34", league: "LaLiga", match: "Real Betis vs RCD Mallorca", market: "Moneyline", selection: "Real Betis win", odds: 1.90, stake: 40, potentialPayout: 76.0, betType: "Single", status: "Pending", risk: "Low"},
+  {id: "LGB-92102", time: "2026-09-21 18:40", user: "LucaIT40", league: "Serie A", match: "Atalanta vs Como", market: "Moneyline", selection: "Atalanta win", odds: 1.50, stake: 25, potentialPayout: 37.5, betType: "Single", status: "Pending", risk: "Low"},
 ] as LeagueBetSlip[];
 const leagueBetStakeTotal = leagueBetSlips.reduce((sum, slip) => sum + slip.stake, 0);
 const leagueBetExposureTotal = Math.round(leagueBetSlips.reduce((sum, slip) => sum + slip.potentialPayout, 0) * 100) / 100;
@@ -615,6 +620,7 @@ const leagueBetReceipts = [
   {date: "2026-09-18", amount: 110, source: "Five-league popular fixtures betting proceeds", status: "Collected"},
   {date: "2026-09-19", amount: 70, source: "Five-league popular fixtures betting proceeds", status: "Collected"},
   {date: "2026-09-20", amount: 75, source: "Five-league popular fixtures betting proceeds", status: "Collected"},
+  {date: "2026-09-21", amount: 65, source: "Five-league popular fixtures betting proceeds", status: "Collected"},
 ];
 const leagueBetReceiptTotal = leagueBetReceipts.reduce((sum, item) => sum + item.amount, 0);
 const platformBalance = Math.round((platformBalanceBeforeLeagueBetMerge + leagueBetWalletStakeAdjustment + leagueBetReceiptTotal) * 100) / 100;
@@ -668,7 +674,7 @@ function buildDateLedgerRows(): DateLedgerRow[] {
       rows[date] = {deposits: 0, sportsStakes: 0, leagueStake: 0, leagueReceipts: 0, wheelIncome: 0, crashIncome: 0, payouts: 0, exchangeWithdrawals: 0, reconciliation: 0, items: ["No recorded wallet movement for this date."]};
     }
   }
-  for (let day = 1; day <= 21; day += 1) {
+  for (let day = 1; day <= 22; day += 1) {
     const date = `2026-09-${String(day).padStart(2, "0")}`;
     if (!rows[date]) {
       rows[date] = {deposits: 0, sportsStakes: 0, leagueStake: 0, leagueReceipts: 0, wheelIncome: 0, crashIncome: 0, payouts: 0, exchangeWithdrawals: 0, reconciliation: 0, items: ["No recorded wallet movement for this date."]};
@@ -765,6 +771,8 @@ const leagueDailyFixtures: LeagueDailyFixture[] = [
   {league: "Serie A", date: "2026-09-19", time: "18:00 CEST", match: "Juventus vs Napoli", matchday: "Matchday 5", moneyline: "1.80 / 3.40 / 4.20", handicap: "Juventus -0.5 @ 1.80", total: "Under 2.5 @ 1.75", featured: "Juventus win @ 1.80", status: "Today"},
   {league: "Premier League", date: "2026-09-20", time: "16:30 BST", match: "Manchester City vs Arsenal", matchday: "Matchweek 5", moneyline: "1.85 / 3.60 / 4.20", handicap: "Man City -0.5 @ 1.85", total: "Over 2.5 @ 1.80", featured: "Man City win @ 1.85", status: "Today"},
   {league: "Serie A", date: "2026-09-20", time: "20:45 CEST", match: "Inter Milan vs AC Milan", matchday: "Matchday 5", moneyline: "1.95 / 3.40 / 3.80", handicap: "Inter -0.5 @ 1.95", total: "Over 2.5 @ 1.85", featured: "Inter win @ 1.95", status: "Today"},
+  {league: "LaLiga", date: "2026-09-21", time: "21:00 CEST", match: "Real Betis vs RCD Mallorca", matchday: "Matchday 6", moneyline: "1.90 / 3.40 / 4.40", handicap: "Betis -0.5 @ 1.90", total: "Under 2.5 @ 1.70", featured: "Betis win @ 1.90", status: "Today"},
+  {league: "Serie A", date: "2026-09-21", time: "20:45 CEST", match: "Atalanta vs Como", matchday: "Matchday 5", moneyline: "1.50 / 4.30 / 6.50", handicap: "Atalanta -1.0 @ 1.82", total: "Over 2.75 @ 1.85", featured: "Atalanta win @ 1.50", status: "Today"},
 ];
 const olCompanionModules = [
   {name: "Fixtures", status: "Connected as Ligue 1 fixture board", path: "/home/uuxu/ol-companion/frontend/src/routes/fixtures.tsx"},
@@ -831,6 +839,11 @@ const bonusRules = [
 ];
 
 const auditLogs = [
+  {time: "2026-09-21 23:58", actor: "system", action: "Updated Ledger by Date with 9.21 five-league receipts 65u and crash game income 15u; current platform balance 673u", result: "OK"},
+  {time: "2026-09-21 20:30", actor: "cashier", action: "Credited 15u from 9.21 Crash game income to platform wallet", result: "OK"},
+  {time: "2026-09-21 19:15", actor: "cashier", action: "Collected 65u from 9.21 five-league popular fixtures betting proceeds", result: "OK"},
+  {time: "2026-09-21 18:40", actor: "sportsbook", action: "Accepted 25u Atalanta win @ 1.50 on Atalanta vs Como", result: "Pending"},
+  {time: "2026-09-21 15:20", actor: "sportsbook", action: "Accepted 40u Real Betis win @ 1.90 on Real Betis vs RCD Mallorca", result: "Pending"},
   {time: "2026-09-20 23:58", actor: "system", action: "Updated Ledger by Date with 9.20 five-league receipts 75u and crash game income 15u; current platform balance 593u", result: "OK"},
   {time: "2026-09-20 20:30", actor: "cashier", action: "Credited 15u from 9.20 Crash game income to platform wallet", result: "OK"},
   {time: "2026-09-20 19:15", actor: "cashier", action: "Collected 75u from 9.20 five-league popular fixtures betting proceeds", result: "OK"},
@@ -1691,7 +1704,7 @@ function LeagueBetsPage({openDetail}: {openDetail: (detail: Detail) => void}) {
         <div>
           <p className="eyebrow">Five-league betting desk</p>
           <h2>五大联赛投注中心</h2>
-          <span>集中管理单场、串关、滚球、球员道具和球队道具投注。联赛收入按收款流水入账：8.22 为 208u，8.23 为 85u，8.24 为 60u，8.25 为 95u，8.26 为 50u，8.27 为 30u，8.28 为 240u，8.29 为 105u，8.31 为 55u，9.1 为 50u，9.5 为 50u，9.7 为 50u，9.8 为 50u，9.9 为 50u，9.10 为 50u，9.11 为 70u，9.12 为 105u，9.13 为 35u，9.14 为 85u，9.15 为 30u，9.16 为 70u，9.17 为 40u，9.18 为 110u，9.19 为 70u，9.20 为 75u，合计 1965u。</span>
+          <span>集中管理单场、串关、滚球、球员道具和球队道具投注。联赛收入按收款流水入账：8.22 为 208u，8.23 为 85u，8.24 为 60u，8.25 为 95u，8.26 为 50u，8.27 为 30u，8.28 为 240u，8.29 为 105u，8.31 为 55u，9.1 为 50u，9.5 为 50u，9.7 为 50u，9.8 为 50u，9.9 为 50u，9.10 为 50u，9.11 为 70u，9.12 为 105u，9.13 为 35u，9.14 为 85u，9.15 为 30u，9.16 为 70u，9.17 为 40u，9.18 为 110u，9.19 为 70u，9.20 为 75u，9.21 为 65u，合计 2030u。</span>
         </div>
         <div className="league-bets-metrics">
           <button onClick={() => openDetail(metricDetail("League bet slips", leagueBetSlips.length, "Five-league betting slips currently shown in the operator desk."))}><span>Slips</span><strong>{leagueBetSlips.length}</strong></button>
@@ -2007,7 +2020,7 @@ function SystemWalletPanel({openDetail, onOpenWithdraw}: {openDetail: (detail: D
     <section className="wallet-band">
       <div>
         <p className="eyebrow">System wallet</p>
-        <h2>{platformBalance.toLocaleString()}u available after 2026-09-20 game income</h2>
+        <h2>{platformBalance.toLocaleString()}u available after 2026-09-21 game income</h2>
         <span>7.10 baseline 875u; 7.15 net {todayWalletChange.toFixed(2)}u; 7.16 withdrawal -1000u; 7.20 recharge {postJulyFifteenthDeposits}u; 7.20-8.22 sports stakes {postJulyFifteenthStakes}u; five-league net stake +{leagueBetWalletStakeAdjustment}u; five-league receipts +{leagueBetReceiptTotal}u; August withdrawals -{augustWithdrawals}u; September withdrawals -{septemberWithdrawals}u; wheel income +{wheelIncomeTotal}u; crash game income +{crashIncomeTotal}u</span>
       </div>
       <div className="wallet-actions">
