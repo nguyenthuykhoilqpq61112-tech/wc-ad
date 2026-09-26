@@ -612,6 +612,10 @@ nav button:hover,
   color: #fca5a5;
 }
 
+.data-row em.success {
+  color: #4ade80;
+}
+
 .mini-btn,
 .control-grid button {
   border: 1px solid rgba(45, 212, 191, 0.26);

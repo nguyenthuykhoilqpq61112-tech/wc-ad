@@ -99,7 +99,7 @@ type LeagueBetSlip = {
   stake: number;
   potentialPayout: number;
   betType: "Single" | "Parlay" | "Live" | "Player prop" | "Team prop";
-  status: "Pending" | "Open" | "Won" | "Lost" | "Risk hold";
+  status: "Pending" | "Open" | "Won" | "Lost" | "Risk hold" | "Paid";
   risk: "Low" | "Medium" | "High";
 };
 type DailyBettor = {
@@ -601,7 +601,7 @@ const leagueBetSlips: LeagueBetSlip[] = [
   {id: "LGB-2701", time: "2026-08-27 19:42", user: "Omar11", league: "LaLiga", match: "FC Barcelona vs Athletic Club", market: "Moneyline", selection: "FC Barcelona win", odds: 1.64, stake: 15, potentialPayout: 24.6, betType: "Single", status: "Pending", risk: "Low"},
   {id: "LGB-2702", time: "2026-08-27 20:06", user: "Yousef12", league: "LaLiga", match: "FC Barcelona vs Athletic Club", market: "Both teams to score", selection: "Yes", odds: 1.74, stake: 15, potentialPayout: 26.1, betType: "Single", status: "Pending", risk: "Low"},
   {id: "LGB-2801", time: "2026-08-28 02:00", user: "Amina21", league: "Liga de Expansión MX", match: "Alebrijes Oaxaca vs Tapatío", market: "Moneyline", selection: "Alebrijes Oaxaca win", odds: 1.97, stake: 20, potentialPayout: 39.4, betType: "Single", status: "Pending", risk: "Low"},
-  {id: "LGB-2802", time: "2026-08-28 18:42", user: "Hamad16", league: "Bundesliga", match: "Bayern Munich vs VfB Stuttgart", market: "Correct score", selection: "Bayern Munich 5-1 VfB Stuttgart", odds: 2.4, stake: 80, potentialPayout: 192, betType: "Single", status: "Won", risk: "High"},
+  {id: "LGB-2802", time: "2026-08-28 18:42", user: "Hamad16", league: "Bundesliga", match: "Bayern Munich vs VfB Stuttgart", market: "Correct score", selection: "Bayern Munich 5-1 VfB Stuttgart", odds: 2.4, stake: 80, potentialPayout: 192, betType: "Single", status: "Paid", risk: "Low"},
   {id: "LGB-2803", time: "2026-08-28 19:05", user: "Nasser15", league: "Bundesliga", match: "Bayern Munich vs VfB Stuttgart", market: "Moneyline", selection: "Bayern Munich win", odds: 1.25, stake: 60, potentialPayout: 75, betType: "Single", status: "Open", risk: "Low"},
   {id: "LGB-2804", time: "2026-08-28 19:18", user: "Omar11", league: "Bundesliga", match: "Bayern Munich vs VfB Stuttgart", market: "Total goals", selection: "Over 2.5", odds: 1.22, stake: 40, potentialPayout: 48.8, betType: "Single", status: "Open", risk: "Low"},
   {id: "LGB-2805", time: "2026-08-28 19:26", user: "Yousef12", league: "Bundesliga", match: "Bayern Munich vs VfB Stuttgart", market: "Asian handicap", selection: "Bayern Munich -1.5", odds: 1.70, stake: 40, potentialPayout: 68, betType: "Single", status: "Open", risk: "Medium"},
@@ -926,6 +926,7 @@ const bonusRules = [
 ];
 
 const auditLogs = [
+  {time: "2026-09-26 09:30", actor: "cashier", action: "Customer service completed manual payout of 192u for winning slip LGB-2802 (Hamad16); status marked as Paid (已完成兑付)", result: "Completed"},
   {time: "2026-09-26 23:58", actor: "system", action: "Updated Ledger by Date with 9.26 tennis receipts 400u, wheel game income 55u, and crash game income 25u; current platform balance 1088u", result: "OK"},
   {time: "2026-09-26 20:30", actor: "cashier", action: "Credited 55u from 9.26 Wheel game income to platform wallet", result: "OK"},
   {time: "2026-09-26 20:00", actor: "cashier", action: "Credited 25u from 9.26 Crash game income to platform wallet", result: "OK"},
@@ -1056,12 +1057,12 @@ const auditLogs = [
   {time: "2026-08-27 19:42", actor: "sportsbook", action: "Accepted LaLiga bet 15u on FC Barcelona vs Athletic Club, FC Barcelona win @ 1.64", result: "Pending"},
   {time: "2026-08-28 02:00", actor: "sportsbook", action: "Accepted 20u bet on Alebrijes Oaxaca vs Tapatío, Alebrijes Oaxaca win @ 1.97", result: "Pending"},
   {time: "2026-08-28 02:20", actor: "cashier", action: "Collected 20u from Alebrijes Oaxaca vs Tapatío betting proceeds", result: "OK"},
-  {time: "2026-08-28 20:32", actor: "system", action: "Settled Bayern Munich vs VfB Stuttgart at 5-1; flagged LGB-2802 correct-score winner for support payout", result: "Winner alert"},
+  {time: "2026-08-28 20:32", actor: "system", action: "Settled Bayern Munich vs VfB Stuttgart at 5-1; LGB-2802 correct-score winner verified and marked as Paid (已完成兑付)", result: "OK"},
   {time: "2026-08-28 20:30", actor: "cashier", action: "Collected 220u from Bundesliga Bayern Munich vs VfB Stuttgart betting proceeds", result: "OK"},
   {time: "2026-08-28 19:26", actor: "sportsbook", action: "Accepted 40u Bayern Munich -1.5 @ 1.70 on Bayern Munich vs VfB Stuttgart", result: "Open"},
   {time: "2026-08-28 19:18", actor: "sportsbook", action: "Accepted 40u Over 2.5 @ 1.22 on Bayern Munich vs VfB Stuttgart", result: "Open"},
   {time: "2026-08-28 19:05", actor: "sportsbook", action: "Accepted 60u Bayern Munich win @ 1.25 on Bayern Munich vs VfB Stuttgart", result: "Open"},
-  {time: "2026-08-28 18:42", actor: "sportsbook", action: "Accepted 80u correct score 5-1 @ 2.40 on Bayern Munich vs VfB Stuttgart", result: "Won - contact support"},
+  {time: "2026-08-28 18:42", actor: "sportsbook", action: "Accepted 80u correct score 5-1 @ 2.40 on Bayern Munich vs VfB Stuttgart", result: "Paid"},
   {time: "2026-08-29 23:58", actor: "system", action: "Updated Ledger by Date with 8.29 five-league receipts 105u; cumulative receipts 920u", result: "OK"},
   {time: "2026-08-29 16:00", actor: "cashier", action: "Collected 105u from five-league popular fixtures betting proceeds", result: "OK"},
   {time: "2026-08-29 15:08", actor: "sportsbook", action: "Accepted 20u Atlético de Madrid DNB @ 2.18 on Sevilla FC vs Atlético de Madrid", result: "Pending"},
@@ -1148,7 +1149,7 @@ export function App() {
   const [withdrawPassword, setWithdrawPassword] = useState("");
   const [withdrawAmount, setWithdrawAmount] = useState("");
   const [withdrawMessage, setWithdrawMessage] = useState("");
-  const [winnerAlertOpen, setWinnerAlertOpen] = useState(true);
+  const [winnerAlertOpen, setWinnerAlertOpen] = useState(false);
 
   const combinedUsers = useMemo(() => [...allUsers, ...syncedMainUsers(summary)], [summary]);
   const filteredUsers = useMemo(() => {
@@ -2129,7 +2130,7 @@ function LeagueBetsPage({openDetail}: {openDetail: (detail: Detail) => void}) {
               <b>{slip.odds.toFixed(2)}</b>
               <span>{slip.stake}u</span>
               <span>{slip.potentialPayout}u</span>
-              <em className={slip.status === "Risk hold" ? "danger" : slip.status === "Pending" ? "warn" : ""}>{slip.status}</em>
+              <em className={slip.status === "Risk hold" ? "danger" : slip.status === "Pending" ? "warn" : slip.status === "Paid" ? "success" : ""}>{slip.status === "Paid" ? "Paid (已兑付)" : slip.status}</em>
               <em className={slip.risk === "High" ? "danger" : slip.risk === "Medium" ? "warn" : ""}>{slip.risk}</em>
             </button>
           ))}
@@ -2502,30 +2503,30 @@ function DetailDrawer({detail, onClose}: {detail: Detail; onClose: () => void}) 
 
 function WinnerAlertModal({onClose}: {onClose: () => void}) {
   return (
-    <aside className="detail-overlay" aria-label="Winning bet alert">
+    <aside className="detail-overlay" aria-label="Winning bet payout">
       <section className="withdraw-modal winner-alert" role="alertdialog" aria-modal="true">
         <header>
           <div>
-            <p className="eyebrow">Winner notification</p>
-            <h2>中奖投注待人工兑付</h2>
+            <p className="eyebrow">Settled payout notification</p>
+            <h2>中奖投注已兑付</h2>
           </div>
           <button className="icon-btn" onClick={onClose} title="Close alert"><X size={18} /></button>
         </header>
         <div className="wallet-summary">
-          <span>Correct score winner</span>
-          <strong>LGB-2802 · 192u</strong>
+          <span>Correct score payout</span>
+          <strong>LGB-2802 · 192u (已兑付)</strong>
         </div>
         <div className="detail-fields">
           <div><span>用户</span><strong>Hamad16</strong></div>
           <div><span>比赛</span><strong>Bayern Munich 5-1 VfB Stuttgart</strong></div>
           <div><span>投注</span><strong>80u · 正确比分 5-1</strong></div>
           <div><span>赔率</span><strong>2.40</strong></div>
-          <div><span>状态</span><strong>中奖，联系客服兑付</strong></div>
+          <div><span>状态</span><strong>已兑付 (Paid)</strong></div>
         </div>
-        <p className="detail-note">该中奖金额已进入风险审核提醒，当前未标记为已赔付，因此不会从平台余额中重复扣除。</p>
+        <p className="detail-note">该中奖注单已由客服人工审核完成全额兑付 192u，状态已更新为已兑付，无需再次人工操作。</p>
         <div className="detail-actions">
           <button onClick={onClose}>标记已知悉</button>
-          <button onClick={onClose}>转客服兑付队列</button>
+          <button onClick={onClose}>已完成兑付归档</button>
         </div>
       </section>
     </aside>
@@ -2798,7 +2799,7 @@ function walletDetail(): Detail {
     fields: [["平台初始余额", `${openingWalletReserve}u`], ["7.10 baseline balance", `${targetPostJulyTenthBalance}u`], ["Confirmed deposits", `${totalDeposits}u`], ["Bet stakes", `${totalStakes}u`], ["Paid payouts before balance merge", `${paidPayouts.toFixed(2)}u`], ["Exchange withdrawals", `${exchangeWithdrawn}u`], ["Wallet reconciliation to 7.10", `${walletReconciliationAdjustment.toFixed(2)}u`], ["7.15 stakes", `${todayStakeTotal}u`], ["7.15 paid/merged payouts", `${todayPaidPayouts.toFixed(2)}u`], ["7.15 wallet change", `${todayWalletChange.toFixed(2)}u`], ["7.16 withdrawal", "-1000u"], ["8.2 withdrawal", "-1000u"], ["8.3 withdrawal", "-400u"], ["8.8 withdrawal", "-332.75u"], ["8.23 withdrawal", "-240u"], ["August withdrawals", `-${augustWithdrawals}u`],         ["9.1 withdrawal to exchange", "-800u"], ["9.17 withdrawal to exchange", "-1000u"], ["9.24 withdrawal to exchange", "-500u"], ["September withdrawals", `-${septemberWithdrawals}u`],
         ["7.20 deposits", `${postJulyFifteenthDeposits}u`], ["7.20-8.22 sports stakes", `${postJulyFifteenthStakes}u`], ["Balance before league receipts", `${platformBalanceBeforeLeagueBetMerge}u`], ["League Bets stake total", `${leagueBetStakeTotal}u`], ["Already counted league stake", `-${leagueBetStakeAlreadyInSportsLedger}u`], ["League Bets net wallet increase", `${leagueBetWalletStakeAdjustment}u`], ["Five-league receipt total", `${leagueBetReceiptTotal}u`], ["9.26 ATP China Open tennis receipts", "400u"], ["9.25 five-league receipts", "80u"], ["9.24 five-league receipts", "180u"], ["9.22 five-league receipts", "80u"], ["9.21 five-league receipts", "65u"], ["9.20 five-league receipts", "75u"], ["9.19 five-league receipts", "70u"], ["9.18 five-league receipts", "110u"], ["9.17 evening five-league receipts", "10u"], ["9.17 five-league receipts", "30u"], ["9.16 five-league receipts", "70u"], ["9.15 five-league receipts", "30u"], ["9.14 five-league receipts", "85u"], ["9.13 five-league receipts", "35u"], ["9.12 five-league receipts", "105u"], ["9.11 five-league receipts", "70u"], ["9.10 five-league receipts", "50u"], ["9.9 five-league receipts", "50u"], ["9.8 five-league receipts", "50u"], ["9.7 five-league receipts", "50u"], ["9.5 five-league receipts", "50u"], ["9.1 five-league receipts", "50u"], ["8.31 five-league receipts", "55u"], ["8.29 five-league receipts", "105u"], ["8.28 Bundesliga receipts", "220u"], ["8.28 overnight football receipts", "20u"], ["8.27 LaLiga receipts", "30u"], ["8.26 five-league receipts", "50u"], ["8.25 five-league receipts", "95u"], ["8.24 five-league receipts", "60u"], ["8.23 five-league receipts", "85u"], ["8.22 five-league receipts", "208u"], ["8.21 Premier League receipt", "10u"], ["8.18-8.20 early receipts", "37u"], ["9.26 crash game income", "25u"], ["9.25 crash game income", "25u"], ["9.21 crash game income", "15u"], ["9.20 crash game income", "15u"], ["9.19 crash game income", "10u"], ["9.18 crash game income", "10u"], ["9.17 evening crash game income", "10u"], ["9.17 crash game income", "10u"], ["9.16 crash game income", "30u"], ["9.15 crash game income", "50u"], ["9.14 crash game income", "70u"], ["9.13 crash game income", "20u"], ["9.12 crash game income", "50u"], ["9.11 crash game income", "25u"], ["9.10 crash game income", "25u"], ["Crash game income total", `${crashIncomeTotal}u`], ["9.26 wheel income", "55u"], ["9.24 wheel income", "40u"], ["9.22 wheel income", "30u"], ["9.9 wheel income", "30u"], ["9.8 wheel income", "30u"], ["9.6 late night wheel income", "10u"], ["9.6 evening wheel income", "20u"], ["9.6 morning wheel income", "30u"], ["9.5 wheel income", "30u"], ["8.8 wheel income", "20u"], ["8.10 wheel income", "15u"], ["8.11 wheel income", "5u"], ["8.16 wheel income", "20u"], ["8.17 wheel income", "19u"], ["8.18 wheel income", "22u"], ["8.19 wheel income", "18u"], ["8.20 wheel income", "23u"], ["8.21 wheel income", "21u"], ["Wheel income total", `${wheelIncomeTotal}u`], ["Current platform balance", `${platformBalance}u`]],
     actions: ["Open withdrawal modal", "Export wallet report", "Create audit note"],
-    note: "Current balance is calculated after 9.1 (-800u), 9.17 (-1000u), and 9.24 (-500u) exchange treasury withdrawals, 9.1-9.26 sports betting receipts (+1245u), wheel game income (+438u), and crash game income (+390u). The 8.28 winner remains pending support payout.",
+    note: "Current balance is calculated after 9.1 (-800u), 9.17 (-1000u), and 9.24 (-500u) exchange treasury withdrawals, 9.1-9.26 sports betting receipts (+1245u), wheel game income (+438u), and crash game income (+390u). The 8.28 winner LGB-2802 has been verified and settled (已完成兑付).",
   };
 }
 
