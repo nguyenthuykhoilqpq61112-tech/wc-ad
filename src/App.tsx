@@ -375,6 +375,7 @@ const exchangeWithdrawals: ExchangeWithdrawal[] = [
   {date: "2026-08-23", amount: 240, status: "Completed", destination: "Exchange treasury"},
   {date: "2026-09-01", amount: 800, status: "Processing", destination: "Exchange treasury (Est. 20% fee · ETA 9.2)"},
   {date: "2026-09-17", amount: 1000, status: "Processing", destination: "Exchange treasury (Est. 20% fee · ETA 9.18)"},
+  {date: "2026-09-24", amount: 500, status: "Processing", destination: "Exchange treasury (Est. 20% fee · ETA 9.25)"},
 ];
 const openingWalletReserve = 0;
 const totalDeposits = allUsers.reduce((sum, user) => sum + user.deposit, 0);
@@ -863,12 +864,13 @@ const bonusRules = [
 ];
 
 const auditLogs = [
-  {time: "2026-09-25 23:58", actor: "system", action: "Updated Ledger by Date with 9.25 five-league receipts 80u and crash game income 25u; current platform balance 1108u", result: "OK"},
+  {time: "2026-09-25 23:58", actor: "system", action: "Updated Ledger by Date with 9.25 five-league receipts 80u and crash game income 25u; current platform balance 608u", result: "OK"},
   {time: "2026-09-25 20:30", actor: "cashier", action: "Credited 25u from 9.25 Crash game income to platform wallet", result: "OK"},
   {time: "2026-09-25 19:15", actor: "cashier", action: "Collected 80u from 9.25 five-league popular fixtures betting proceeds", result: "OK"},
   {time: "2026-09-25 17:30", actor: "sportsbook", action: "Accepted 50u FC Barcelona win @ 1.30 on FC Barcelona vs Getafe CF", result: "Pending"},
   {time: "2026-09-25 14:15", actor: "sportsbook", action: "Accepted 30u Girona FC win @ 1.80 on Girona FC vs Rayo Vallecano", result: "Pending"},
-  {time: "2026-09-24 23:58", actor: "system", action: "Updated Ledger by Date with 9.24 five-league receipts 180u and wheel game income 40u; current platform balance 1003u", result: "OK"},
+  {time: "2026-09-24 23:58", actor: "system", action: "Updated Ledger by Date with 9.24 five-league receipts 180u, wheel game income 40u, and exchange withdrawal -500u; current platform balance 503u", result: "OK"},
+  {time: "2026-09-24 21:00", actor: "cashier", action: "Submitted exchange treasury withdrawal of 500u (Est. 20% fee, ETA 2026-09-25)", result: "Processing"},
   {time: "2026-09-24 20:30", actor: "cashier", action: "Credited 40u from 9.24 Wheel game income to platform wallet", result: "OK"},
   {time: "2026-09-24 19:15", actor: "cashier", action: "Collected 180u from 9.24 five-league popular fixtures betting proceeds", result: "OK"},
   {time: "2026-09-24 17:50", actor: "sportsbook", action: "Accepted 100u Atlético Madrid win @ 1.90 on Celta Vigo vs Atlético Madrid", result: "Pending"},
@@ -2445,21 +2447,36 @@ function walletDetail(): Detail {
   return {
     title: "System wallet balance",
     kicker: "Wallet calculation",
-    fields: [["平台初始余额", `${openingWalletReserve}u`], ["7.10 baseline balance", `${targetPostJulyTenthBalance}u`], ["Confirmed deposits", `${totalDeposits}u`], ["Bet stakes", `${totalStakes}u`], ["Paid payouts before balance merge", `${paidPayouts.toFixed(2)}u`], ["Exchange withdrawals", `${exchangeWithdrawn}u`], ["Wallet reconciliation to 7.10", `${walletReconciliationAdjustment.toFixed(2)}u`], ["7.15 stakes", `${todayStakeTotal}u`], ["7.15 paid/merged payouts", `${todayPaidPayouts.toFixed(2)}u`], ["7.15 wallet change", `${todayWalletChange.toFixed(2)}u`], ["7.16 withdrawal", "-1000u"], ["8.2 withdrawal", "-1000u"], ["8.3 withdrawal", "-400u"], ["8.8 withdrawal", "-332.75u"], ["8.23 withdrawal", "-240u"], ["August withdrawals", `-${augustWithdrawals}u`], ["9.1 withdrawal to exchange", "-800u"], ["9.17 withdrawal to exchange", "-1000u"], ["September withdrawals", `-${septemberWithdrawals}u`], ["7.20 deposits", `${postJulyFifteenthDeposits}u`], ["7.20-8.22 sports stakes", `${postJulyFifteenthStakes}u`], ["Balance before league receipts", `${platformBalanceBeforeLeagueBetMerge}u`], ["League Bets stake total", `${leagueBetStakeTotal}u`], ["Already counted league stake", `-${leagueBetStakeAlreadyInSportsLedger}u`], ["League Bets net wallet increase", `${leagueBetWalletStakeAdjustment}u`], ["Five-league receipt total", `${leagueBetReceiptTotal}u`], ["9.17 evening five-league receipts", "10u"], ["9.17 five-league receipts", "30u"], ["9.16 five-league receipts", "70u"], ["9.15 five-league receipts", "30u"], ["9.14 five-league receipts", "85u"], ["9.13 five-league receipts", "35u"], ["9.12 five-league receipts", "105u"], ["9.11 five-league receipts", "70u"], ["9.10 five-league receipts", "50u"], ["9.9 five-league receipts", "50u"], ["9.8 five-league receipts", "50u"], ["9.7 five-league receipts", "50u"], ["9.5 five-league receipts", "50u"], ["9.1 five-league receipts", "50u"], ["8.31 five-league receipts", "55u"], ["8.29 five-league receipts", "105u"], ["8.28 Bundesliga receipts", "220u"], ["8.28 overnight football receipts", "20u"], ["8.27 LaLiga receipts", "30u"], ["8.26 five-league receipts", "50u"], ["8.25 five-league receipts", "95u"], ["8.24 five-league receipts", "60u"], ["8.23 five-league receipts", "85u"], ["8.22 five-league receipts", "208u"], ["8.21 Premier League receipt", "10u"], ["8.18-8.20 early receipts", "37u"], ["9.17 evening crash game income", "10u"], ["9.17 crash game income", "10u"], ["9.16 crash game income", "30u"], ["9.15 crash game income", "50u"], ["9.14 crash game income", "70u"], ["9.13 crash game income", "20u"], ["9.12 crash game income", "50u"], ["9.11 crash game income", "25u"], ["9.10 crash game income", "25u"], ["Crash game income total", `${crashIncomeTotal}u`], ["9.9 wheel income", "30u"], ["9.8 wheel income", "30u"], ["9.6 late night wheel income", "10u"], ["9.6 evening wheel income", "20u"], ["9.6 morning wheel income", "30u"], ["9.5 wheel income", "30u"], ["8.8 wheel income", "20u"], ["8.10 wheel income", "15u"], ["8.11 wheel income", "5u"], ["8.16 wheel income", "20u"], ["8.17 wheel income", "19u"], ["8.18 wheel income", "22u"], ["8.19 wheel income", "18u"], ["8.20 wheel income", "23u"], ["8.21 wheel income", "21u"], ["Wheel income total", `${wheelIncomeTotal}u`], ["Current platform balance", `${platformBalance}u`]],
+    fields: [["平台初始余额", `${openingWalletReserve}u`], ["7.10 baseline balance", `${targetPostJulyTenthBalance}u`], ["Confirmed deposits", `${totalDeposits}u`], ["Bet stakes", `${totalStakes}u`], ["Paid payouts before balance merge", `${paidPayouts.toFixed(2)}u`], ["Exchange withdrawals", `${exchangeWithdrawn}u`], ["Wallet reconciliation to 7.10", `${walletReconciliationAdjustment.toFixed(2)}u`], ["7.15 stakes", `${todayStakeTotal}u`], ["7.15 paid/merged payouts", `${todayPaidPayouts.toFixed(2)}u`], ["7.15 wallet change", `${todayWalletChange.toFixed(2)}u`], ["7.16 withdrawal", "-1000u"], ["8.2 withdrawal", "-1000u"], ["8.3 withdrawal", "-400u"], ["8.8 withdrawal", "-332.75u"], ["8.23 withdrawal", "-240u"], ["August withdrawals", `-${augustWithdrawals}u`],         ["9.1 withdrawal to exchange", "-800u"], ["9.17 withdrawal to exchange", "-1000u"], ["9.24 withdrawal to exchange", "-500u"], ["September withdrawals", `-${septemberWithdrawals}u`],
+        ["7.20 deposits", `${postJulyFifteenthDeposits}u`], ["7.20-8.22 sports stakes", `${postJulyFifteenthStakes}u`], ["Balance before league receipts", `${platformBalanceBeforeLeagueBetMerge}u`], ["League Bets stake total", `${leagueBetStakeTotal}u`], ["Already counted league stake", `-${leagueBetStakeAlreadyInSportsLedger}u`], ["League Bets net wallet increase", `${leagueBetWalletStakeAdjustment}u`], ["Five-league receipt total", `${leagueBetReceiptTotal}u`], ["9.17 evening five-league receipts", "10u"], ["9.17 five-league receipts", "30u"], ["9.16 five-league receipts", "70u"], ["9.15 five-league receipts", "30u"], ["9.14 five-league receipts", "85u"], ["9.13 five-league receipts", "35u"], ["9.12 five-league receipts", "105u"], ["9.11 five-league receipts", "70u"], ["9.10 five-league receipts", "50u"], ["9.9 five-league receipts", "50u"], ["9.8 five-league receipts", "50u"], ["9.7 five-league receipts", "50u"], ["9.5 five-league receipts", "50u"], ["9.1 five-league receipts", "50u"], ["8.31 five-league receipts", "55u"], ["8.29 five-league receipts", "105u"], ["8.28 Bundesliga receipts", "220u"], ["8.28 overnight football receipts", "20u"], ["8.27 LaLiga receipts", "30u"], ["8.26 five-league receipts", "50u"], ["8.25 five-league receipts", "95u"], ["8.24 five-league receipts", "60u"], ["8.23 five-league receipts", "85u"], ["8.22 five-league receipts", "208u"], ["8.21 Premier League receipt", "10u"], ["8.18-8.20 early receipts", "37u"], ["9.17 evening crash game income", "10u"], ["9.17 crash game income", "10u"], ["9.16 crash game income", "30u"], ["9.15 crash game income", "50u"], ["9.14 crash game income", "70u"], ["9.13 crash game income", "20u"], ["9.12 crash game income", "50u"], ["9.11 crash game income", "25u"], ["9.10 crash game income", "25u"], ["Crash game income total", `${crashIncomeTotal}u`], ["9.9 wheel income", "30u"], ["9.8 wheel income", "30u"], ["9.6 late night wheel income", "10u"], ["9.6 evening wheel income", "20u"], ["9.6 morning wheel income", "30u"], ["9.5 wheel income", "30u"], ["8.8 wheel income", "20u"], ["8.10 wheel income", "15u"], ["8.11 wheel income", "5u"], ["8.16 wheel income", "20u"], ["8.17 wheel income", "19u"], ["8.18 wheel income", "22u"], ["8.19 wheel income", "18u"], ["8.20 wheel income", "23u"], ["8.21 wheel income", "21u"], ["Wheel income total", `${wheelIncomeTotal}u`], ["Current platform balance", `${platformBalance}u`]],
     actions: ["Open withdrawal modal", "Export wallet report", "Create audit note"],
-    note: "Current balance is calculated after 9.1 (-800u) and 9.17 (-1000u) exchange treasury withdrawals, 9.5-9.17 five-league receipts (+685u), 9.5-9.9 wheel game income (+150u), and 9.10-9.17 crash game income (+290u). The 8.28 winner remains pending support payout.",
+    note: "Current balance is calculated after 9.1 (-800u), 9.17 (-1000u), and 9.24 (-500u) exchange treasury withdrawals, 9.1-9.25 five-league receipts (+845u), wheel game income (+383u), and crash game income (+365u). The 8.28 winner remains pending support payout.",
   };
 }
 
 function exchangeWithdrawalDetail(item: ExchangeWithdrawal, balanceAfter: number): Detail {
-  const feeInfo = item.date === "2026-09-01" ? "20% (160u), 预计到账 640u" : item.date === "2026-09-17" ? "20% (200u), 预计到账 800u" : "Standard network fee";
-  const etaInfo = item.date === "2026-09-01" ? "2026-09-02" : item.date === "2026-09-17" ? "2026-09-18" : "Completed on same day";
+  const feeInfo = item.date === "2026-09-01"
+    ? "20% (160u), 预计到账 640u"
+    : item.date === "2026-09-17"
+    ? "20% (200u), 预计到账 800u"
+    : item.date === "2026-09-24"
+    ? "20% (100u), 预计到账 400u"
+    : "Standard network fee";
+  const etaInfo = item.date === "2026-09-01"
+    ? "2026-09-02"
+    : item.date === "2026-09-17"
+    ? "2026-09-18"
+    : item.date === "2026-09-24"
+    ? "2026-09-25"
+    : "Completed on same day";
   return {
     title: `Exchange withdrawal · ${item.date}`,
     kicker: "Treasury movement",
     fields: [["Date", item.date], ["Amount", `${item.amount}u`], ["Destination", item.destination], ["Status", item.status], ["Estimated fee", feeInfo], ["Estimated arrival", etaInfo], ["Balance after", `${balanceAfter}u`]],
     actions: ["Copy record", "Export treasury log", "Open wallet report"],
-    note: item.date === "2026-09-17"
+    note: item.date === "2026-09-24"
+      ? "2026-09-24 提现 500u 至交易所，预计扣除 20% 手续费（100u，预计实际到账 400u），预计到账时间为 2026-09-25。"
+      : item.date === "2026-09-17"
       ? "2026-09-17 提现 1000u 至交易所，预计扣除 20% 手续费（200u，预计实际到账 800u），预计到账时间为 2026-09-18。"
       : item.date === "2026-09-01"
       ? "2026-09-01 提现 800u 至交易所，预计扣除 20% 手续费（160u，预计实际到账 640u），预计到账时间为 2026-09-02。"
