@@ -1399,3 +1399,296 @@ nav button:hover,
     grid-template-columns: 1fr;
   }
 }
+
+/* Daily User Registrations & Bettor Activity */
+.activity-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 16px;
+  background: rgba(15, 23, 42, 0.6);
+  border-bottom: 1px solid rgba(148, 163, 184, 0.12);
+}
+
+.activity-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.activity-filters .btn-group {
+  display: inline-flex;
+  border-radius: 6px;
+  background: rgba(2, 6, 23, 0.4);
+  padding: 2px;
+  border: 1px solid rgba(148, 163, 184, 0.16);
+}
+
+.activity-filters .btn-group button {
+  padding: 5px 11px;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: #94a3b8;
+  background: transparent;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.activity-filters .btn-group button:hover {
+  color: #e2e8f0;
+  background: rgba(148, 163, 184, 0.12);
+}
+
+.activity-filters .btn-group button.active {
+  color: #0f172a;
+  background: #2dd4bf;
+  font-weight: 700;
+}
+
+.search-inline {
+  max-width: 320px;
+}
+
+.activity-kpi-row {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  padding: 14px 16px;
+  background: rgba(15, 23, 42, 0.35);
+  border-bottom: 1px solid rgba(148, 163, 184, 0.12);
+}
+
+.kpi-mini {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 8px 12px;
+  background: rgba(30, 41, 59, 0.5);
+  border: 1px solid rgba(148, 163, 184, 0.14);
+  border-radius: 6px;
+}
+
+.kpi-mini span {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #94a3b8;
+}
+
+.kpi-mini strong {
+  font-size: 17px;
+  font-weight: 700;
+  color: #38bdf8;
+}
+
+.daily-activity-table {
+  width: 100%;
+}
+
+.daily-activity-table .data-head {
+  display: grid;
+  grid-template-columns: 140px 240px 1fr 180px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #94a3b8;
+  padding: 10px 16px;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.16);
+  background: rgba(15, 23, 42, 0.7);
+}
+
+.daily-activity-row {
+  display: grid;
+  grid-template-columns: 140px 240px 1fr 180px;
+  align-items: flex-start;
+  padding: 12px 16px;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.08);
+  font-size: 12px;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.daily-activity-row:hover {
+  background: rgba(45, 212, 191, 0.05);
+}
+
+.col-date {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.col-date strong {
+  font-size: 13.5px;
+  color: #f1f5f9;
+  letter-spacing: 0.02em;
+}
+
+.col-date small {
+  color: #2dd4bf;
+  font-weight: 600;
+}
+
+.col-registered {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.user-chips-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.user-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 4px 8px;
+  background: rgba(30, 41, 59, 0.8);
+  border: 1px solid rgba(56, 189, 248, 0.25);
+  border-radius: 4px;
+}
+
+.chip-name {
+  font-weight: 700;
+  color: #7dd3fc;
+}
+
+.chip-meta {
+  font-size: 11px;
+  color: #94a3b8;
+}
+
+.chip-none {
+  color: #64748b;
+  font-style: italic;
+  font-size: 11.5px;
+}
+
+.col-bettors {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.bettors-list-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.bettor-entry {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 6px 10px;
+  background: rgba(15, 23, 42, 0.55);
+  border-left: 3px solid #2dd4bf;
+  border-radius: 0 4px 4px 0;
+}
+
+.bettor-top {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.bettor-name {
+  color: #f8fafc;
+  font-size: 12.5px;
+}
+
+.pill-badge {
+  font-size: 10.5px;
+  font-weight: 700;
+  padding: 1px 7px;
+  border-radius: 9999px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.pill-new {
+  background: rgba(16, 185, 129, 0.2);
+  color: #34d399;
+  border: 1px solid rgba(16, 185, 129, 0.4);
+}
+
+.pill-returning {
+  background: rgba(59, 130, 246, 0.2);
+  color: #60a5fa;
+  border: 1px solid rgba(59, 130, 246, 0.4);
+}
+
+.pill-won {
+  background: rgba(34, 197, 94, 0.2);
+  color: #4ade80;
+  border: 1px solid rgba(34, 197, 94, 0.4);
+}
+
+.pill-lost {
+  background: rgba(239, 68, 68, 0.18);
+  color: #f87171;
+  border: 1px solid rgba(239, 68, 68, 0.35);
+}
+
+.pill-pending {
+  background: rgba(234, 179, 8, 0.18);
+  color: #facc15;
+  border: 1px solid rgba(234, 179, 8, 0.4);
+}
+
+.bettor-stake {
+  margin-left: auto;
+  font-weight: 700;
+  color: #f1f5f9;
+  background: rgba(2, 6, 23, 0.5);
+  padding: 1px 6px;
+  border-radius: 4px;
+}
+
+.bettor-match {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  font-size: 11.5px;
+  color: #cbd5e1;
+}
+
+.sport-tag {
+  color: #2dd4bf;
+  font-weight: 600;
+}
+
+.match-title {
+  color: #e2e8f0;
+}
+
+.selection-text {
+  color: #94a3b8;
+}
+
+.col-summary {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 11.5px;
+  color: #94a3b8;
+}
+
+.col-summary b {
+  color: #f1f5f9;
+}
+
+.sum-wager {
+  margin-top: 4px;
+  font-weight: 700;
+  color: #38bdf8;
+}

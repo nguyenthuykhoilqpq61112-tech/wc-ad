@@ -38,7 +38,7 @@ type AdminSummary = {
 };
 
 type LeaguePage = "Premier League" | "LaLiga" | "Serie A" | "Bundesliga" | "Ligue 1";
-type FixtureLeague = LeaguePage | "Liga de Expansión MX";
+type FixtureLeague = LeaguePage | "Liga de Expansión MX" | "ATP Tour";
 type ActivePage = "Overview" | "Users" | "Deposits" | "Withdrawals" | "Risk Review" | "Bonus Controls" | "Five Leagues" | "League Bets" | "Ledger by Date" | LeaguePage | "Audit Logs";
 type Detail = {
   title: string;
@@ -53,7 +53,7 @@ type PlatformUser = {
   registeredAt: string;
   round: string;
   location: string;
-  region: "Middle East" | "Europe" | "Singapore" | "North America";
+  region: "Middle East" | "Europe" | "Singapore" | "North America" | "Asia";
   deposit: number;
   stake: number;
 };
@@ -91,7 +91,7 @@ type LeagueBetSlip = {
   id: string;
   time: string;
   user: string;
-  league: LeaguePage | "Multi League";
+  league: LeaguePage | "Multi League" | "Liga de Expansión MX" | "ATP Tour";
   match: string;
   market: string;
   selection: string;
@@ -101,6 +101,21 @@ type LeagueBetSlip = {
   betType: "Single" | "Parlay" | "Live" | "Player prop" | "Team prop";
   status: "Pending" | "Open" | "Won" | "Lost" | "Risk hold";
   risk: "Low" | "Medium" | "High";
+};
+type DailyBettor = {
+  username: string;
+  userType: "New User" | "Returning User";
+  sport: string;
+  match: string;
+  selection: string;
+  stake: number;
+  result: "Won" | "Lost" | "Pending";
+  payout: number;
+};
+type DailyUserActivity = {
+  date: string;
+  registeredUsers: Array<{username: string; location: string; time: string}>;
+  bettors: DailyBettor[];
 };
 type LeagueDailyFixture = {
   league: FixtureLeague;
@@ -223,7 +238,45 @@ const northAmericaUsers: PlatformUser[] = [
   deposit: index < 2 ? 10 : 0,
   stake: 0,
 }));
-const allUsers = [...adminUsers, ...northAmericaUsers];
+const seasonalRegisteredUsers: PlatformUser[] = [
+  {id: "user_aug_01", username: "LucasFR51", registeredAt: "2026-08-18 10:15", round: "Serie A / LaLiga opener", location: "France", region: "Europe", deposit: 0, stake: 0},
+  {id: "user_aug_02", username: "MateoES52", registeredAt: "2026-08-19 11:20", round: "LaLiga opener", location: "Spain", region: "Europe", deposit: 0, stake: 0},
+  {id: "user_aug_03", username: "FelixDE53", registeredAt: "2026-08-20 09:45", round: "Bundesliga opener", location: "Germany", region: "Europe", deposit: 0, stake: 0},
+  {id: "user_aug_04", username: "LiamUK54", registeredAt: "2026-08-21 14:10", round: "Premier League kickoff", location: "United Kingdom", region: "Europe", deposit: 0, stake: 0},
+  {id: "user_aug_05", username: "ArthurFR55", registeredAt: "2026-08-22 09:30", round: "Five-league weekend", location: "France", region: "Europe", deposit: 0, stake: 0},
+  {id: "user_aug_06", username: "JulianDE56", registeredAt: "2026-08-22 10:45", round: "Five-league weekend", location: "Germany", region: "Europe", deposit: 0, stake: 0},
+  {id: "user_aug_07", username: "GianniIT57", registeredAt: "2026-08-23 11:00", round: "Serie A Sunday", location: "Italy", region: "Europe", deposit: 0, stake: 0},
+  {id: "user_aug_08", username: "OliverEU42", registeredAt: "2026-08-24 14:00", round: "Serie A kickoff", location: "Italy", region: "Europe", deposit: 0, stake: 60},
+  {id: "user_aug_09", username: "RodrigoES58", registeredAt: "2026-08-25 15:20", round: "LaLiga Matchday 2", location: "Spain", region: "Europe", deposit: 0, stake: 0},
+  {id: "user_aug_10", username: "PabloES59", registeredAt: "2026-08-27 16:30", round: "LaLiga midweek", location: "Spain", region: "Europe", deposit: 0, stake: 0},
+  {id: "user_aug_11", username: "Amina21", registeredAt: "2026-08-28 01:10", round: "Liga de Expansión MX", location: "Mexico", region: "North America", deposit: 0, stake: 20},
+  {id: "user_aug_12", username: "CallumUK60", registeredAt: "2026-08-29 09:15", round: "Premier League Matchday 3", location: "United Kingdom", region: "Europe", deposit: 0, stake: 0},
+  {id: "user_aug_13", username: "GastonFR61", registeredAt: "2026-08-31 08:50", round: "Ligue 1 Matchday 3", location: "France", region: "Europe", deposit: 0, stake: 0},
+  {id: "user_sep_01", username: "SorenDK62", registeredAt: "2026-09-01 10:20", round: "European football autumn", location: "Denmark", region: "Europe", deposit: 0, stake: 0},
+  {id: "user_sep_02", username: "VictorDE63", registeredAt: "2026-09-05 11:40", round: "Bundesliga Matchday 2", location: "Germany", region: "Europe", deposit: 0, stake: 0},
+  {id: "user_sep_03", username: "EnzoIT64", registeredAt: "2026-09-07 09:50", round: "Serie A Matchday 3", location: "Italy", region: "Europe", deposit: 0, stake: 0},
+  {id: "user_sep_04", username: "Hassan91", registeredAt: "2026-09-08 11:20", round: "Ligue 1 special", location: "France", region: "Europe", deposit: 0, stake: 25},
+  {id: "user_sep_05", username: "ChenYu88", registeredAt: "2026-09-08 12:45", round: "LaLiga special", location: "Singapore", region: "Singapore", deposit: 0, stake: 25},
+  {id: "user_sep_06", username: "MasonUK65", registeredAt: "2026-09-09 10:05", round: "Premier League midweek", location: "United Kingdom", region: "Europe", deposit: 0, stake: 0},
+  {id: "user_sep_07", username: "JavierES66", registeredAt: "2026-09-10 11:30", round: "LaLiga special", location: "Spain", region: "Europe", deposit: 0, stake: 0},
+  {id: "user_sep_08", username: "SandroIT67", registeredAt: "2026-09-11 12:15", round: "Serie A Matchday 4", location: "Italy", region: "Europe", deposit: 0, stake: 0},
+  {id: "user_sep_09", username: "LeonDE68", registeredAt: "2026-09-12 09:40", round: "Bundesliga Der Klassiker", location: "Germany", region: "Europe", deposit: 0, stake: 0},
+  {id: "user_sep_10", username: "HugoFR69", registeredAt: "2026-09-13 10:50", round: "Ligue 1 Matchday 4", location: "France", region: "Europe", deposit: 0, stake: 0},
+  {id: "user_sep_11", username: "FabioIT70", registeredAt: "2026-09-14 11:10", round: "Serie A Monday night", location: "Italy", region: "Europe", deposit: 0, stake: 0},
+  {id: "user_sep_12", username: "AlfieUK71", registeredAt: "2026-09-15 13:25", round: "Premier League autumn", location: "United Kingdom", region: "Europe", deposit: 0, stake: 0},
+  {id: "user_sep_13", username: "BenoitFR72", registeredAt: "2026-09-16 12:00", round: "Ligue 1 Matchday 5", location: "France", region: "Europe", deposit: 0, stake: 0},
+  {id: "user_sep_14", username: "MarcoES73", registeredAt: "2026-09-17 11:45", round: "LaLiga Matchday 5", location: "Spain", region: "Europe", deposit: 0, stake: 0},
+  {id: "user_sep_15", username: "MaximDE74", registeredAt: "2026-09-18 10:30", round: "Bundesliga Friday", location: "Germany", region: "Europe", deposit: 0, stake: 0},
+  {id: "user_sep_16", username: "DarioIT75", registeredAt: "2026-09-19 09:20", round: "Serie A Saturday", location: "Italy", region: "Europe", deposit: 0, stake: 0},
+  {id: "user_sep_17", username: "FlorianFR76", registeredAt: "2026-09-20 11:15", round: "Ligue 1 Super Sunday", location: "France", region: "Europe", deposit: 0, stake: 0},
+  {id: "user_sep_18", username: "DavideIT77", registeredAt: "2026-09-21 12:40", round: "Serie A Monday", location: "Italy", region: "Europe", deposit: 0, stake: 0},
+  {id: "user_sep_19", username: "SergioES78", registeredAt: "2026-09-22 14:10", round: "LaLiga Matchday 6", location: "Spain", region: "Europe", deposit: 0, stake: 0},
+  {id: "user_sep_20", username: "OscarSE79", registeredAt: "2026-09-24 10:00", round: "LaLiga midweek", location: "Sweden", region: "Europe", deposit: 0, stake: 0},
+  {id: "user_sep_21", username: "ArnaudFR80", registeredAt: "2026-09-25 11:50", round: "LaLiga Friday night", location: "France", region: "Europe", deposit: 0, stake: 0},
+  {id: "user_sep_22", username: "ZhengWu92", registeredAt: "2026-09-26 10:30", round: "ATP China Open Beijing", location: "China", region: "Asia", deposit: 0, stake: 150},
+  {id: "user_sep_23", username: "ElenaRU93", registeredAt: "2026-09-26 11:15", round: "ATP China Open Beijing", location: "Russia", region: "Europe", deposit: 0, stake: 0},
+];
+const allUsers = [...adminUsers, ...northAmericaUsers, ...seasonalRegisteredUsers];
 
 function syncedMainUsers(summary: AdminSummary | null): PlatformUser[] {
   if (!summary?.users?.length) return [];
@@ -416,6 +469,7 @@ const wheelIncomes: WheelIncome[] = [
   {date: "2026-09-09", amount: 30, source: "Wheel game", status: "Settled"},
   {date: "2026-09-22", amount: 30, source: "Wheel game", status: "Settled"},
   {date: "2026-09-24", amount: 40, source: "Wheel game", status: "Settled"},
+  {date: "2026-09-26", amount: 55, source: "Wheel game", status: "Settled"},
 ];
 const wheelIncomeTotal = wheelIncomes.reduce((sum, item) => sum + item.amount, 0);
 const crashIncomes: CrashIncome[] = [
@@ -433,6 +487,7 @@ const crashIncomes: CrashIncome[] = [
   {date: "2026-09-20", amount: 15, source: "Crash game", status: "Settled"},
   {date: "2026-09-21", amount: 15, source: "Crash game", status: "Settled"},
   {date: "2026-09-25", amount: 25, source: "Crash game", status: "Settled"},
+  {date: "2026-09-26", amount: 25, source: "Crash game", status: "Settled"},
 ];
 const crashIncomeTotal = crashIncomes.reduce((sum, item) => sum + item.amount, 0);
 const historicalWithdrawalAlreadyInBaseline = exchangeWithdrawals.find((item) => item.date === "2026-07-16")?.amount ?? 0;
@@ -512,9 +567,11 @@ const leagueMarkets: LeagueMarket[] = [
   {league: "LaLiga", country: "Spain", kickoff: "2026-09-24 21:00 CEST", match: "Celta Vigo vs Atlético Madrid", matchday: "Matchday 6", market: "Moneyline", odds: "1.90", stake: 100, users: 1, exposure: 190.0, source: "LaLiga official fixture list", status: "Pregame"},
   {league: "LaLiga", country: "Spain", kickoff: "2026-09-25 19:00 CEST", match: "Girona FC vs Rayo Vallecano", matchday: "Matchday 7", market: "Moneyline", odds: "1.80", stake: 30, users: 1, exposure: 54.0, source: "LaLiga official fixture list", status: "Pregame"},
   {league: "LaLiga", country: "Spain", kickoff: "2026-09-25 21:00 CEST", match: "FC Barcelona vs Getafe CF", matchday: "Matchday 7", market: "Moneyline", odds: "1.30", stake: 50, users: 1, exposure: 65.0, source: "LaLiga official fixture list", status: "Pregame"},
+  {league: "ATP Tour", country: "China", kickoff: "2026-09-26 13:00 CST", match: "Jannik Sinner vs Nicolas Jarry", matchday: "Round of 32", market: "Match / Set betting", odds: "1.15 / 1.48", stake: 250, users: 1, exposure: 370.0, source: "ATP Tour China Open official schedule", status: "Live"},
+  {league: "ATP Tour", country: "China", kickoff: "2026-09-26 16:30 CST", match: "Daniil Medvedev vs Gaël Monfils", matchday: "Round of 32", market: "Moneyline", odds: "1.28", stake: 150, users: 1, exposure: 192.0, source: "ATP Tour China Open official schedule", status: "Pregame"},
 ];
 const leagueNames = Array.from(new Set(leagueMarkets.map((item) => item.league)));
-const leaguePageItems = leagueNames as LeaguePage[];
+const leaguePageItems: LeaguePage[] = ["Premier League", "LaLiga", "Serie A", "Bundesliga", "Ligue 1"];
 const leagueTotalStake = leagueMarkets.reduce((sum, item) => sum + item.stake, 0);
 const leagueTotalExposure = Math.round(leagueMarkets.reduce((sum, item) => sum + item.exposure, 0) * 100) / 100;
 const liveLeagueMarkets = leagueMarkets.filter((item) => item.status === "Live").length;
@@ -598,6 +655,8 @@ const leagueBetSlips: LeagueBetSlip[] = [
   {id: "LGB-92402", time: "2026-09-24 17:50", user: "Hamad16", league: "LaLiga", match: "Celta Vigo vs Atlético Madrid", market: "Moneyline", selection: "Atlético Madrid win", odds: 1.90, stake: 100, potentialPayout: 190.0, betType: "Single", status: "Pending", risk: "Low"},
   {id: "LGB-92501", time: "2026-09-25 14:15", user: "LucaIT40", league: "LaLiga", match: "Girona FC vs Rayo Vallecano", market: "Moneyline", selection: "Girona FC win", odds: 1.80, stake: 30, potentialPayout: 54.0, betType: "Single", status: "Pending", risk: "Low"},
   {id: "LGB-92502", time: "2026-09-25 17:30", user: "Hamad16", league: "LaLiga", match: "FC Barcelona vs Getafe CF", market: "Moneyline", selection: "FC Barcelona win", odds: 1.30, stake: 50, potentialPayout: 65.0, betType: "Single", status: "Pending", risk: "Low"},
+  {id: "TNB-92601", time: "2026-09-26 13:00", user: "Hamad16", league: "ATP Tour", match: "Jannik Sinner vs Nicolas Jarry", market: "Match / Set betting", selection: "Jannik Sinner 2-0", odds: 1.48, stake: 250, potentialPayout: 370.0, betType: "Single", status: "Pending", risk: "Low"},
+  {id: "TNB-92602", time: "2026-09-26 16:30", user: "ZhengWu92", league: "ATP Tour", match: "Daniil Medvedev vs Gaël Monfils", market: "Moneyline", selection: "Daniil Medvedev win", odds: 1.28, stake: 150, potentialPayout: 192.0, betType: "Single", status: "Pending", risk: "Low"},
 ] as LeagueBetSlip[];
 const leagueBetStakeTotal = leagueBetSlips.reduce((sum, slip) => sum + slip.stake, 0);
 const leagueBetExposureTotal = Math.round(leagueBetSlips.reduce((sum, slip) => sum + slip.potentialPayout, 0) * 100) / 100;
@@ -640,6 +699,7 @@ const leagueBetReceipts = [
   {date: "2026-09-22", amount: 80, source: "Five-league popular fixtures betting proceeds", status: "Collected"},
   {date: "2026-09-24", amount: 180, source: "Five-league popular fixtures betting proceeds", status: "Collected"},
   {date: "2026-09-25", amount: 80, source: "Five-league popular fixtures betting proceeds", status: "Collected"},
+  {date: "2026-09-26", amount: 400, source: "ATP China Open tennis popular fixtures betting proceeds", status: "Collected"},
 ];
 const leagueBetReceiptTotal = leagueBetReceipts.reduce((sum, item) => sum + item.amount, 0);
 const platformBalance = Math.round((platformBalanceBeforeLeagueBetMerge + leagueBetWalletStakeAdjustment + leagueBetReceiptTotal) * 100) / 100;
@@ -693,7 +753,7 @@ function buildDateLedgerRows(): DateLedgerRow[] {
       rows[date] = {deposits: 0, sportsStakes: 0, leagueStake: 0, leagueReceipts: 0, wheelIncome: 0, crashIncome: 0, payouts: 0, exchangeWithdrawals: 0, reconciliation: 0, items: ["No recorded wallet movement for this date."]};
     }
   }
-  for (let day = 1; day <= 26; day += 1) {
+  for (let day = 1; day <= 27; day += 1) {
     const date = `2026-09-${String(day).padStart(2, "0")}`;
     if (!rows[date]) {
       rows[date] = {deposits: 0, sportsStakes: 0, leagueStake: 0, leagueReceipts: 0, wheelIncome: 0, crashIncome: 0, payouts: 0, exchangeWithdrawals: 0, reconciliation: 0, items: ["No recorded wallet movement for this date."]};
@@ -798,6 +858,8 @@ const leagueDailyFixtures: LeagueDailyFixture[] = [
   {league: "LaLiga", date: "2026-09-24", time: "21:00 CEST", match: "Celta Vigo vs Atlético Madrid", matchday: "Matchday 6", moneyline: "4.00 / 3.50 / 1.90", handicap: "Atlético -0.5 @ 1.90", total: "Under 2.5 @ 1.75", featured: "Atlético win @ 1.90", status: "Today"},
   {league: "LaLiga", date: "2026-09-25", time: "19:00 CEST", match: "Girona FC vs Rayo Vallecano", matchday: "Matchday 7", moneyline: "1.80 / 3.60 / 4.40", handicap: "Girona -0.5 @ 1.80", total: "Under 2.5 @ 1.75", featured: "Girona win @ 1.80", status: "Today"},
   {league: "LaLiga", date: "2026-09-25", time: "21:00 CEST", match: "FC Barcelona vs Getafe CF", matchday: "Matchday 7", moneyline: "1.30 / 5.50 / 9.50", handicap: "Barcelona -1.5 @ 1.85", total: "Over 2.5 @ 1.55", featured: "Barcelona win @ 1.30", status: "Today"},
+  {league: "ATP Tour", date: "2026-09-26", time: "13:00 CST", match: "Jannik Sinner vs Nicolas Jarry", matchday: "China Open Round of 32", moneyline: "1.15 / 5.50", handicap: "Sinner -1.5 sets @ 1.48", total: "Under 20.5 @ 1.85", featured: "Sinner 2-0 @ 1.48", status: "Today"},
+  {league: "ATP Tour", date: "2026-09-26", time: "16:30 CST", match: "Daniil Medvedev vs Gaël Monfils", matchday: "China Open Round of 32", moneyline: "1.28 / 3.75", handicap: "Medvedev -3.5 games @ 1.80", total: "Over 21.5 @ 1.90", featured: "Medvedev win @ 1.28", status: "Today"},
 ];
 const olCompanionModules = [
   {name: "Fixtures", status: "Connected as Ligue 1 fixture board", path: "/home/uuxu/ol-companion/frontend/src/routes/fixtures.tsx"},
@@ -864,6 +926,12 @@ const bonusRules = [
 ];
 
 const auditLogs = [
+  {time: "2026-09-26 23:58", actor: "system", action: "Updated Ledger by Date with 9.26 tennis receipts 400u, wheel game income 55u, and crash game income 25u; current platform balance 1088u", result: "OK"},
+  {time: "2026-09-26 20:30", actor: "cashier", action: "Credited 55u from 9.26 Wheel game income to platform wallet", result: "OK"},
+  {time: "2026-09-26 20:00", actor: "cashier", action: "Credited 25u from 9.26 Crash game income to platform wallet", result: "OK"},
+  {time: "2026-09-26 19:15", actor: "cashier", action: "Collected 400u from 9.26 ATP China Open tennis popular fixtures betting proceeds", result: "OK"},
+  {time: "2026-09-26 16:30", actor: "sportsbook", action: "Accepted 150u Daniil Medvedev win @ 1.28 on Daniil Medvedev vs Gaël Monfils", result: "Pending"},
+  {time: "2026-09-26 13:00", actor: "sportsbook", action: "Accepted 250u Jannik Sinner 2-0 @ 1.48 on Jannik Sinner vs Nicolas Jarry", result: "Pending"},
   {time: "2026-09-25 23:58", actor: "system", action: "Updated Ledger by Date with 9.25 five-league receipts 80u and crash game income 25u; current platform balance 608u", result: "OK"},
   {time: "2026-09-25 20:30", actor: "cashier", action: "Credited 25u from 9.25 Crash game income to platform wallet", result: "OK"},
   {time: "2026-09-25 19:15", actor: "cashier", action: "Collected 80u from 9.25 five-league popular fixtures betting proceeds", result: "OK"},
@@ -1271,7 +1339,7 @@ export function App() {
         {error && <div className="banner-error"><AlertTriangle size={18} />{error}</div>}
 
         {activePage === "Overview" && <OverviewPage summary={summary} totalUserCount={combinedUsers.length} filteredUsers={filteredUsers} openDetail={setDetail} onOpenWithdraw={() => setWithdrawOpen(true)} setActivePage={setActivePage} />}
-        {activePage === "Users" && <UsersPage summary={summary} filteredUsers={filteredUsers} openDetail={setDetail} />}
+        {activePage === "Users" && <UsersPage summary={summary} filteredUsers={filteredUsers} combinedUsers={combinedUsers} openDetail={setDetail} />}
         {activePage === "Deposits" && <DepositsPage openDetail={setDetail} />}
         {activePage === "Withdrawals" && <WithdrawalsPage openDetail={setDetail} onOpenWithdraw={() => setWithdrawOpen(true)} />}
         {activePage === "Risk Review" && <RiskReviewPage openDetail={setDetail} />}
@@ -1352,9 +1420,289 @@ function OverviewPage({summary, totalUserCount, filteredUsers, openDetail, onOpe
   );
 }
 
-function UsersPage({summary, filteredUsers, openDetail}: {summary: AdminSummary | null; filteredUsers: PlatformUser[]; openDetail: (detail: Detail) => void}) {
+function buildDailyUserActivities(users: PlatformUser[]): DailyUserActivity[] {
+  const userMap = new Map<string, PlatformUser>();
+  users.forEach((u) => userMap.set(u.username.toLowerCase(), u));
+
+  const dateSet = new Set<string>();
+
+  users.forEach((u) => {
+    const d = u.registeredAt.slice(0, 10);
+    if (/^\d{4}-\d{2}-\d{2}$/.test(d)) {
+      dateSet.add(d);
+    }
+  });
+
+  betRecords.forEach((b) => {
+    if (b.matchDate && /^\d{4}-\d{2}-\d{2}$/.test(b.matchDate)) {
+      dateSet.add(b.matchDate);
+    }
+  });
+
+  leagueBetSlips.forEach((s) => {
+    const d = s.time.slice(0, 10);
+    if (/^\d{4}-\d{2}-\d{2}$/.test(d)) {
+      dateSet.add(d);
+    }
+  });
+
+  const sortedDates = Array.from(dateSet).sort((a, b) => b.localeCompare(a));
+
+  return sortedDates.map((date) => {
+    const registeredUsers = users
+      .filter((u) => u.registeredAt.startsWith(date))
+      .map((u) => ({
+        username: u.username,
+        location: u.location,
+        time: u.registeredAt.length >= 16 ? u.registeredAt.slice(11, 16) : u.registeredAt,
+      }));
+
+    const bettors: DailyBettor[] = [];
+
+    // From leagueBetSlips
+    leagueBetSlips.forEach((slip) => {
+      if (slip.time.startsWith(date)) {
+        const u = userMap.get(slip.user.toLowerCase());
+        const regDate = u?.registeredAt ? u.registeredAt.slice(0, 10) : "";
+        const userType: "New User" | "Returning User" = regDate === date ? "New User" : "Returning User";
+        const result: "Won" | "Lost" | "Pending" = slip.status.toLowerCase().includes("won")
+          ? "Won"
+          : slip.status.toLowerCase().includes("lost")
+          ? "Lost"
+          : "Pending";
+        bettors.push({
+          username: slip.user,
+          userType,
+          sport: slip.league,
+          match: slip.match,
+          selection: slip.selection,
+          stake: slip.stake,
+          result,
+          payout: result === "Won" ? slip.potentialPayout : 0,
+        });
+      }
+    });
+
+    // From betRecords
+    betRecords.forEach((bet) => {
+      if (bet.matchDate === date) {
+        const u = userMap.get(bet.user.username.toLowerCase()) || bet.user;
+        const regDate = u?.registeredAt ? u.registeredAt.slice(0, 10) : "";
+        const userType: "New User" | "Returning User" = regDate === date ? "New User" : "Returning User";
+        const result: "Won" | "Lost" | "Pending" = (bet.result === "Paid" || bet.result.startsWith("Won")) ? "Won" : bet.result === "Lost" ? "Lost" : "Pending";
+        bettors.push({
+          username: bet.user.username,
+          userType,
+          sport: bet.round,
+          match: bet.match,
+          selection: bet.selection,
+          stake: bet.stake,
+          result,
+          payout: bet.payout,
+        });
+      }
+    });
+
+    return {
+      date,
+      registeredUsers,
+      bettors,
+    };
+  });
+}
+
+function dailyActivityDetail(act: DailyUserActivity): Detail {
+  const totalWager = act.bettors.reduce((sum, b) => sum + b.stake, 0);
+  const newBettors = act.bettors.filter((b) => b.userType === "New User").length;
+  const returningBettors = act.bettors.filter((b) => b.userType === "Returning User").length;
+  const wonCount = act.bettors.filter((b) => b.result === "Won").length;
+  const lostCount = act.bettors.filter((b) => b.result === "Lost").length;
+  const pendingCount = act.bettors.filter((b) => b.result === "Pending").length;
+  return {
+    title: `User Activity Audit · ${act.date}`,
+    kicker: "Daily Registrations & Bettors",
+    fields: [
+      ["Date", act.date],
+      ["New Signups", `${act.registeredUsers.length} user${act.registeredUsers.length === 1 ? "" : "s"}`],
+      ["Active Bettors", `${act.bettors.length} wager${act.bettors.length === 1 ? "" : "s"} (${newBettors} New, ${returningBettors} Returning)`],
+      ["Total Wager", `${totalWager}u`],
+      ["Outcomes", `${wonCount} Won · ${lostCount} Lost · ${pendingCount} Pending`],
+    ],
+    actions: ["Export daily activity", "Audit bet settlement", "Open profile ledger"],
+    note: act.bettors.map((b) => `${b.username} [${b.userType}]: ${b.stake}u on ${b.match} (${b.result})`).join(" | ") || (act.registeredUsers.length > 0 ? `Registered: ${act.registeredUsers.map((u) => u.username).join(", ")}` : "No activity recorded."),
+  };
+}
+
+function DailyUserActivitySection({allUsers, openDetail}: {allUsers: PlatformUser[]; openDetail: (detail: Detail) => void}) {
+  const [filterMonth, setFilterMonth] = useState<"All" | "2026-09" | "2026-08" | "2026-07" | "2026-06">("All");
+  const [filterType, setFilterType] = useState<"All" | "Signups" | "Bettors">("All");
+  const [query, setQuery] = useState("");
+
+  const activities = useMemo(() => buildDailyUserActivities(allUsers), [allUsers]);
+
+  const filteredActivities = useMemo(() => {
+    return activities.filter((act) => {
+      if (filterMonth !== "All" && !act.date.startsWith(filterMonth)) return false;
+      if (filterType === "Signups" && act.registeredUsers.length === 0) return false;
+      if (filterType === "Bettors" && act.bettors.length === 0) return false;
+      if (query.trim()) {
+        const q = query.toLowerCase();
+        const matchesDate = act.date.includes(q);
+        const matchesRegUser = act.registeredUsers.some((u) => u.username.toLowerCase().includes(q) || u.location.toLowerCase().includes(q));
+        const matchesBettor = act.bettors.some((b) => b.username.toLowerCase().includes(q) || b.match.toLowerCase().includes(q) || b.sport.toLowerCase().includes(q));
+        if (!matchesDate && !matchesRegUser && !matchesBettor) return false;
+      }
+      return true;
+    });
+  }, [activities, filterMonth, filterType, query]);
+
+  const totalRegisteredInScope = useMemo(() => filteredActivities.reduce((sum, act) => sum + act.registeredUsers.length, 0), [filteredActivities]);
+  const totalBettorsInScope = useMemo(() => filteredActivities.reduce((sum, act) => sum + act.bettors.length, 0), [filteredActivities]);
+  const totalWagerInScope = useMemo(() => filteredActivities.reduce((sum, act) => sum + act.bettors.reduce((s, b) => s + b.stake, 0), 0), [filteredActivities]);
+
+  return (
+    <Panel
+      title="Daily User Registrations & Bettor Activity"
+      meta="Chronological audit of account signups, active bettors, user seniority (New User vs Returning User), stake wagers, and bet outcomes (Won / Lost / Pending). Displayed in English."
+    >
+      <div className="activity-toolbar">
+        <div className="activity-filters">
+          <div className="btn-group">
+            <button className={filterMonth === "All" ? "active" : ""} onClick={() => setFilterMonth("All")}>All Dates</button>
+            <button className={filterMonth === "2026-09" ? "active" : ""} onClick={() => setFilterMonth("2026-09")}>September 2026</button>
+            <button className={filterMonth === "2026-08" ? "active" : ""} onClick={() => setFilterMonth("2026-08")}>August 2026</button>
+            <button className={filterMonth === "2026-07" ? "active" : ""} onClick={() => setFilterMonth("2026-07")}>July 2026</button>
+            <button className={filterMonth === "2026-06" ? "active" : ""} onClick={() => setFilterMonth("2026-06")}>June 2026</button>
+          </div>
+          <div className="btn-group">
+            <button className={filterType === "All" ? "active" : ""} onClick={() => setFilterType("All")}>All Activity</button>
+            <button className={filterType === "Signups" ? "active" : ""} onClick={() => setFilterType("Signups")}>With Signups</button>
+            <button className={filterType === "Bettors" ? "active" : ""} onClick={() => setFilterType("Bettors")}>With Bettors</button>
+          </div>
+        </div>
+        <label className="search search-inline">
+          <Search size={15} />
+          <input
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Search date, user, match (e.g. 2026-09-26, ZhengWu92, Sinner)..."
+          />
+        </label>
+      </div>
+
+      <div className="activity-kpi-row">
+        <div className="kpi-mini">
+          <span>Active Dates</span>
+          <strong>{filteredActivities.length}</strong>
+        </div>
+        <div className="kpi-mini">
+          <span>New Signups</span>
+          <strong>{totalRegisteredInScope} users</strong>
+        </div>
+        <div className="kpi-mini">
+          <span>Active Bettors</span>
+          <strong>{totalBettorsInScope} wagers</strong>
+        </div>
+        <div className="kpi-mini">
+          <span>Total Bet Volume</span>
+          <strong>{totalWagerInScope.toLocaleString()}u</strong>
+        </div>
+      </div>
+
+      <div className="data-table daily-activity-table">
+        <div className="data-row data-head">
+          <span className="col-date">Date</span>
+          <span className="col-registered">Registered Users (New Signups)</span>
+          <span className="col-bettors">Active Bettor Details (User · Tag · Match · Wager · Won?)</span>
+          <span className="col-summary">Daily Summary</span>
+        </div>
+        {filteredActivities.map((row) => {
+          const dayWager = row.bettors.reduce((sum, b) => sum + b.stake, 0);
+          const newBettors = row.bettors.filter((b) => b.userType === "New User").length;
+          const returningBettors = row.bettors.filter((b) => b.userType === "Returning User").length;
+          return (
+            <div className="data-row daily-activity-row" key={row.date} onClick={() => openDetail(dailyActivityDetail(row))}>
+              <div className="col-date">
+                <strong>{row.date}</strong>
+                <small>{row.bettors.length > 0 ? `${dayWager}u wager` : "No bets"}</small>
+              </div>
+
+              <div className="col-registered">
+                {row.registeredUsers.length > 0 ? (
+                  <div className="user-chips-wrap">
+                    {row.registeredUsers.map((u) => (
+                      <div className="user-chip" key={u.username}>
+                        <span className="chip-name">{u.username}</span>
+                        <span className="chip-meta">{u.location} · {u.time}</span>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <span className="chip-none">0 signups (existing cohort active)</span>
+                )}
+              </div>
+
+              <div className="col-bettors">
+                {row.bettors.length > 0 ? (
+                  <div className="bettors-list-wrap">
+                    {row.bettors.map((b, idx) => (
+                      <div className="bettor-entry" key={`${b.username}-${b.match}-${idx}`}>
+                        <div className="bettor-top">
+                          <strong className="bettor-name">{b.username}</strong>
+                          <span className={`pill-badge ${b.userType === "New User" ? "pill-new" : "pill-returning"}`}>
+                            {b.userType}
+                          </span>
+                          <span className={`pill-badge ${b.result === "Won" ? "pill-won" : b.result === "Lost" ? "pill-lost" : "pill-pending"}`}>
+                            {b.result === "Won" ? `Won (${b.payout}u)` : b.result === "Lost" ? "Lost" : "Pending"}
+                          </span>
+                          <span className="bettor-stake">{b.stake}u</span>
+                        </div>
+                        <div className="bettor-match">
+                          <span className="sport-tag">{b.sport}</span>
+                          <span className="match-title">{b.match}</span>
+                          <span className="selection-text">({b.selection})</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <span className="chip-none">No sports betting recorded</span>
+                )}
+              </div>
+
+              <div className="col-summary">
+                <div><span>Signups:</span> <b>+{row.registeredUsers.length}</b></div>
+                <div><span>Bettors:</span> <b>{row.bettors.length}</b></div>
+                {row.bettors.length > 0 && (
+                  <>
+                    <small>({newBettors} New · {returningBettors} Returning)</small>
+                    <div className="sum-wager">{dayWager}u total</div>
+                  </>
+                )}
+              </div>
+            </div>
+          );
+        })}
+        {filteredActivities.length === 0 && <div className="empty">No activity records match the selected filters.</div>}
+      </div>
+    </Panel>
+  );
+}
+
+function UsersPage({
+  summary,
+  filteredUsers,
+  combinedUsers,
+  openDetail,
+}: {
+  summary: AdminSummary | null;
+  filteredUsers: PlatformUser[];
+  combinedUsers: PlatformUser[];
+  openDetail: (detail: Detail) => void;
+}) {
   return (
     <section className="page-grid">
+      <DailyUserActivitySection allUsers={combinedUsers} openDetail={openDetail} />
       <Panel title="User Directory" meta={summary?.updatedAt ? `Updated ${new Date(summary.updatedAt).toLocaleString()}` : "Waiting for API data"}>
         <div className="data-table users-table">
           <div className="data-row data-head"><span>User ID</span><span>Username</span><span>Registered</span><span>Location</span><span>Deposit</span><span>Stake</span><span>Action</span></div>
@@ -1745,7 +2093,7 @@ function LeagueBetsPage({openDetail}: {openDetail: (detail: Detail) => void}) {
         <div>
           <p className="eyebrow">Five-league betting desk</p>
           <h2>五大联赛投注中心</h2>
-          <span>集中管理单场、串关、滚球、球员道具和球队道具投注。联赛收入按收款流水入账：8.22 为 208u，8.23 为 85u，8.24 为 60u，8.25 为 95u，8.26 为 50u，8.27 为 30u，8.28 为 240u，8.29 为 105u，8.31 为 55u，9.1 为 50u，9.5 为 50u，9.7 为 50u，9.8 为 50u，9.9 为 50u，9.10 为 50u，9.11 为 70u，9.12 为 105u，9.13 为 35u，9.14 为 85u，9.15 为 30u，9.16 为 70u，9.17 为 40u，9.18 为 110u，9.19 为 70u，9.20 为 75u，9.21 为 65u，9.22 为 80u，9.24 为 180u，9.25 为 80u，合计 2370u。</span>
+          <span>集中管理单场、串关、滚球、球员道具和球队道具投注。联赛及重点赛事收入按收款流水入账：8.22 为 208u，8.23 为 85u，8.24 为 60u，8.25 为 95u，8.26 为 50u，8.27 为 30u，8.28 为 240u，8.29 为 105u，8.31 为 55u，9.1 为 50u，9.5 为 50u，9.7 为 50u，9.8 为 50u，9.9 为 50u，9.10 为 50u，9.11 为 70u，9.12 为 105u，9.13 为 35u，9.14 为 85u，9.15 为 30u，9.16 为 70u，9.17 为 40u，9.18 为 110u，9.19 为 70u，9.20 为 75u，9.21 为 65u，9.22 为 80u，9.24 为 180u，9.25 为 80u，9.26 网球为 400u，合计 2770u。</span>
         </div>
         <div className="league-bets-metrics">
           <button onClick={() => openDetail(metricDetail("League bet slips", leagueBetSlips.length, "Five-league betting slips currently shown in the operator desk."))}><span>Slips</span><strong>{leagueBetSlips.length}</strong></button>
@@ -2061,8 +2409,8 @@ function SystemWalletPanel({openDetail, onOpenWithdraw}: {openDetail: (detail: D
     <section className="wallet-band">
       <div>
         <p className="eyebrow">System wallet</p>
-        <h2>{platformBalance.toLocaleString()}u available after 2026-09-25 game income</h2>
-        <span>7.10 baseline 875u; 7.15 net {todayWalletChange.toFixed(2)}u; 7.16 withdrawal -1000u; 7.20 recharge {postJulyFifteenthDeposits}u; 7.20-8.22 sports stakes {postJulyFifteenthStakes}u; five-league net stake +{leagueBetWalletStakeAdjustment}u; five-league receipts +{leagueBetReceiptTotal}u; August withdrawals -{augustWithdrawals}u; September withdrawals -{septemberWithdrawals}u; wheel income +{wheelIncomeTotal}u; crash game income +{crashIncomeTotal}u</span>
+        <h2>{platformBalance.toLocaleString()}u available after 2026-09-26 sports & game income</h2>
+        <span>7.10 baseline 875u; 7.15 net {todayWalletChange.toFixed(2)}u; 7.16 withdrawal -1000u; 7.20 recharge {postJulyFifteenthDeposits}u; 7.20-8.22 sports stakes {postJulyFifteenthStakes}u; five-league & sports net stake +{leagueBetWalletStakeAdjustment}u; sports betting receipts +{leagueBetReceiptTotal}u; August withdrawals -{augustWithdrawals}u; September withdrawals -{septemberWithdrawals}u; wheel income +{wheelIncomeTotal}u; crash game income +{crashIncomeTotal}u</span>
       </div>
       <div className="wallet-actions">
         <button onClick={() => openDetail(walletDetail())}>View calculation</button>
@@ -2448,9 +2796,9 @@ function walletDetail(): Detail {
     title: "System wallet balance",
     kicker: "Wallet calculation",
     fields: [["平台初始余额", `${openingWalletReserve}u`], ["7.10 baseline balance", `${targetPostJulyTenthBalance}u`], ["Confirmed deposits", `${totalDeposits}u`], ["Bet stakes", `${totalStakes}u`], ["Paid payouts before balance merge", `${paidPayouts.toFixed(2)}u`], ["Exchange withdrawals", `${exchangeWithdrawn}u`], ["Wallet reconciliation to 7.10", `${walletReconciliationAdjustment.toFixed(2)}u`], ["7.15 stakes", `${todayStakeTotal}u`], ["7.15 paid/merged payouts", `${todayPaidPayouts.toFixed(2)}u`], ["7.15 wallet change", `${todayWalletChange.toFixed(2)}u`], ["7.16 withdrawal", "-1000u"], ["8.2 withdrawal", "-1000u"], ["8.3 withdrawal", "-400u"], ["8.8 withdrawal", "-332.75u"], ["8.23 withdrawal", "-240u"], ["August withdrawals", `-${augustWithdrawals}u`],         ["9.1 withdrawal to exchange", "-800u"], ["9.17 withdrawal to exchange", "-1000u"], ["9.24 withdrawal to exchange", "-500u"], ["September withdrawals", `-${septemberWithdrawals}u`],
-        ["7.20 deposits", `${postJulyFifteenthDeposits}u`], ["7.20-8.22 sports stakes", `${postJulyFifteenthStakes}u`], ["Balance before league receipts", `${platformBalanceBeforeLeagueBetMerge}u`], ["League Bets stake total", `${leagueBetStakeTotal}u`], ["Already counted league stake", `-${leagueBetStakeAlreadyInSportsLedger}u`], ["League Bets net wallet increase", `${leagueBetWalletStakeAdjustment}u`], ["Five-league receipt total", `${leagueBetReceiptTotal}u`], ["9.17 evening five-league receipts", "10u"], ["9.17 five-league receipts", "30u"], ["9.16 five-league receipts", "70u"], ["9.15 five-league receipts", "30u"], ["9.14 five-league receipts", "85u"], ["9.13 five-league receipts", "35u"], ["9.12 five-league receipts", "105u"], ["9.11 five-league receipts", "70u"], ["9.10 five-league receipts", "50u"], ["9.9 five-league receipts", "50u"], ["9.8 five-league receipts", "50u"], ["9.7 five-league receipts", "50u"], ["9.5 five-league receipts", "50u"], ["9.1 five-league receipts", "50u"], ["8.31 five-league receipts", "55u"], ["8.29 five-league receipts", "105u"], ["8.28 Bundesliga receipts", "220u"], ["8.28 overnight football receipts", "20u"], ["8.27 LaLiga receipts", "30u"], ["8.26 five-league receipts", "50u"], ["8.25 five-league receipts", "95u"], ["8.24 five-league receipts", "60u"], ["8.23 five-league receipts", "85u"], ["8.22 five-league receipts", "208u"], ["8.21 Premier League receipt", "10u"], ["8.18-8.20 early receipts", "37u"], ["9.17 evening crash game income", "10u"], ["9.17 crash game income", "10u"], ["9.16 crash game income", "30u"], ["9.15 crash game income", "50u"], ["9.14 crash game income", "70u"], ["9.13 crash game income", "20u"], ["9.12 crash game income", "50u"], ["9.11 crash game income", "25u"], ["9.10 crash game income", "25u"], ["Crash game income total", `${crashIncomeTotal}u`], ["9.9 wheel income", "30u"], ["9.8 wheel income", "30u"], ["9.6 late night wheel income", "10u"], ["9.6 evening wheel income", "20u"], ["9.6 morning wheel income", "30u"], ["9.5 wheel income", "30u"], ["8.8 wheel income", "20u"], ["8.10 wheel income", "15u"], ["8.11 wheel income", "5u"], ["8.16 wheel income", "20u"], ["8.17 wheel income", "19u"], ["8.18 wheel income", "22u"], ["8.19 wheel income", "18u"], ["8.20 wheel income", "23u"], ["8.21 wheel income", "21u"], ["Wheel income total", `${wheelIncomeTotal}u`], ["Current platform balance", `${platformBalance}u`]],
+        ["7.20 deposits", `${postJulyFifteenthDeposits}u`], ["7.20-8.22 sports stakes", `${postJulyFifteenthStakes}u`], ["Balance before league receipts", `${platformBalanceBeforeLeagueBetMerge}u`], ["League Bets stake total", `${leagueBetStakeTotal}u`], ["Already counted league stake", `-${leagueBetStakeAlreadyInSportsLedger}u`], ["League Bets net wallet increase", `${leagueBetWalletStakeAdjustment}u`], ["Five-league receipt total", `${leagueBetReceiptTotal}u`], ["9.26 ATP China Open tennis receipts", "400u"], ["9.25 five-league receipts", "80u"], ["9.24 five-league receipts", "180u"], ["9.22 five-league receipts", "80u"], ["9.21 five-league receipts", "65u"], ["9.20 five-league receipts", "75u"], ["9.19 five-league receipts", "70u"], ["9.18 five-league receipts", "110u"], ["9.17 evening five-league receipts", "10u"], ["9.17 five-league receipts", "30u"], ["9.16 five-league receipts", "70u"], ["9.15 five-league receipts", "30u"], ["9.14 five-league receipts", "85u"], ["9.13 five-league receipts", "35u"], ["9.12 five-league receipts", "105u"], ["9.11 five-league receipts", "70u"], ["9.10 five-league receipts", "50u"], ["9.9 five-league receipts", "50u"], ["9.8 five-league receipts", "50u"], ["9.7 five-league receipts", "50u"], ["9.5 five-league receipts", "50u"], ["9.1 five-league receipts", "50u"], ["8.31 five-league receipts", "55u"], ["8.29 five-league receipts", "105u"], ["8.28 Bundesliga receipts", "220u"], ["8.28 overnight football receipts", "20u"], ["8.27 LaLiga receipts", "30u"], ["8.26 five-league receipts", "50u"], ["8.25 five-league receipts", "95u"], ["8.24 five-league receipts", "60u"], ["8.23 five-league receipts", "85u"], ["8.22 five-league receipts", "208u"], ["8.21 Premier League receipt", "10u"], ["8.18-8.20 early receipts", "37u"], ["9.26 crash game income", "25u"], ["9.25 crash game income", "25u"], ["9.21 crash game income", "15u"], ["9.20 crash game income", "15u"], ["9.19 crash game income", "10u"], ["9.18 crash game income", "10u"], ["9.17 evening crash game income", "10u"], ["9.17 crash game income", "10u"], ["9.16 crash game income", "30u"], ["9.15 crash game income", "50u"], ["9.14 crash game income", "70u"], ["9.13 crash game income", "20u"], ["9.12 crash game income", "50u"], ["9.11 crash game income", "25u"], ["9.10 crash game income", "25u"], ["Crash game income total", `${crashIncomeTotal}u`], ["9.26 wheel income", "55u"], ["9.24 wheel income", "40u"], ["9.22 wheel income", "30u"], ["9.9 wheel income", "30u"], ["9.8 wheel income", "30u"], ["9.6 late night wheel income", "10u"], ["9.6 evening wheel income", "20u"], ["9.6 morning wheel income", "30u"], ["9.5 wheel income", "30u"], ["8.8 wheel income", "20u"], ["8.10 wheel income", "15u"], ["8.11 wheel income", "5u"], ["8.16 wheel income", "20u"], ["8.17 wheel income", "19u"], ["8.18 wheel income", "22u"], ["8.19 wheel income", "18u"], ["8.20 wheel income", "23u"], ["8.21 wheel income", "21u"], ["Wheel income total", `${wheelIncomeTotal}u`], ["Current platform balance", `${platformBalance}u`]],
     actions: ["Open withdrawal modal", "Export wallet report", "Create audit note"],
-    note: "Current balance is calculated after 9.1 (-800u), 9.17 (-1000u), and 9.24 (-500u) exchange treasury withdrawals, 9.1-9.25 five-league receipts (+845u), wheel game income (+383u), and crash game income (+365u). The 8.28 winner remains pending support payout.",
+    note: "Current balance is calculated after 9.1 (-800u), 9.17 (-1000u), and 9.24 (-500u) exchange treasury withdrawals, 9.1-9.26 sports betting receipts (+1245u), wheel game income (+438u), and crash game income (+390u). The 8.28 winner remains pending support payout.",
   };
 }
 
