@@ -274,18 +274,18 @@ function generateUserEmail(username: string): string {
 }
 
 function generateUserPhone(location: string, seed: string): string {
-  const hash = hashDate(location + "_" + seed);
+  const hash = Math.abs(hashDate(location + "_" + seed));
   const profile = COUNTRY_PROFILES.find((p) => p.country.toLowerCase() === location.toLowerCase()) || COUNTRY_PROFILES[0];
   const digits = String(1000000 + (hash % 9000000));
   return `${profile.phonePrefix}${digits}`;
 }
 
 function generateUserIp(seed: string): string {
-  const h = hashDate("ip_" + seed);
+  const h = Math.abs(hashDate("ip_" + seed));
   const p1 = 60 + (h % 140);
-  const p2 = 10 + ((h >> 4) % 200);
-  const p3 = 10 + ((h >> 8) % 200);
-  const p4 = 2 + ((h >> 12) % 250);
+  const p2 = 10 + (Math.floor(h / 7) % 200);
+  const p3 = 10 + (Math.floor(h / 49) % 200);
+  const p4 = 2 + (Math.floor(h / 343) % 250);
   return `${p1}.${p2}.${p3}.${p4}`;
 }
 
