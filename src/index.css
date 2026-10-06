@@ -2571,3 +2571,342 @@ nav button:hover,
   background: #f1f5f9;
   border-left: 3px solid #0284c7;
 }
+
+/* ========================================================
+   全面增强浅色主题下各模块可读性与对比度 (用户管理 / 赛事注单 / 五大联赛)
+======================================================== */
+
+/* 1. 英雄横幅 Hero 区域优化 (五大联赛 / 英超 / 赛事注单) */
+.app-shell .league-hero,
+.app-shell .league-detail-hero,
+.app-shell .league-bets-hero {
+  background: #ffffff !important;
+  border: 1px solid #cbd5e1 !important;
+  border-radius: 12px;
+  box-shadow: 0 4px 16px rgba(15, 23, 42, 0.05);
+}
+
+.app-shell .league-hero h2,
+.app-shell .league-detail-hero h2,
+.app-shell .league-bets-hero h2 {
+  color: #0f172a !important;
+  font-weight: 800 !important;
+}
+
+.app-shell .league-hero span,
+.app-shell .league-detail-hero span,
+.app-shell .league-bets-hero span {
+  color: #475569 !important;
+  font-weight: 450 !important;
+}
+
+.app-shell .league-hero .eyebrow,
+.app-shell .league-detail-hero .eyebrow,
+.app-shell .league-bets-hero .eyebrow {
+  color: #0284c7 !important;
+  font-weight: 700 !important;
+}
+
+/* 横幅内指标统计卡片按钮 */
+.app-shell .league-hero-stats button,
+.app-shell .league-detail-metrics button,
+.app-shell .league-bets-metrics button {
+  background: #f8fafc !important;
+  border: 1px solid #cbd5e1 !important;
+  border-radius: 8px;
+  transition: all 0.15s ease;
+}
+
+.app-shell .league-hero-stats button:hover,
+.app-shell .league-detail-metrics button:hover,
+.app-shell .league-bets-metrics button:hover {
+  background: #f1f5f9 !important;
+  border-color: #0284c7 !important;
+}
+
+.app-shell .league-hero-stats span,
+.app-shell .league-detail-metrics span,
+.app-shell .league-bets-metrics span {
+  color: #64748b !important;
+  font-weight: 500 !important;
+}
+
+.app-shell .league-hero-stats strong,
+.app-shell .league-detail-metrics strong,
+.app-shell .league-bets-metrics strong {
+  color: #0f172a !important;
+  font-weight: 800 !important;
+}
+
+/* 2. 赛事注单页：类型卡片按钮 (.league-bet-type-grid) */
+.app-shell .league-bet-type-grid button {
+  background: #ffffff !important;
+  border: 1px solid #cbd5e1 !important;
+  border-radius: 8px;
+  box-shadow: 0 2px 6px rgba(15, 23, 42, 0.03);
+}
+
+.app-shell .league-bet-type-grid button:hover {
+  background: #f8fafc !important;
+  border-color: #0284c7 !important;
+}
+
+.app-shell .league-bet-type-grid span {
+  color: #64748b !important;
+}
+
+.app-shell .league-bet-type-grid strong {
+  color: #0f172a !important;
+  font-weight: 800 !important;
+}
+
+.app-shell .league-bet-type-grid small {
+  color: #94a3b8 !important;
+}
+
+/* 3. 五大联赛卡片 (.league-card) */
+.app-shell .league-card {
+  background: #ffffff !important;
+  border: 1px solid #cbd5e1 !important;
+  border-radius: 10px;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04);
+}
+
+.app-shell .league-card:hover {
+  border-color: #0284c7 !important;
+  background: #f8fafc !important;
+  box-shadow: 0 4px 14px rgba(2, 132, 199, 0.12);
+}
+
+.app-shell .league-card span {
+  color: #64748b !important;
+}
+
+.app-shell .league-card strong {
+  color: #0f172a !important;
+  font-weight: 800 !important;
+}
+
+.app-shell .league-card small {
+  color: #475569 !important;
+}
+
+.app-shell .league-card em {
+  background: #f1f5f9 !important;
+  border: 1px solid #cbd5e1 !important;
+  color: #334155 !important;
+  border-radius: 6px;
+}
+
+.app-shell .league-card em.live {
+  background: #dcfce7 !important;
+  border-color: #86efac !important;
+  color: #15803d !important;
+}
+
+/* 4. 用户管理页 (DailyUserActivitySection / activity-table) */
+.app-shell .activity-toolbar {
+  background: #f8fafc !important;
+  border-bottom: 1px solid #e2e8f0 !important;
+}
+
+.app-shell .activity-filters .btn-group {
+  background: #e2e8f0 !important;
+  border: 1px solid #cbd5e1 !important;
+  border-radius: 6px;
+}
+
+.app-shell .activity-filters .btn-group button {
+  color: #475569 !important;
+}
+
+.app-shell .activity-filters .btn-group button.active {
+  background: #0284c7 !important;
+  color: #ffffff !important;
+  font-weight: 700 !important;
+}
+
+.app-shell .activity-kpi-row {
+  background: #f8fafc !important;
+  border-bottom: 1px solid #e2e8f0 !important;
+}
+
+.app-shell .kpi-mini {
+  background: #ffffff !important;
+  border: 1px solid #cbd5e1 !important;
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.03);
+}
+
+.app-shell .kpi-mini span {
+  color: #64748b !important;
+  font-weight: 600 !important;
+}
+
+.app-shell .kpi-mini strong {
+  color: #0284c7 !important;
+  font-weight: 800 !important;
+}
+
+.app-shell .daily-activity-table .data-head,
+.app-shell .activity-table .data-head {
+  background: #f1f5f9 !important;
+  border-bottom: 2px solid #cbd5e1 !important;
+  color: #334155 !important;
+  font-weight: 700 !important;
+}
+
+.app-shell .daily-activity-row {
+  border-bottom: 1px solid #e2e8f0 !important;
+  transition: background 0.15s ease;
+}
+
+.app-shell .daily-activity-row:hover {
+  background: #f8fafc !important;
+}
+
+.app-shell .daily-activity-row .col-date strong {
+  color: #0f172a !important;
+  font-size: 13px !important;
+}
+
+.app-shell .daily-activity-row .col-date small {
+  color: #0284c7 !important;
+  font-weight: 600 !important;
+}
+
+/* 用户气泡卡片 (user-chip) - 浅色白底高对比度 */
+.app-shell .user-chip {
+  background: #ffffff !important;
+  border: 1px solid #cbd5e1 !important;
+  border-radius: 6px !important;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.03);
+}
+
+.app-shell .user-chip .chip-name {
+  color: #0f172a !important;
+  font-weight: 700 !important;
+  font-size: 12px !important;
+}
+
+.app-shell .user-chip .chip-email {
+  color: #0369a1 !important;
+  font-weight: 600 !important;
+}
+
+.app-shell .user-chip .chip-meta {
+  color: #64748b !important;
+  font-size: 11px !important;
+}
+
+/* 活跃注单气泡卡片 (bettor-entry) */
+.app-shell .bettor-entry {
+  background: #ffffff !important;
+  border: 1px solid #cbd5e1 !important;
+  border-left: 4px solid #0284c7 !important;
+  border-radius: 0 6px 6px 0 !important;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.03);
+}
+
+.app-shell .bettor-name {
+  color: #0f172a !important;
+  font-weight: 700 !important;
+}
+
+.app-shell .bettor-stake {
+  color: #0f172a !important;
+  background: #f1f5f9 !important;
+  border: 1px solid #cbd5e1 !important;
+  font-weight: 700 !important;
+}
+
+.app-shell .bettor-match {
+  color: #334155 !important;
+}
+
+.app-shell .sport-tag {
+  color: #0369a1 !important;
+  font-weight: 700 !important;
+}
+
+.app-shell .match-title {
+  color: #1e293b !important;
+  font-weight: 600 !important;
+}
+
+.app-shell .selection-text {
+  color: #64748b !important;
+}
+
+/* 状态标签徽章 (pill-badge) */
+.app-shell .pill-new {
+  background: #dbeafe !important;
+  color: #1d4ed8 !important;
+  border: 1px solid #bfdbfe !important;
+}
+
+.app-shell .pill-returning {
+  background: #f1f5f9 !important;
+  color: #475569 !important;
+  border: 1px solid #cbd5e1 !important;
+}
+
+.app-shell .pill-won {
+  background: #dcfce7 !important;
+  color: #15803d !important;
+  border: 1px solid #86efac !important;
+}
+
+.app-shell .pill-lost {
+  background: #fee2e2 !important;
+  color: #b91c1c !important;
+  border: 1px solid #fca5a5 !important;
+}
+
+.app-shell .pill-pending {
+  background: #fef3c7 !important;
+  color: #b45309 !important;
+  border: 1px solid #fde68a !important;
+}
+
+/* 综合汇总列 (col-summary) */
+.app-shell .col-summary {
+  color: #475569 !important;
+}
+
+.app-shell .col-summary b {
+  color: #0f172a !important;
+}
+
+.app-shell .sum-wager {
+  color: #0284c7 !important;
+  font-weight: 700 !important;
+}
+
+/* 5. 联赛注单表 & 联赛赛程表所有单元格 */
+.app-shell .bets-table .data-row,
+.app-shell .league-table .data-row,
+.app-shell .league-detail-table .data-row,
+.app-shell .league-bets-table .data-row {
+  background: #ffffff !important;
+  border: 1px solid #e2e8f0 !important;
+  color: #334155 !important;
+}
+
+.app-shell .bets-table .data-row:hover,
+.app-shell .league-table .data-row:hover,
+.app-shell .league-detail-table .data-row:hover,
+.app-shell .league-bets-table .data-row:hover {
+  background: #f8fafc !important;
+  border-color: #cbd5e1 !important;
+}
+
+.app-shell .bets-table .data-head,
+.app-shell .league-table .data-head,
+.app-shell .league-detail-table .data-head,
+.app-shell .league-bets-table .data-head {
+  background: #f1f5f9 !important;
+  border-bottom: 2px solid #cbd5e1 !important;
+  color: #334155 !important;
+  font-weight: 700 !important;
+}
