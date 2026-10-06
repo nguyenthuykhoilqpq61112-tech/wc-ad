@@ -2107,3 +2107,444 @@ nav button:hover,
   cursor: not-allowed;
   transform: none;
 }
+
+
+/* ========================================================
+   后台管理系统现代高品质浅色清爽主题 (Business Light Slate)
+======================================================== */
+.app-shell {
+  background: #f1f5f9;
+  color: #1e293b;
+}
+
+/* 侧边导航栏 */
+.app-shell .sidebar {
+  background: #ffffff;
+  border-right: 1px solid #e2e8f0;
+  box-shadow: 2px 0 16px rgba(15, 23, 42, 0.04);
+}
+
+.app-shell .brand {
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.app-shell .brand strong {
+  color: #0f172a;
+  font-weight: 700;
+}
+
+.app-shell .brand span {
+  color: #64748b;
+}
+
+.app-shell .brand svg {
+  color: #0284c7;
+}
+
+.app-shell nav button {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  color: #475569;
+  font-weight: 500;
+  border-radius: 8px;
+  transition: all 0.18s ease;
+}
+
+.app-shell nav button:hover {
+  background: #f8fafc;
+  border-color: #cbd5e1;
+  color: #0f172a;
+}
+
+.app-shell nav button.active {
+  background: #e0f2fe;
+  border-color: #38bdf8;
+  color: #0369a1;
+  font-weight: 700;
+  box-shadow: 0 1px 4px rgba(2, 132, 199, 0.12);
+}
+
+.app-shell .sidebar-note {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+}
+
+.app-shell .sidebar-note span {
+  color: #64748b;
+}
+
+.app-shell .sidebar-note strong {
+  color: #0f172a;
+}
+
+/* 主工作区背景与文字 */
+.app-shell .workspace {
+  background: #f8fafc;
+  min-height: 100vh;
+}
+
+.app-shell .topbar h1 {
+  color: #0f172a;
+  font-weight: 800;
+}
+
+.app-shell .topbar .eyebrow {
+  color: #0284c7;
+  font-weight: 700;
+}
+
+.app-shell .topbar .muted {
+  color: #64748b;
+}
+
+/* 顶部搜索框与操作按钮 */
+.app-shell .search {
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+}
+
+.app-shell .search input {
+  background: transparent;
+  color: #0f172a;
+}
+
+.app-shell .search input::placeholder {
+  color: #94a3b8;
+}
+
+.app-shell .search svg {
+  color: #64748b;
+}
+
+.app-shell .icon-btn,
+.app-shell .account {
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  color: #334155;
+  border-radius: 8px;
+}
+
+.app-shell .icon-btn:hover,
+.app-shell .account:hover {
+  background: #f1f5f9;
+  border-color: #94a3b8;
+  color: #0f172a;
+}
+
+/* 顶部关键指标卡片 (stat-pill) */
+.app-shell .stat-pill {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04);
+}
+
+.app-shell .stat-pill span {
+  color: #64748b;
+  font-weight: 500;
+}
+
+.app-shell .stat-pill strong {
+  color: #0f172a;
+}
+
+/* 通用指标卡片 (Metric) 与 面板 (Panel) */
+.app-shell .metric {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04);
+}
+
+.app-shell .metric:hover {
+  border-color: #38bdf8;
+  background: #ffffff;
+  box-shadow: 0 6px 16px rgba(2, 132, 199, 0.08);
+}
+
+.app-shell .metric span,
+.app-shell .metric small {
+  color: #64748b;
+}
+
+.app-shell .metric strong {
+  color: #0f172a;
+}
+
+.app-shell .metric div {
+  background: #e0f2fe;
+  color: #0284c7;
+  border-radius: 8px;
+}
+
+.app-shell .panel {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04);
+}
+
+.app-shell .panel h2 {
+  color: #0f172a;
+  font-weight: 700;
+}
+
+.app-shell .panel p {
+  color: #64748b;
+}
+
+/* 每日运营主表工具栏 (Toolbar) */
+.app-shell .daily-toolbar {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  box-shadow: 0 2px 6px rgba(15, 23, 42, 0.03);
+}
+
+.app-shell .filter-pill {
+  background: #f1f5f9;
+  border: 1px solid #cbd5e1;
+  color: #475569;
+  font-weight: 500;
+}
+
+.app-shell .filter-pill:hover {
+  background: #e2e8f0;
+  color: #0f172a;
+}
+
+.app-shell .filter-pill.active {
+  background: #0284c7;
+  border-color: #0284c7;
+  color: #ffffff;
+  box-shadow: 0 2px 6px rgba(2, 132, 199, 0.25);
+}
+
+.app-shell .daily-jump-select {
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  color: #0f172a;
+  border-radius: 6px;
+}
+
+/* 核心按日大表 (Daily Master Table) */
+.app-shell .daily-master-table .data-head {
+  background: #f1f5f9;
+  border: 1px solid #e2e8f0;
+  border-bottom: 2px solid #cbd5e1;
+  color: #334155;
+  font-weight: 700;
+  border-radius: 6px;
+}
+
+.app-shell .daily-master-table .data-row {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  color: #334155;
+  border-radius: 6px;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.02);
+  transition: all 0.15s ease;
+}
+
+.app-shell .daily-master-table .data-row:hover {
+  background: #f8fafc;
+  border-color: #94a3b8;
+}
+
+.app-shell .daily-master-table .data-row.active-day-row {
+  background: #f0fdf4;
+  border-color: #22c55e;
+  box-shadow: 0 0 0 1px #22c55e, 0 4px 12px rgba(34, 197, 94, 0.12);
+}
+
+.app-shell .daily-master-table .data-row span {
+  color: #334155;
+}
+
+.app-shell .daily-master-table .data-row span b {
+  color: #0f172a;
+}
+
+/* 徽章样式 (Badges) */
+.app-shell .badge-today {
+  color: #0369a1;
+  background: #e0f2fe;
+  border: 1px solid #bae6fd;
+}
+
+.app-shell .badge-users {
+  background: #f1f5f9;
+  border: 1px solid #cbd5e1;
+  color: #0f172a;
+}
+
+.app-shell .badge-reconciled {
+  color: #15803d;
+  background: #dcfce7;
+  border: 1px solid #bbf7d0;
+}
+
+/* 操作与下钻按钮 */
+.app-shell .btn-table-drilldown {
+  background: #0284c7;
+  color: #ffffff;
+  border: none;
+  border-radius: 6px;
+  font-weight: 600;
+}
+
+.app-shell .btn-table-drilldown:hover {
+  background: #0369a1;
+}
+
+/* 单日下钻详情面板 (Drilldown Panel) */
+.app-shell .day-drilldown-panel {
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  border-radius: 12px;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.06);
+}
+
+.app-shell .day-drilldown-header {
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.app-shell .day-drilldown-header h3 {
+  color: #0f172a;
+  font-weight: 700;
+}
+
+.app-shell .day-drilldown-tabs button {
+  background: #f1f5f9;
+  border: 1px solid #cbd5e1;
+  color: #475569;
+  font-weight: 500;
+}
+
+.app-shell .day-drilldown-tabs button:hover {
+  background: #e2e8f0;
+  color: #0f172a;
+}
+
+.app-shell .day-drilldown-tabs button.active {
+  background: #0284c7;
+  border-color: #0284c7;
+  color: #ffffff;
+  box-shadow: 0 2px 6px rgba(2, 132, 199, 0.25);
+}
+
+/* 下钻表格内部行 (drilldown sub-tables) */
+.app-shell .drilldown-users-table .table-header,
+.app-shell .drilldown-bets-table .table-header,
+.app-shell .drilldown-ledger-table .table-header,
+.app-shell .drilldown-fixtures-table .table-header,
+.app-shell .table-header {
+  background: #f1f5f9;
+  border: 1px solid #e2e8f0;
+  color: #334155;
+  font-weight: 600;
+}
+
+.app-shell .drilldown-users-table .data-row,
+.app-shell .drilldown-bets-table .data-row,
+.app-shell .drilldown-ledger-table .data-row,
+.app-shell .drilldown-fixtures-table .data-row,
+.app-shell .data-row {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  color: #334155;
+}
+
+.app-shell .data-row:hover {
+  background: #f8fafc;
+  border-color: #cbd5e1;
+}
+
+.app-shell .data-row span b {
+  color: #0f172a;
+}
+
+.app-shell .data-row button {
+  background: #f1f5f9;
+  border: 1px solid #cbd5e1;
+  color: #0284c7;
+}
+
+.app-shell .data-row button:hover {
+  background: #e0f2fe;
+  border-color: #38bdf8;
+}
+
+/* 侧拉详情抽屉 (Detail Drawer) */
+.app-shell .detail-drawer {
+  background: #ffffff;
+  border-left: 1px solid #e2e8f0;
+  color: #0f172a;
+  box-shadow: -8px 0 28px rgba(15, 23, 42, 0.12);
+}
+
+.app-shell .detail-drawer header {
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.app-shell .detail-drawer h2 {
+  color: #0f172a;
+}
+
+.app-shell .detail-item {
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.app-shell .detail-item label {
+  color: #64748b;
+}
+
+.app-shell .detail-item strong {
+  color: #0f172a;
+}
+
+.app-shell .detail-drawer button {
+  background: #0284c7;
+  color: #ffffff;
+}
+
+/* 确保浅色模式下所有文本、金额、状态显式清晰 */
+.app-shell .daily-master-table .data-row span,
+.app-shell .data-row span {
+  color: #334155 !important;
+}
+
+.app-shell .daily-master-table .data-row span b,
+.app-shell .data-row span b,
+.app-shell .data-row b,
+.app-shell .data-row strong {
+  color: #0f172a !important;
+}
+
+.app-shell .daily-master-table .data-head span,
+.app-shell .table-header span {
+  color: #475569 !important;
+  font-weight: 700;
+}
+
+/* 绿色收入与增量在浅色背景下保持高对比度翡翠绿 */
+.app-shell .daily-master-table .data-row span[style*="#34d399"],
+.app-shell .daily-master-table .data-row span[style*="#4ade80"],
+.app-shell .daily-master-table .data-row strong[style*="#34d399"],
+.app-shell .daily-master-table .data-row strong[style*="#4ade80"],
+.app-shell strong[style*="#34d399"],
+.app-shell strong[style*="#4ade80"] {
+  color: #059669 !important;
+}
+
+/* 红色提现/亏损在浅色背景下保持鲜明 */
+.app-shell .daily-master-table .data-row span[style*="#f87171"],
+.app-shell strong[style*="#f87171"] {
+  color: #dc2626 !important;
+}
+
+/* 蓝色指标在高亮下更深邃清晰 */
+.app-shell strong[style*="#38bdf8"] {
+  color: #0284c7 !important;
+}
