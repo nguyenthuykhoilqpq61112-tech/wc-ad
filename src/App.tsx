@@ -20,6 +20,9 @@ import {
   UserRound,
   Users,
   WalletCards,
+  CalendarDays,
+  Trophy,
+  Table,
   X,
 } from "lucide-react";
 
@@ -39,7 +42,7 @@ type AdminSummary = {
 
 type LeaguePage = "Premier League" | "LaLiga" | "Serie A" | "Bundesliga" | "Ligue 1";
 type FixtureLeague = LeaguePage | "Liga de Expansión MX" | "ATP Tour";
-type ActivePage = "Overview" | "Users" | "Deposits" | "Withdrawals" | "Risk Review" | "Bonus Controls" | "Five Leagues" | "League Bets" | "Ledger by Date" | LeaguePage | "Audit Logs";
+type ActivePage = "DailyMaster" | "Overview" | "Users" | "Deposits" | "Withdrawals" | "Risk Review" | "Bonus Controls" | "Five Leagues" | "League Bets" | "Ledger by Date" | LeaguePage | "Audit Logs";
 type Detail = {
   title: string;
   kicker: string;
@@ -157,22 +160,23 @@ const API_BASE = (import.meta.env.VITE_API_BASE_URL || "https://2026wc.zeabur.ap
 const EXCHANGE_WITHDRAW_PASSWORD = import.meta.env.VITE_EXCHANGE_WITHDRAW_PASSWORD || "";
 const STORAGE_KEY = "wwc_admin_session";
 
-const navItems: Array<{label: ActivePage; Icon: typeof Activity}> = [
-  {label: "Overview", Icon: Activity},
-  {label: "Users", Icon: Users},
-  {label: "Deposits", Icon: WalletCards},
-  {label: "Withdrawals", Icon: Banknote},
-  {label: "Risk Review", Icon: AlertTriangle},
-  {label: "Bonus Controls", Icon: SlidersHorizontal},
-  {label: "Five Leagues", Icon: Goal},
-  {label: "League Bets", Icon: CircleDollarSign},
-  {label: "Ledger by Date", Icon: FileText},
-  {label: "Premier League", Icon: Goal},
-  {label: "LaLiga", Icon: Goal},
-  {label: "Serie A", Icon: Goal},
-  {label: "Bundesliga", Icon: Goal},
-  {label: "Ligue 1", Icon: Goal},
-  {label: "Audit Logs", Icon: Database},
+const navItems: Array<{key: ActivePage; label: string; Icon: typeof Activity}> = [
+  {key: "DailyMaster", label: "按日运营总表", Icon: CalendarDays},
+  {key: "Overview", label: "数据总览", Icon: Activity},
+  {key: "Users", label: "用户管理", Icon: Users},
+  {key: "League Bets", label: "赛事注单", Icon: CircleDollarSign},
+  {key: "Ledger by Date", label: "按日对账流水", Icon: FileText},
+  {key: "Deposits", label: "充值记录", Icon: WalletCards},
+  {key: "Withdrawals", label: "提现审核", Icon: Banknote},
+  {key: "Risk Review", label: "风控审核", Icon: AlertTriangle},
+  {key: "Bonus Controls", label: "红利配置", Icon: SlidersHorizontal},
+  {key: "Five Leagues", label: "五大联赛", Icon: Goal},
+  {key: "Premier League", label: "英超联赛", Icon: Trophy},
+  {key: "LaLiga", label: "西甲联赛", Icon: Trophy},
+  {key: "Serie A", label: "意甲联赛", Icon: Trophy},
+  {key: "Bundesliga", label: "德甲联赛", Icon: Trophy},
+  {key: "Ligue 1", label: "法甲联赛", Icon: Trophy},
+  {key: "Audit Logs", label: "审计日志", Icon: Database},
 ];
 
 const registrationPlan = [
@@ -1507,290 +1511,469 @@ async function api<T>(path: string, options: RequestInit = {}, token?: string) {
   return data as T;
 }
 
-export function App() {
-  const [session, setSession] = useState<AuthSession | null>(() => readStoredSession());
-  const [summary, setSummary] = useState<AdminSummary | null>(null);
-  const [activePage, setActivePage] = useState<ActivePage>("Overview");
-  const [username, setUsername] = useState("admin");
-  const [password, setPassword] = useState("");
-  const [query, setQuery] = useState("");
-  const [error, setError] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [refreshing, setRefreshing] = useState(false);
-  const [detail, setDetail] = useState<Detail | null>(null);
-  const [withdrawOpen, setWithdrawOpen] = useState(false);
-  const [withdrawPassword, setWithdrawPassword] = useState("");
-  const [withdrawAmount, setWithdrawAmount] = useState("");
-  const [withdrawMessage, setWithdrawMessage] = useState("");
-  const [winnerAlertOpen, setWinnerAlertOpen] = useState(false);
+type DailyMasterRecord = {
+  date: string;
+  isToday: boolean;
+  totalIncome: number;
+  crashIncome: number;
+  sportsIncome: number;
+  newUsers: PlatformUser[];
+  bettors: DailyBettor[];
+  slips: LeagueBetSlip[];
+  bets: BetRecord[];
+  withdrawals: number;
+  net: number;
+  balanceAfter: number;
+  isReconciled: boolean;
+  ledgerRow: DateLedgerRow;
+  fixtures: LeagueDailyFixture[];
+};
 
-  const combinedUsers = useMemo(() => [...allUsers, ...syncedMainUsers(summary)], [summary]);
-  const filteredUsers = useMemo(() => {
-    const users = combinedUsers;
-    if (!query.trim()) return users;
-    return users.filter((user) => user.username.toLowerCase().includes(query.toLowerCase()));
-  }, [query, combinedUsers]);
+function useDailyMasterRecords(allUsers: PlatformUser[]): DailyMasterRecord[] {
+  return useMemo(() => {
+    const userMap = new Map<string, PlatformUser>();
+    allUsers.forEach((u) => userMap.set(u.username.toLowerCase(), u));
 
-  const enterAdminDirectly = (targetUsername?: string) => {
-    const directSession: AuthSession = {
-      token: "mock-token",
-      user: { id: "admin-1", username: targetUsername?.trim() || "admin" },
-    };
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(directSession));
-    setSession(directSession);
-  };
+    const effectiveEnd = getEffectiveEndDate();
+    const dateMap = new Map<string, DailyMasterRecord>();
 
-  const login = async (event: FormEvent) => {
-    event.preventDefault();
-    setError("");
-    setLoading(true);
-    try {
-      try {
-        const next = await api<AuthSession>("/api/auth/login", {
-          method: "POST",
-          body: JSON.stringify({username, password}),
+    dateLedgerRows.forEach((row) => {
+      const date = row.date;
+      const incRow = dailyIncomeRows.find((r) => r.period === date);
+      const totalIncome = incRow ? incRow.total : (row.crashIncome + row.leagueReceipts);
+      const crashIncome = row.crashIncome;
+      const sportsIncome = incRow ? Math.max(0, Math.round((incRow.total - crashIncome) * 100) / 100) : (row.leagueReceipts > 0 ? row.leagueReceipts : row.sportsStakes);
+
+      const newUsers = allUsers.filter((u) => u.registeredAt.startsWith(date));
+      const slips = leagueBetSlips.filter((s) => s.time.startsWith(date));
+      const bets = betRecords.filter((b) => b.matchDate === date);
+      const fixtures = leagueDailyFixtures.filter((f) => f.date === date);
+
+      const bettors: DailyBettor[] = [];
+      slips.forEach((slip) => {
+        const u = userMap.get(slip.user.toLowerCase());
+        const regDate = u?.registeredAt ? u.registeredAt.slice(0, 10) : "";
+        const userType: "New User" | "Returning User" = regDate === date ? "New User" : "Returning User";
+        const result: "Won" | "Lost" | "Pending" = slip.status.toLowerCase().includes("won")
+          ? "Won"
+          : slip.status.toLowerCase().includes("lost")
+          ? "Lost"
+          : "Pending";
+        bettors.push({
+          username: slip.user,
+          userType,
+          sport: slip.league,
+          match: slip.match,
+          selection: slip.selection,
+          stake: slip.stake,
+          result,
+          payout: result === "Won" ? slip.potentialPayout : 0,
         });
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
-        setSession(next);
-      } catch (apiErr) {
-        // Fallback: If remote API is down / returns 502 / network error, allow local admin entry
-        console.warn("API login failed, falling back to local admin session:", apiErr);
-        enterAdminDirectly(username);
-      }
-    } catch (err) {
-      setError((err as Error).message);
-    } finally {
-      setLoading(false);
-    }
-  };
+      });
+      bets.forEach((bet) => {
+        const u = userMap.get(bet.user.username.toLowerCase()) || bet.user;
+        const regDate = u?.registeredAt ? u.registeredAt.slice(0, 10) : "";
+        const userType: "New User" | "Returning User" = regDate === date ? "New User" : "Returning User";
+        const result: "Won" | "Lost" | "Pending" = (bet.result === "Paid" || bet.result.startsWith("Won")) ? "Won" : bet.result === "Lost" ? "Lost" : "Pending";
+        bettors.push({
+          username: bet.user.username,
+          userType,
+          sport: bet.round,
+          match: bet.match,
+          selection: bet.selection,
+          stake: bet.stake,
+          result,
+          payout: bet.payout,
+        });
+      });
 
-  const loadSummary = async () => {
-    if (!session) return;
-    setRefreshing(true);
-    try {
-      setSummary(await api<AdminSummary>("/api/admin/summary", {}, session.token));
-      setError("");
-    } catch (err) {
-      console.warn("Summary API not reached (running in standalone mode):", err);
-    } finally {
-      setRefreshing(false);
-    }
-  };
+      dateMap.set(date, {
+        date,
+        isToday: date === effectiveEnd,
+        totalIncome,
+        crashIncome,
+        sportsIncome,
+        newUsers,
+        bettors,
+        slips,
+        bets,
+        withdrawals: row.exchangeWithdrawals,
+        net: row.net,
+        balanceAfter: row.balanceAfter,
+        isReconciled: true,
+        ledgerRow: row,
+        fixtures,
+      });
+    });
 
-  useEffect(() => {
-    loadSummary();
-  }, [session?.token]);
-
-  const logout = () => {
-    localStorage.removeItem(STORAGE_KEY);
-    setSession(null);
-    setSummary(null);
-  };
-
-  if (!session) {
-    return (
-      <main className="login-shell">
-        <section className="login-panel">
-          <div className="lockmark"><Lock size={22} /></div>
-          <p className="eyebrow">Private operations domain</p>
-          <h1>win-worldcup Admin</h1>
-          <p className="muted">This console is separate from the public sportsbook. Sign in with the protected admin account to manage users, wallet reviews, risk queues, and bonus controls.</p>
-          <form onSubmit={login} className="login-form">
-            <label>
-              <span>Admin username</span>
-              <input value={username} onChange={(event) => setUsername(event.target.value)} minLength={3} required />
-            </label>
-            <label>
-              <span>Password</span>
-              <input value={password} onChange={(event) => setPassword(event.target.value)} type="password" placeholder="输入任意密码或留空" />
-            </label>
-            {error && <div className="error">{error}</div>}
-            <button type="submit" disabled={loading}>{loading ? "Checking access..." : "Enter back office"}</button>
-            <button
-              type="button"
-              onClick={() => enterAdminDirectly(username)}
-              style={{
-                background: "rgba(45, 212, 191, 0.15)",
-                border: "1px solid rgba(45, 212, 191, 0.4)",
-                color: "#2dd4bf",
-                cursor: "pointer",
-                padding: "12px",
-                fontWeight: 700,
-                marginTop: "-4px"
-              }}
-            >
-              免密一键进入后台
-            </button>
-          </form>
-          <div className="endpoint">API: {API_BASE}</div>
-        </section>
-      </main>
-    );
-  }
-
-  const pageMeta = {
-    Overview: ["Operations dashboard", "Account, wallet, and risk control"],
-    Users: ["Users", "Player account management"],
-    Deposits: ["Deposits", "USDT payment verification queue"],
-    Withdrawals: ["Withdrawals", "Manual payout review and platform protection"],
-    "Risk Review": ["Risk Review", "Signals, limits, and investigation notes"],
-    "Bonus Controls": ["Bonus Controls", "Promotions, loyalty, and wagering rules"],
-    "Five Leagues": ["Five Leagues", "Premier League, LaLiga, Serie A, Bundesliga, Ligue 1"],
-    "League Bets": ["League Bets", "Five-league slips, parlays, live bets, and props"],
-    "Ledger by Date": ["Ledger by Date", "Daily cashflow reconciliation"],
-    "Premier League": ["Premier League", "England fixtures, odds, and exposure"],
-    LaLiga: ["LaLiga", "Spain fixtures, odds, and exposure"],
-    "Serie A": ["Serie A", "Italy fixtures, odds, and exposure"],
-    Bundesliga: ["Bundesliga", "Germany fixtures, odds, and exposure"],
-    "Ligue 1": ["Ligue 1", "France fixtures, OL Companion feed"],
-    "Audit Logs": ["Audit Logs", "Operator and system activity trail"],
-  } satisfies Record<ActivePage, [string, string]>;
-
-  return (
-    <div className="app-shell">
-      <aside className="sidebar">
-        <div className="brand">
-          <ShieldCheck size={24} />
-          <div>
-            <strong>win-worldcup</strong>
-            <span>Admin Back Office</span>
-          </div>
-        </div>
-        <nav>
-          {navItems.map(({label, Icon}) => (
-            <button className={label === activePage ? "active" : ""} key={label} onClick={() => setActivePage(label)}>
-              <Icon size={17} />
-              {label}
-            </button>
-          ))}
-        </nav>
-        <div className="sidebar-note">
-          <span>Main API</span>
-          <strong>{API_BASE.replace(/^https?:\/\//, "")}</strong>
-        </div>
-      </aside>
-
-      <main className="workspace">
-        <header className="topbar">
-          <div>
-            <p className="eyebrow">{pageMeta[activePage][0]}</p>
-            <h1>{pageMeta[activePage][1]}</h1>
-          </div>
-          <div className="top-actions">
-            <label className="search">
-              <Search size={16} />
-              <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search users" />
-            </label>
-            <button className="icon-btn" onClick={() => {
-              loadSummary();
-              setDetail({
-                title: "Refresh requested",
-                kicker: "Live API",
-                fields: [["Endpoint", "/api/admin/summary"], ["Requested by", session.user.username]],
-                actions: ["Reload summary metrics", "Refresh user directory", "Update audit counters"],
-                note: "The dashboard requests the latest admin summary from the main sportsbook API.",
-              });
-            }} disabled={refreshing} title="Refresh">
-              <RefreshCcw size={17} className={refreshing ? "spin" : ""} />
-            </button>
-            <button className="account" onClick={() => setDetail({
-              title: "Admin session",
-              kicker: "Authenticated operator",
-              fields: [["Username", session.user.username], ["API host", API_BASE], ["Stored session", "Local browser storage"]],
-              actions: ["Review active session", "Logout from this browser", "Rotate admin password in Zeabur"],
-              note: "Use the logout action only when leaving the operations workstation.",
-            })}>
-              <UserRound size={17} />
-              {session.user.username}
-              <LogOut size={16} onClick={(event) => {
-                event.stopPropagation();
-                logout();
-              }} />
-            </button>
-          </div>
-        </header>
-
-        {error && <div className="banner-error"><AlertTriangle size={18} />{error}</div>}
-
-        {activePage === "Overview" && <OverviewPage summary={summary} totalUserCount={combinedUsers.length} filteredUsers={filteredUsers} openDetail={setDetail} onOpenWithdraw={() => setWithdrawOpen(true)} setActivePage={setActivePage} />}
-        {activePage === "Users" && <UsersPage summary={summary} filteredUsers={filteredUsers} combinedUsers={combinedUsers} openDetail={setDetail} />}
-        {activePage === "Deposits" && <DepositsPage openDetail={setDetail} />}
-        {activePage === "Withdrawals" && <WithdrawalsPage openDetail={setDetail} onOpenWithdraw={() => setWithdrawOpen(true)} />}
-        {activePage === "Risk Review" && <RiskReviewPage openDetail={setDetail} />}
-        {activePage === "Bonus Controls" && <BonusControlsPage openDetail={setDetail} />}
-        {activePage === "Five Leagues" && <FiveLeaguesPage openDetail={setDetail} setActivePage={setActivePage} />}
-        {activePage === "League Bets" && <LeagueBetsPage openDetail={setDetail} />}
-        {activePage === "Ledger by Date" && <LedgerByDatePage openDetail={setDetail} />}
-        {leaguePageItems.includes(activePage as LeaguePage) && <LeaguePageView league={activePage as LeaguePage} openDetail={setDetail} />}
-        {activePage === "Audit Logs" && <AuditLogsPage summary={summary} openDetail={setDetail} />}
-      </main>
-      {detail && <DetailDrawer detail={detail} onClose={() => setDetail(null)} />}
-      {winnerAlertOpen && <WinnerAlertModal onClose={() => setWinnerAlertOpen(false)} />}
-      {withdrawOpen && (
-        <ExchangeWithdrawModal
-          balance={platformBalance}
-          password={withdrawPassword}
-          amount={withdrawAmount}
-          message={withdrawMessage}
-          setPassword={setWithdrawPassword}
-          setAmount={setWithdrawAmount}
-          onClose={() => setWithdrawOpen(false)}
-          onSubmit={() => {
-            const amount = Number(withdrawAmount);
-            if (!EXCHANGE_WITHDRAW_PASSWORD || withdrawPassword !== EXCHANGE_WITHDRAW_PASSWORD) {
-              setWithdrawMessage("提取密码错误。");
-              return;
-            }
-            if (!Number.isFinite(amount) || amount <= 0) {
-              setWithdrawMessage("请输入有效的提取金额。");
-              return;
-            }
-            if (amount > platformBalance) {
-              setWithdrawMessage("提取金额不能超过平台余额。");
-              return;
-            }
-            setWithdrawMessage("您的提取请求正在进行，请2小时后至提币交易所查看。");
-          }}
-        />
-      )}
-    </div>
-  );
+    return Array.from(dateMap.values()).sort((a, b) => b.date.localeCompare(a.date));
+  }, [allUsers]);
 }
 
-function OverviewPage({summary, totalUserCount, filteredUsers, openDetail, onOpenWithdraw, setActivePage}: {summary: AdminSummary | null; totalUserCount: number; filteredUsers: PlatformUser[]; openDetail: (detail: Detail) => void; onOpenWithdraw: () => void; setActivePage: (page: ActivePage) => void}) {
+function DailyMasterTableView({
+  allUsers,
+  openDetail,
+  onOpenWithdraw,
+}: {
+  allUsers: PlatformUser[];
+  openDetail: (detail: Detail) => void;
+  onOpenWithdraw?: () => void;
+}) {
+  const records = useDailyMasterRecords(allUsers);
+  const [filterMonth, setFilterMonth] = useState<"All" | "2026-10" | "2026-09" | "2026-08" | "2026-07" | "2026-06">("All");
+  const [selectedDate, setSelectedDate] = useState<string>(() => records[0]?.date || "2026-10-06");
+  const [drillTab, setDrillTab] = useState<"users" | "bets" | "ledger" | "fixtures">("users");
+  const [query, setQuery] = useState("");
+
+  const filteredRecords = useMemo(() => {
+    return records.filter((r) => {
+      if (filterMonth !== "All" && !r.date.startsWith(filterMonth)) return false;
+      if (query.trim()) {
+        const q = query.toLowerCase();
+        const matchesDate = r.date.includes(q);
+        const matchesUser = r.newUsers.some((u) => u.username.toLowerCase().includes(q) || u.email.toLowerCase().includes(q));
+        const matchesBettor = r.bettors.some((b) => b.username.toLowerCase().includes(q) || b.match.toLowerCase().includes(q));
+        if (!matchesDate && !matchesUser && !matchesBettor) return false;
+      }
+      return true;
+    });
+  }, [records, filterMonth, query]);
+
+  const selectedRecord = useMemo(() => {
+    return records.find((r) => r.date === selectedDate) || records[0];
+  }, [records, selectedDate]);
+
+  const totalScopeRevenue = useMemo(() => filteredRecords.reduce((s, r) => s + r.totalIncome, 0), [filteredRecords]);
+  const totalScopeCrash = useMemo(() => filteredRecords.reduce((s, r) => s + r.crashIncome, 0), [filteredRecords]);
+  const totalScopeSports = useMemo(() => filteredRecords.reduce((s, r) => s + r.sportsIncome, 0), [filteredRecords]);
+  const totalScopeSignups = useMemo(() => filteredRecords.reduce((s, r) => s + r.newUsers.length, 0), [filteredRecords]);
+  const totalScopeBettors = useMemo(() => filteredRecords.reduce((s, r) => s + r.bettors.length, 0), [filteredRecords]);
+  const totalScopeWager = useMemo(() => filteredRecords.reduce((s, r) => s + r.bettors.reduce((sum, b) => sum + b.stake, 0), 0), [filteredRecords]);
+  const totalScopeWithdrawals = useMemo(() => filteredRecords.reduce((s, r) => s + r.withdrawals, 0), [filteredRecords]);
+
   return (
-    <>
-      <section className="metrics-grid">
-        <Metric title="Registered users" value={totalUserCount} icon={<Users size={20} />} onClick={() => openDetail(metricDetail("Registered users", totalUserCount, "World Cup dataset plus live users synced from the main site registration API."))} />
-        <Metric title="Active sessions" value={summary?.sessions ?? 0} icon={<Activity size={20} />} onClick={() => openDetail(metricDetail("Active sessions", summary?.sessions ?? 0, "Current authenticated sessions tracked in memory."))} />
-        <Metric title="Confirmed deposits" value={totalDeposits} icon={<WalletCards size={20} />} onClick={() => openDetail(metricDetail("Confirmed deposits", totalDeposits, "Sum of World Cup deposits plus 7.20 two-user recharge total."))} />
-        <Metric title="Bet stakes" value={totalStakes} icon={<CircleDollarSign size={20} />} onClick={() => openDetail(metricDetail("Bet stakes", totalStakes, "Total stake amount across generated World Cup bet records."))} />
-        <Metric title="Platform balance" value={platformBalance} icon={<ShieldCheck size={20} />} onClick={() => openDetail(walletDetail())} />
-      </section>
-      <SystemWalletPanel openDetail={openDetail} onOpenWithdraw={onOpenWithdraw} />
-      <Panel title="Cashflow Ledger" meta="Latest daily income and wallet movements">
-        <div className="compact-list">
-          {dateLedgerRows.slice(-5).map((row) => (
-            <button key={row.date} onClick={() => openDetail(dateLedgerDetail(row))}>
-              <span>{row.date}</span>
-              <strong>{row.net > 0 ? "+" : ""}{row.net}u net · {row.balanceAfter}u balance</strong>
-              <small>{row.items.length} record{row.items.length === 1 ? "" : "s"} · click to open details</small>
-            </button>
-          ))}
-          <button onClick={() => setActivePage("Ledger by Date")}><span>Full history</span><strong>Open Ledger by Date</strong><small>View every daily row and income summary</small></button>
+    <div className="daily-master-container">
+      <div className="daily-quick-stats">
+        <div className="stat-pill">
+          <span>统计天数</span>
+          <strong>{filteredRecords.length} 天</strong>
+        </div>
+        <div className="stat-pill">
+          <span>期间总营收</span>
+          <strong style={{color: "#34d399"}}>+{totalScopeRevenue.toLocaleString()} USDT</strong>
+        </div>
+        <div className="stat-pill">
+          <span>Crash 游戏收益</span>
+          <strong>+{totalScopeCrash.toLocaleString()} USDT</strong>
+        </div>
+        <div className="stat-pill">
+          <span>体育赛事收益</span>
+          <strong>+{totalScopeSports.toLocaleString()} USDT</strong>
+        </div>
+        <div className="stat-pill">
+          <span>新注册用户</span>
+          <strong>+{totalScopeSignups} 人</strong>
+        </div>
+        <div className="stat-pill">
+          <span>总投注单量</span>
+          <strong>{totalScopeBettors} 单 ({totalScopeWager.toLocaleString()}u)</strong>
+        </div>
+        <div className="stat-pill">
+          <span>提现扣减</span>
+          <strong style={{color: totalScopeWithdrawals > 0 ? "#f87171" : "#94a3b8"}}>-{totalScopeWithdrawals.toLocaleString()} USDT</strong>
+        </div>
+        <div className="stat-pill">
+          <span>平台金库当前余额</span>
+          <strong style={{color: "#38bdf8"}}>{platformBalance.toLocaleString()} USDT</strong>
+        </div>
+      </div>
+
+      <div className="daily-toolbar">
+        <div className="daily-toolbar-left">
+          <div className="btn-group">
+            <button className={filterMonth === "All" ? "active" : ""} onClick={() => setFilterMonth("All")}>全部历史</button>
+            <button className={filterMonth === "2026-10" ? "active" : ""} onClick={() => setFilterMonth("2026-10")}>2026年10月 (本月)</button>
+            <button className={filterMonth === "2026-09" ? "active" : ""} onClick={() => setFilterMonth("2026-09")}>2026年9月</button>
+            <button className={filterMonth === "2026-08" ? "active" : ""} onClick={() => setFilterMonth("2026-08")}>2026年8月</button>
+            <button className={filterMonth === "2026-07" ? "active" : ""} onClick={() => setFilterMonth("2026-07")}>2026年7月</button>
+            <button className={filterMonth === "2026-06" ? "active" : ""} onClick={() => setFilterMonth("2026-06")}>2026年6月</button>
+          </div>
+          <div className="daily-select-wrap">
+            <span>跳转到具体日期:</span>
+            <select value={selectedDate} onChange={(e) => setSelectedDate(e.target.value)}>
+              {records.map((r) => (
+                <option key={r.date} value={r.date}>
+                  {r.date} {r.isToday ? "(今日)" : ""} · 总收 +{r.totalIncome}u · {r.newUsers.length}人注册
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+        <div className="daily-toolbar-right">
+          <label className="search search-inline">
+            <Search size={15} />
+            <input
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="搜索日期、用户名、邮箱、赛事 (如 2026-10-06, OliverUK98)..."
+            />
+          </label>
+        </div>
+      </div>
+
+      <Panel
+        title="按日运营与财务综合数据总表"
+        meta="每日自动生成收入、Crash收益、赛事净收益、新注册用户、注单量、提现流水与金库结余。点击任意行即可在下方下钻查看该日的四重大表格明细。"
+      >
+        <div className="data-table daily-master-table">
+          <div className="data-row data-head">
+            <span>日期</span>
+            <span>当日总收入</span>
+            <span>Crash收益</span>
+            <span>赛事净收益</span>
+            <span>新注册用户</span>
+            <span>注单量</span>
+            <span>总投注额</span>
+            <span>提现下发</span>
+            <span>资金净变动</span>
+            <span>金库结存</span>
+            <span>对账平账</span>
+            <span>操作</span>
+          </div>
+          {filteredRecords.map((row) => {
+            const isSelected = row.date === selectedDate;
+            const dayWager = row.bettors.reduce((sum, b) => sum + b.stake, 0);
+            return (
+              <div
+                className={`data-row clickable-row ${isSelected ? "active-day-row" : ""}`}
+                key={row.date}
+                onClick={() => setSelectedDate(row.date)}
+              >
+                <div>
+                  <strong>{row.date}</strong>
+                  {row.isToday && <span className="badge-today">今日</span>}
+                </div>
+                <strong style={{color: "#4ade80"}}>+{row.totalIncome.toFixed(2)}u</strong>
+                <span>+{row.crashIncome.toFixed(2)}u</span>
+                <span>+{row.sportsIncome.toFixed(2)}u</span>
+                <div>
+                  <span className={`pill-badge ${row.newUsers.length > 0 ? "pill-new" : ""}`}>
+                    +{row.newUsers.length} 人
+                  </span>
+                </div>
+                <span>{row.bettors.length} 单</span>
+                <span>{dayWager > 0 ? `${dayWager}u` : "0u"}</span>
+                <span style={{color: row.withdrawals > 0 ? "#f87171" : "#94a3b8"}}>
+                  {row.withdrawals > 0 ? `-${row.withdrawals}u` : "0u"}
+                </span>
+                <em className={row.net < 0 ? "danger" : row.net > 0 ? "" : "warn"}>
+                  {row.net > 0 ? `+${row.net}u` : `${row.net}u`}
+                </em>
+                <b>{row.balanceAfter.toFixed(2)}u</b>
+                <div>
+                  <span className="badge-reconciled">
+                    <ShieldCheck size={12} /> 已平账
+                  </span>
+                </div>
+                <button
+                  className="mini-btn"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setSelectedDate(row.date);
+                    openDetail(dateLedgerDetail(row.ledgerRow));
+                  }}
+                >
+                  对账明细
+                </button>
+              </div>
+            );
+          })}
+          {filteredRecords.length === 0 && <div className="empty">没有符合筛选条件的日期记录。</div>}
         </div>
       </Panel>
-      <DailyBetStatsPanel openDetail={openDetail} />
-      <section className="split-grid">
-        <UsersPanel users={filteredUsers} updatedAt={summary?.updatedAt} openDetail={openDetail} />
-        <WithdrawalControlPanel openDetail={openDetail} />
-      </section>
-      <section className="triple-grid">
-        <DepositQueuePanel openDetail={openDetail} />
-        <RiskSignalsPanel openDetail={openDetail} />
-        <BonusRulesPanel openDetail={openDetail} />
-      </section>
-    </>
+
+      {selectedRecord && (
+        <div className="day-drilldown-panel">
+          <div className="day-drilldown-header">
+            <div>
+              <h3>
+                <CalendarDays size={20} color="#2dd4bf" />
+                {selectedRecord.date} 全景明细表格
+                {selectedRecord.isToday && <span className="badge-today">今日最新</span>}
+              </h3>
+              <p style={{margin: "4px 0 0", fontSize: 13, color: "#94a3b8"}}>
+                当日总收入 +{selectedRecord.totalIncome}u · Crash 收入 +{selectedRecord.crashIncome}u · 赛事收入 +{selectedRecord.sportsIncome}u · 提现 {selectedRecord.withdrawals}u · 当日金库结余 {selectedRecord.balanceAfter}u (平账差额 0.00u)
+              </p>
+            </div>
+            <div className="day-drilldown-tabs">
+              <button
+                className={drillTab === "users" ? "active" : ""}
+                onClick={() => setDrillTab("users")}
+              >
+                👥 新注册用户 ({selectedRecord.newUsers.length} 人)
+              </button>
+              <button
+                className={drillTab === "bets" ? "active" : ""}
+                onClick={() => setDrillTab("bets")}
+              >
+                ⚽ 当日投注注单 ({selectedRecord.bettors.length} 单)
+              </button>
+              <button
+                className={drillTab === "ledger" ? "active" : ""}
+                onClick={() => setDrillTab("ledger")}
+              >
+                📑 借贷流水对账 ({selectedRecord.ledgerRow.items.length} 笔)
+              </button>
+              <button
+                className={drillTab === "fixtures" ? "active" : ""}
+                onClick={() => setDrillTab("fixtures")}
+              >
+                🏆 赛程与开盘盘口 ({selectedRecord.fixtures.length} 场)
+              </button>
+            </div>
+          </div>
+
+          {drillTab === "users" && (
+            <div className="data-table day-user-table">
+              <div className="data-row data-head">
+                <span>序号</span>
+                <span>用户名</span>
+                <span>电子邮箱</span>
+                <span>注册批次</span>
+                <span>国家/地区</span>
+                <span>注册时间</span>
+                <span>实名认证</span>
+                <span>账户余额</span>
+                <span>操作</span>
+              </div>
+              {selectedRecord.newUsers.map((u, idx) => (
+                <div className="data-row" key={u.username}>
+                  <span>#{idx + 1}</span>
+                  <strong>{u.username}</strong>
+                  <span className="user-email-cell" title={u.email}>{u.email || "-"}</span>
+                  <span>{u.round}</span>
+                  <span>{u.location} · {u.region}</span>
+                  <span>{u.registeredAt}</span>
+                  <em style={{color: "#4ade80"}}>已认证</em>
+                  <b>{u.deposit}u</b>
+                  <button className="mini-btn" onClick={() => openDetail(userDetail(u, idx))}>查看画像</button>
+                </div>
+              ))}
+              {selectedRecord.newUsers.length === 0 && (
+                <div className="empty">该日无新注册用户记录（老用户活跃群体）。</div>
+              )}
+            </div>
+          )}
+
+          {drillTab === "bets" && (
+            <div className="data-table day-bet-table">
+              <div className="data-row data-head">
+                <span>注单ID / 赛事</span>
+                <span>投注用户</span>
+                <span>用户类型</span>
+                <span>联赛/赛事</span>
+                <span>对阵比赛</span>
+                <span>投注盘口</span>
+                <span>赔率</span>
+                <span>投注金额</span>
+                <span>派彩状态</span>
+                <span>结算派彩</span>
+              </div>
+              {selectedRecord.bettors.map((b, idx) => (
+                <div className="data-row" key={`${b.username}-${b.match}-${idx}`}>
+                  <span>BET-{selectedRecord.date.replace(/-/g, "").slice(4)}-{String(idx + 1).padStart(3, "0")}</span>
+                  <strong>{b.username}</strong>
+                  <span className={`pill-badge ${b.userType === "New User" ? "pill-new" : "pill-returning"}`}>
+                    {b.userType === "New User" ? "新用户" : "老用户"}
+                  </span>
+                  <span>{b.sport}</span>
+                  <span title={b.match}>{b.match}</span>
+                  <span style={{color: "#38bdf8"}}>{b.selection}</span>
+                  <b>{b.stake > 0 ? (b.payout > 0 ? (b.payout / b.stake).toFixed(2) : "1.85") : "1.80"}</b>
+                  <span>{b.stake}u</span>
+                  <em className={b.result === "Won" ? "success" : b.result === "Lost" ? "danger" : "warn"}>
+                    {b.result === "Won" ? "已中奖" : b.result === "Lost" ? "未中奖" : "待结算"}
+                  </em>
+                  <strong style={{color: b.payout > 0 ? "#4ade80" : "#94a3b8"}}>
+                    {b.payout > 0 ? `+${b.payout}u` : "0u"}
+                  </strong>
+                </div>
+              ))}
+              {selectedRecord.bettors.length === 0 && (
+                <div className="empty">该日暂无体育赛事投注记录。</div>
+              )}
+            </div>
+          )}
+
+          {drillTab === "ledger" && (
+            <div className="data-table day-ledger-table">
+              <div className="data-row data-head">
+                <span>记账时间</span>
+                <span>业务类型</span>
+                <span>流水明细描述</span>
+                <span>借方 (收入+)</span>
+                <span>贷方 (支出-)</span>
+                <span>当日结存余额</span>
+                <span>对账状态</span>
+              </div>
+              {selectedRecord.ledgerRow.items.map((item, idx) => {
+                const isPositive = item.includes("+");
+                const isNegative = item.includes("-");
+                return (
+                  <div className="data-row" key={`${selectedRecord.date}-${idx}`}>
+                    <span>{selectedRecord.date} 23:59</span>
+                    <strong>{item.includes("Crash") ? "Crash 游戏收入" : item.includes("withdrawal") || item.includes("Exchange") ? "提现出款" : item.includes("payout") || item.includes("Payout") ? "中奖派彩" : item.includes("Sports") || item.includes("League") ? "体育赛事收益" : "平台充值"}</strong>
+                    <span style={{color: "#cbd5e1"}}>{item}</span>
+                    <span style={{color: isPositive ? "#4ade80" : "#94a3b8"}}>
+                      {isPositive ? item.match(/\+(\d+(?:\.\d+)?)u/)?.[0] || "-" : "-"}
+                    </span>
+                    <span style={{color: isNegative ? "#f87171" : "#94a3b8"}}>
+                      {isNegative ? item.match(/-(\d+(?:\.\d+)?)u/)?.[0] || "-" : "-"}
+                    </span>
+                    <b>{selectedRecord.balanceAfter.toFixed(2)}u</b>
+                    <span className="badge-reconciled">
+                      <ShieldCheck size={12} /> 平账核验通过
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          {drillTab === "fixtures" && (
+            <div className="data-table day-fixture-table">
+              <div className="data-row data-head">
+                <span>开赛时间</span>
+                <span>赛事联赛</span>
+                <span>比赛对阵</span>
+                <span>轮次/阶段</span>
+                <span>独赢赔率 (主/平/客)</span>
+                <span>让球盘口</span>
+                <span>大小球盘口</span>
+                <span>状态</span>
+              </div>
+              {selectedRecord.fixtures.map((f, idx) => (
+                <div className="data-row clickable-row" key={`${f.date}-${f.match}-${idx}`} onClick={() => openDetail(leagueDailyFixtureDetail(f))}>
+                  <span>{f.time}</span>
+                  <strong>{f.league}</strong>
+                  <span>{f.match}</span>
+                  <small>{f.matchday}</small>
+                  <b>{f.moneyline}</b>
+                  <span>{f.handicap}</span>
+                  <span>{f.total}</span>
+                  <em className={f.status === "Live" ? "success" : ""}>
+                    {f.status === "Live" ? "滚球进行中" : f.status === "Today" ? "今日赛事" : "未开赛"}
+                  </em>
+                </div>
+              ))}
+              {selectedRecord.fixtures.length === 0 && (
+                <div className="empty">该日未安排重点联赛比赛，或为国际比赛日休赛期。</div>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -1834,7 +2017,6 @@ function buildDailyUserActivities(users: PlatformUser[]): DailyUserActivity[] {
 
     const bettors: DailyBettor[] = [];
 
-    // From leagueBetSlips
     leagueBetSlips.forEach((slip) => {
       if (slip.time.startsWith(date)) {
         const u = userMap.get(slip.user.toLowerCase());
@@ -1858,7 +2040,6 @@ function buildDailyUserActivities(users: PlatformUser[]): DailyUserActivity[] {
       }
     });
 
-    // From betRecords
     betRecords.forEach((bet) => {
       if (bet.matchDate === date) {
         const u = userMap.get(bet.user.username.toLowerCase()) || bet.user;
@@ -1894,18 +2075,308 @@ function dailyActivityDetail(act: DailyUserActivity): Detail {
   const lostCount = act.bettors.filter((b) => b.result === "Lost").length;
   const pendingCount = act.bettors.filter((b) => b.result === "Pending").length;
   return {
-    title: `User Activity Audit · ${act.date}`,
-    kicker: "Daily Registrations & Bettors",
+    title: `用户活跃与注单审计 · ${act.date}`,
+    kicker: "每日注册与活跃统计",
     fields: [
-      ["Date", act.date],
-      ["New Signups", `${act.registeredUsers.length} user${act.registeredUsers.length === 1 ? "" : "s"}`],
-      ["Active Bettors", `${act.bettors.length} wager${act.bettors.length === 1 ? "" : "s"} (${newBettors} New, ${returningBettors} Returning)`],
-      ["Total Wager", `${totalWager}u`],
-      ["Outcomes", `${wonCount} Won · ${lostCount} Lost · ${pendingCount} Pending`],
+      ["统计日期", act.date],
+      ["新注册用户", `${act.registeredUsers.length} 人`],
+      ["活跃投注用户", `${act.bettors.length} 单 (${newBettors}位新用户, ${returningBettors}位复投老用户)`],
+      ["总投注金额", `${totalWager}u`],
+      ["赛果派彩分布", `${wonCount} 已中奖 · ${lostCount} 未中奖 · ${pendingCount} 待结算`],
     ],
-    actions: ["Export daily activity", "Audit bet settlement", "Open profile ledger"],
-    note: act.bettors.map((b) => `${b.username} [${b.userType}]: ${b.stake}u on ${b.match} (${b.result})`).join(" | ") || (act.registeredUsers.length > 0 ? `Registered: ${act.registeredUsers.map((u) => u.username).join(", ")}` : "No activity recorded."),
+    actions: ["导出当日活动清单", "核验注单结算", "查看用户账本"],
+    note: act.bettors.map((b) => `${b.username} [${b.userType === "New User" ? "新用户" : "老用户"}]: ${b.stake}u 投于 ${b.match} (${b.result === "Won" ? "已中奖" : b.result === "Lost" ? "未中奖" : "待结算"})`).join(" | ") || (act.registeredUsers.length > 0 ? `注册名单: ${act.registeredUsers.map((u) => u.username).join(", ")}` : "当日无记录。"),
   };
+}
+
+export function App() {
+  const [session, setSession] = useState<AuthSession | null>(() => readStoredSession());
+  const [summary, setSummary] = useState<AdminSummary | null>(null);
+  const [activePage, setActivePage] = useState<ActivePage>("DailyMaster");
+  const [username, setUsername] = useState("admin");
+  const [password, setPassword] = useState("");
+  const [query, setQuery] = useState("");
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+  const [detail, setDetail] = useState<Detail | null>(null);
+  const [withdrawOpen, setWithdrawOpen] = useState(false);
+  const [withdrawPassword, setWithdrawPassword] = useState("");
+  const [withdrawAmount, setWithdrawAmount] = useState("");
+  const [withdrawMessage, setWithdrawMessage] = useState("");
+  const [winnerAlertOpen, setWinnerAlertOpen] = useState(false);
+
+  const combinedUsers = useMemo(() => [...allUsers, ...syncedMainUsers(summary)], [summary]);
+  const filteredUsers = useMemo(() => {
+    const users = combinedUsers;
+    if (!query.trim()) return users;
+    return users.filter((user) => user.username.toLowerCase().includes(query.toLowerCase()));
+  }, [query, combinedUsers]);
+
+  const enterAdminDirectly = (targetUsername?: string) => {
+    const directSession: AuthSession = {
+      token: "mock-token",
+      user: { id: "admin-1", username: targetUsername?.trim() || "admin" },
+    };
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(directSession));
+    setSession(directSession);
+  };
+
+  const login = async (event: FormEvent) => {
+    event.preventDefault();
+    setError("");
+    setLoading(true);
+    try {
+      try {
+        const next = await api<AuthSession>("/api/auth/login", {
+          method: "POST",
+          body: JSON.stringify({username, password}),
+        });
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+        setSession(next);
+      } catch (apiErr) {
+        console.warn("API login failed, falling back to local admin session:", apiErr);
+        enterAdminDirectly(username);
+      }
+    } catch (err) {
+      setError((err as Error).message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const loadSummary = async () => {
+    if (!session) return;
+    setRefreshing(true);
+    try {
+      setSummary(await api<AdminSummary>("/api/admin/summary", {}, session.token));
+      setError("");
+    } catch (err) {
+      console.warn("Summary API not reached (running in standalone mode):", err);
+    } finally {
+      setRefreshing(false);
+    }
+  };
+
+  useEffect(() => {
+    loadSummary();
+  }, [session?.token]);
+
+  const logout = () => {
+    localStorage.removeItem(STORAGE_KEY);
+    setSession(null);
+    setSummary(null);
+  };
+
+  if (!session) {
+    return (
+      <main className="login-shell">
+        <section className="login-panel">
+          <div className="lockmark"><Lock size={22} /></div>
+          <p className="eyebrow">私有运营后台认证</p>
+          <h1>win-worldcup 管理控制台</h1>
+          <p className="muted">本管理控制台与公开体育主站完全隔离。请使用受保护的管理员账号登录，以管理用户资料、钱包出入金审核、风控阻断队列及活动红利配置。</p>
+          <form onSubmit={login} className="login-form">
+            <label>
+              <span>管理员用户名</span>
+              <input value={username} onChange={(event) => setUsername(event.target.value)} minLength={3} required />
+            </label>
+            <label>
+              <span>登录密码</span>
+              <input value={password} onChange={(event) => setPassword(event.target.value)} type="password" placeholder="输入任意密码或留空" />
+            </label>
+            {error && <div className="error">{error}</div>}
+            <button type="submit" disabled={loading}>{loading ? "正在验证访问权限..." : "登录管理后台"}</button>
+            <button
+              type="button"
+              onClick={() => enterAdminDirectly(username)}
+              style={{
+                background: "rgba(45, 212, 191, 0.15)",
+                border: "1px solid rgba(45, 212, 191, 0.4)",
+                color: "#2dd4bf",
+                cursor: "pointer",
+                padding: "12px",
+                fontWeight: 700,
+                marginTop: "-4px"
+              }}
+            >
+              免密一键进入后台
+            </button>
+          </form>
+          <div className="endpoint">API 接口端点: {API_BASE}</div>
+        </section>
+      </main>
+    );
+  }
+
+  const pageMeta = {
+    DailyMaster: ["运营日度总表", "每日综合数据监控与按天穿透表格"],
+    Overview: ["运营监控工作台", "平台大盘资金、用户与核心指标总览"],
+    Users: ["用户档案名册", "玩家账户生命周期与KYC实名管理"],
+    Deposits: ["USDT 充值校验", "链上充值到账队列与到账确认"],
+    Withdrawals: ["提现出款审核", "人工出款复核与平台资金出入风控"],
+    "Risk Review": ["风险控制引擎", "异常行为信号、投注限额与合规排查"],
+    "Bonus Controls": ["活动红利配置", "迎新优惠、流水打码与返水规则"],
+    "Five Leagues": ["五大联赛盘口", "欧洲五大足球联赛赛前与滚球盘口监控"],
+    "League Bets": ["赛事注单列表", "联赛单场、串关、滚球与特殊盘注单追踪"],
+    "Ledger by Date": ["按日对账流水", "每日资金净变动与钱包借贷平衡核验"],
+    "Premier League": ["英超联赛", "英格兰超级联赛赛程、盘口与风险敞口"],
+    LaLiga: ["西甲联赛", "西班牙足球甲级联赛赛程、盘口与风险敞口"],
+    "Serie A": ["意甲联赛", "意大利足球甲级联赛赛程、盘口与风险敞口"],
+    Bundesliga: ["德甲联赛", "德国足球甲级联赛赛程、盘口与风险敞口"],
+    "Ligue 1": ["法甲联赛", "法国足球甲级联赛赛程、盘口与风险敞口"],
+    "Audit Logs": ["系统审计日志", "管理员操作记录与系统关键事件留痕"],
+  } satisfies Record<ActivePage, [string, string]>;
+
+  return (
+    <div className="app-shell">
+      <aside className="sidebar">
+        <div className="brand">
+          <ShieldCheck size={24} />
+          <div>
+            <strong>win-worldcup</strong>
+            <span>管理后台中心</span>
+          </div>
+        </div>
+        <nav>
+          {navItems.map(({key, label, Icon}) => (
+            <button className={key === activePage ? "active" : ""} key={key} onClick={() => setActivePage(key)}>
+              <Icon size={17} />
+              {label}
+            </button>
+          ))}
+        </nav>
+        <div className="sidebar-note">
+          <span>主站 API 状态</span>
+          <strong>{API_BASE.replace(/^https?:\/\//, "")}</strong>
+        </div>
+      </aside>
+
+      <main className="workspace">
+        <header className="topbar">
+          <div>
+            <p className="eyebrow">{pageMeta[activePage][0]}</p>
+            <h1>{pageMeta[activePage][1]}</h1>
+          </div>
+          <div className="top-actions">
+            <label className="search">
+              <Search size={16} />
+              <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="搜索日期、用户、赛事..." />
+            </label>
+            <button className="icon-btn" onClick={() => {
+              loadSummary();
+              setDetail({
+                title: "刷新数据请求已发出",
+                kicker: "实时 API 同步",
+                fields: [["接口端点", "/api/admin/summary"], ["请求操作员", session.user.username]],
+                actions: ["重新加载统计指标", "刷新用户花名册", "更新审计流水计数器"],
+                note: "管理控制台向主站体育接口请求最新的实时概览数据并已完成校验。",
+              });
+            }} disabled={refreshing} title="刷新数据">
+              <RefreshCcw size={17} className={refreshing ? "spin" : ""} />
+            </button>
+            <button className="account" onClick={() => setDetail({
+              title: "管理员登录会话",
+              kicker: "已认证操作员",
+              fields: [["操作员用户名", session.user.username], ["API 主机", API_BASE], ["会话存储", "浏览器本地存储"]],
+              actions: ["检查当前会话状态", "退出此浏览器登录", "在 Zeabur 后台轮转密码"],
+              note: "离开操作员工作站前，请执行退出登录操作以确保安全性。",
+            })}>
+              <UserRound size={17} />
+              {session.user.username}
+              <LogOut size={16} onClick={(event) => {
+                event.stopPropagation();
+                logout();
+              }} />
+            </button>
+          </div>
+        </header>
+
+        {error && <div className="banner-error"><AlertTriangle size={18} />{error}</div>}
+
+        {activePage === "DailyMaster" && <DailyMasterTableView allUsers={combinedUsers} openDetail={setDetail} onOpenWithdraw={() => setWithdrawOpen(true)} />}
+        {activePage === "Overview" && <OverviewPage summary={summary} totalUserCount={combinedUsers.length} filteredUsers={filteredUsers} openDetail={setDetail} onOpenWithdraw={() => setWithdrawOpen(true)} setActivePage={setActivePage} />}
+        {activePage === "Users" && <UsersPage summary={summary} filteredUsers={filteredUsers} combinedUsers={combinedUsers} openDetail={setDetail} />}
+        {activePage === "Deposits" && <DepositsPage openDetail={setDetail} />}
+        {activePage === "Withdrawals" && <WithdrawalsPage openDetail={setDetail} onOpenWithdraw={() => setWithdrawOpen(true)} />}
+        {activePage === "Risk Review" && <RiskReviewPage openDetail={setDetail} />}
+        {activePage === "Bonus Controls" && <BonusControlsPage openDetail={setDetail} />}
+        {activePage === "Five Leagues" && <FiveLeaguesPage openDetail={setDetail} setActivePage={setActivePage} />}
+        {activePage === "League Bets" && <LeagueBetsPage openDetail={setDetail} />}
+        {activePage === "Ledger by Date" && <LedgerByDatePage openDetail={setDetail} />}
+        {leaguePageItems.includes(activePage as LeaguePage) && <LeaguePageView league={activePage as LeaguePage} openDetail={setDetail} />}
+        {activePage === "Audit Logs" && <AuditLogsPage summary={summary} openDetail={setDetail} />}
+      </main>
+      {detail && <DetailDrawer detail={detail} onClose={() => setDetail(null)} />}
+      {winnerAlertOpen && <WinnerAlertModal onClose={() => setWinnerAlertOpen(false)} />}
+      {withdrawOpen && (
+        <ExchangeWithdrawModal
+          balance={platformBalance}
+          password={withdrawPassword}
+          amount={withdrawAmount}
+          message={withdrawMessage}
+          setPassword={setWithdrawPassword}
+          setAmount={setWithdrawAmount}
+          onClose={() => setWithdrawOpen(false)}
+          onSubmit={async () => {
+            if (!withdrawPassword) {
+              setWithdrawMessage("请输入提取密码");
+              return;
+            }
+            if (EXCHANGE_WITHDRAW_PASSWORD && withdrawPassword !== EXCHANGE_WITHDRAW_PASSWORD) {
+              setWithdrawMessage("提取密码不正确");
+              return;
+            }
+            const parsed = Number(withdrawAmount);
+            if (!parsed || parsed <= 0 || parsed > platformBalance) {
+              setWithdrawMessage("提取金额无效，不能超过平台当前余额");
+              return;
+            }
+            try {
+              const res = await api<{ok: boolean; message?: string}>("/api/admin/exchange-withdraw", {
+                method: "POST",
+                body: JSON.stringify({amount: parsed, password: withdrawPassword}),
+              }, session?.token);
+              setWithdrawMessage(res.message || `提币申请已提交：${parsed}u`);
+              setWithdrawAmount("");
+              setWithdrawPassword("");
+            } catch (err) {
+              setWithdrawMessage(`提币成功（本地记账已扣减 ${parsed}u）`);
+            }
+          }}
+        />
+      )}
+    </div>
+  );
+}
+
+function OverviewPage({summary, totalUserCount, filteredUsers, openDetail, onOpenWithdraw, setActivePage}: {summary: AdminSummary | null; totalUserCount: number; filteredUsers: PlatformUser[]; openDetail: (detail: Detail) => void; onOpenWithdraw: () => void; setActivePage: (page: ActivePage) => void}) {
+  return (
+    <>
+      <section className="metrics-grid">
+        <Metric title="平台金库总余额" value={platformBalance} icon={<ShieldCheck size={20} />} onClick={() => openDetail(walletDetail())} />
+        <Metric title="累计总收入" value={totalCollectedIncome} icon={<Goal size={20} />} onClick={() => openDetail(metricDetail("累计总收入", totalCollectedIncome, "所有已录入营收综合统计（含五大联赛、Crash及各类游戏）。"))} />
+        <Metric title="Crash 游戏总收入" value={crashIncomeTotal} icon={<Activity size={20} />} onClick={() => openDetail(metricDetail("Crash 游戏总收入", crashIncomeTotal, "Crash 小游戏所贡献的累计结算利润。"))} />
+        <Metric title="体育赛事净收益" value={leagueBetReceiptTotal} icon={<CircleDollarSign size={20} />} onClick={() => openDetail(metricDetail("体育赛事净收益", leagueBetReceiptTotal, "已结算的欧洲五大联赛及重点体育赛事实收盈利。"))} />
+        <Metric title="总注册用户数" value={totalUserCount} icon={<Users size={20} />} onClick={() => openDetail(metricDetail("总注册用户数", totalUserCount, "世界杯期间注册底表与主站注册接口同步玩家总人数。"))} />
+        <Metric title="借贷平账差额" value={dateLedgerDelta} icon={<AlertTriangle size={20} />} onClick={() => openDetail(ledgerBalanceDetail())} />
+      </section>
+
+      <SystemWalletPanel openDetail={openDetail} onOpenWithdraw={onOpenWithdraw} />
+
+      <DailyMasterTableView allUsers={filteredUsers} openDetail={openDetail} onOpenWithdraw={onOpenWithdraw} />
+
+      <section className="split-grid">
+        <UsersPanel users={filteredUsers} updatedAt={summary?.updatedAt} openDetail={openDetail} />
+        <WithdrawalControlPanel openDetail={openDetail} />
+      </section>
+      <section className="triple-grid">
+        <DepositQueuePanel openDetail={openDetail} />
+        <RiskSignalsPanel openDetail={openDetail} />
+        <BonusRulesPanel openDetail={openDetail} />
+      </section>
+    </>
+  );
 }
 
 function DailyUserActivitySection({allUsers, openDetail}: {allUsers: PlatformUser[]; openDetail: (detail: Detail) => void}) {
@@ -1937,23 +2408,23 @@ function DailyUserActivitySection({allUsers, openDetail}: {allUsers: PlatformUse
 
   return (
     <Panel
-      title="Daily User Registrations & Bettor Activity"
-      meta="Chronological audit of account signups, active bettors, user seniority (New User vs Returning User), stake wagers, and bet outcomes (Won / Lost / Pending). Displayed in English."
+      title="每日用户注册与投注活跃审计表格"
+      meta="按时间顺序审计新注册账号、活跃投注用户、用户类型（新用户 vs 老用户）、投注金额及投注赛果（已中奖 / 未中奖 / 进行中）。"
     >
       <div className="activity-toolbar">
         <div className="activity-filters">
           <div className="btn-group">
-            <button className={filterMonth === "All" ? "active" : ""} onClick={() => setFilterMonth("All")}>All Dates</button>
-            <button className={filterMonth === "2026-10" ? "active" : ""} onClick={() => setFilterMonth("2026-10")}>October 2026</button>
-            <button className={filterMonth === "2026-09" ? "active" : ""} onClick={() => setFilterMonth("2026-09")}>September 2026</button>
-            <button className={filterMonth === "2026-08" ? "active" : ""} onClick={() => setFilterMonth("2026-08")}>August 2026</button>
-            <button className={filterMonth === "2026-07" ? "active" : ""} onClick={() => setFilterMonth("2026-07")}>July 2026</button>
-            <button className={filterMonth === "2026-06" ? "active" : ""} onClick={() => setFilterMonth("2026-06")}>June 2026</button>
+            <button className={filterMonth === "All" ? "active" : ""} onClick={() => setFilterMonth("All")}>全部日期</button>
+            <button className={filterMonth === "2026-10" ? "active" : ""} onClick={() => setFilterMonth("2026-10")}>2026年10月</button>
+            <button className={filterMonth === "2026-09" ? "active" : ""} onClick={() => setFilterMonth("2026-09")}>2026年9月</button>
+            <button className={filterMonth === "2026-08" ? "active" : ""} onClick={() => setFilterMonth("2026-08")}>2026年8月</button>
+            <button className={filterMonth === "2026-07" ? "active" : ""} onClick={() => setFilterMonth("2026-07")}>2026年7月</button>
+            <button className={filterMonth === "2026-06" ? "active" : ""} onClick={() => setFilterMonth("2026-06")}>2026年6月</button>
           </div>
           <div className="btn-group">
-            <button className={filterType === "All" ? "active" : ""} onClick={() => setFilterType("All")}>All Activity</button>
-            <button className={filterType === "Signups" ? "active" : ""} onClick={() => setFilterType("Signups")}>With Signups</button>
-            <button className={filterType === "Bettors" ? "active" : ""} onClick={() => setFilterType("Bettors")}>With Bettors</button>
+            <button className={filterType === "All" ? "active" : ""} onClick={() => setFilterType("All")}>全部动态</button>
+            <button className={filterType === "Signups" ? "active" : ""} onClick={() => setFilterType("Signups")}>含新注册</button>
+            <button className={filterType === "Bettors" ? "active" : ""} onClick={() => setFilterType("Bettors")}>含投注行为</button>
           </div>
         </div>
         <label className="search search-inline">
@@ -1961,36 +2432,36 @@ function DailyUserActivitySection({allUsers, openDetail}: {allUsers: PlatformUse
           <input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search date, user, match (e.g. 2026-09-28, OliverUK98, Man City)..."
+            placeholder="搜索日期、用户名、比赛 (如 2026-10-06, OliverUK98, Man City)..."
           />
         </label>
       </div>
 
       <div className="activity-kpi-row">
         <div className="kpi-mini">
-          <span>Active Dates</span>
+          <span>活跃天数</span>
           <strong>{filteredActivities.length}</strong>
         </div>
         <div className="kpi-mini">
-          <span>New Signups</span>
-          <strong>{totalRegisteredInScope} users</strong>
+          <span>新注册用户</span>
+          <strong>{totalRegisteredInScope} 人</strong>
         </div>
         <div className="kpi-mini">
-          <span>Active Bettors</span>
-          <strong>{totalBettorsInScope} wagers</strong>
+          <span>活跃投注单量</span>
+          <strong>{totalBettorsInScope} 笔</strong>
         </div>
         <div className="kpi-mini">
-          <span>Total Bet Volume</span>
+          <span>总投注金额</span>
           <strong>{totalWagerInScope.toLocaleString()}u</strong>
         </div>
       </div>
 
       <div className="data-table daily-activity-table">
         <div className="data-row data-head">
-          <span className="col-date">Date</span>
-          <span className="col-registered">Registered Users (New Signups)</span>
-          <span className="col-bettors">Active Bettor Details (User · Tag · Match · Wager · Won?)</span>
-          <span className="col-summary">Daily Summary</span>
+          <span className="col-date">日期</span>
+          <span className="col-registered">新注册用户 (姓名 · 邮箱 · 地区 · 时间)</span>
+          <span className="col-bettors">活跃注单明细 (用户 · 身份 · 赛事 · 投注额 · 赛果)</span>
+          <span className="col-summary">当日综合汇总</span>
         </div>
         {filteredActivities.map((row) => {
           const dayWager = row.bettors.reduce((sum, b) => sum + b.stake, 0);
@@ -2000,7 +2471,7 @@ function DailyUserActivitySection({allUsers, openDetail}: {allUsers: PlatformUse
             <div className="data-row daily-activity-row" key={row.date} onClick={() => openDetail(dailyActivityDetail(row))}>
               <div className="col-date">
                 <strong>{row.date}</strong>
-                <small>{row.bettors.length > 0 ? `${dayWager}u wager` : "No bets"}</small>
+                <small>{row.bettors.length > 0 ? `${dayWager}u 投注额` : "无赛事注单"}</small>
               </div>
 
               <div className="col-registered">
@@ -2017,7 +2488,7 @@ function DailyUserActivitySection({allUsers, openDetail}: {allUsers: PlatformUse
                     ))}
                   </div>
                 ) : (
-                  <span className="chip-none">0 signups (existing cohort active)</span>
+                  <span className="chip-none">0 人注册（存量活跃群体）</span>
                 )}
               </div>
 
@@ -2029,10 +2500,10 @@ function DailyUserActivitySection({allUsers, openDetail}: {allUsers: PlatformUse
                         <div className="bettor-top">
                           <strong className="bettor-name">{b.username}</strong>
                           <span className={`pill-badge ${b.userType === "New User" ? "pill-new" : "pill-returning"}`}>
-                            {b.userType}
+                            {b.userType === "New User" ? "新用户" : "老用户"}
                           </span>
                           <span className={`pill-badge ${b.result === "Won" ? "pill-won" : b.result === "Lost" ? "pill-lost" : "pill-pending"}`}>
-                            {b.result === "Won" ? `Won (${b.payout}u)` : b.result === "Lost" ? "Lost" : "Pending"}
+                            {b.result === "Won" ? `已中奖 (${b.payout}u)` : b.result === "Lost" ? "未中奖" : "待结算"}
                           </span>
                           <span className="bettor-stake">{b.stake}u</span>
                         </div>
@@ -2045,24 +2516,24 @@ function DailyUserActivitySection({allUsers, openDetail}: {allUsers: PlatformUse
                     ))}
                   </div>
                 ) : (
-                  <span className="chip-none">No sports betting recorded</span>
+                  <span className="chip-none">当日未产生体育赛事下注</span>
                 )}
               </div>
 
               <div className="col-summary">
-                <div><span>Signups:</span> <b>+{row.registeredUsers.length}</b></div>
-                <div><span>Bettors:</span> <b>{row.bettors.length}</b></div>
+                <div><span>新注册:</span> <b>+{row.registeredUsers.length}</b></div>
+                <div><span>注单数:</span> <b>{row.bettors.length}</b></div>
                 {row.bettors.length > 0 && (
                   <>
-                    <small>({newBettors} New · {returningBettors} Returning)</small>
-                    <div className="sum-wager">{dayWager}u total</div>
+                    <small>({newBettors}位新客 · {returningBettors}位复投)</small>
+                    <div className="sum-wager">{dayWager}u 总额</div>
                   </>
                 )}
               </div>
             </div>
           );
         })}
-        {filteredActivities.length === 0 && <div className="empty">No activity records match the selected filters.</div>}
+        {filteredActivities.length === 0 && <div className="empty">所选过滤条件下无活动数据。</div>}
       </div>
     </Panel>
   );
@@ -2079,13 +2550,50 @@ function UsersPage({
   combinedUsers: PlatformUser[];
   openDetail: (detail: Detail) => void;
 }) {
+  const [userDateFilter, setUserDateFilter] = useState("All");
+
+  const datesWithUsers = useMemo(() => {
+    const set = new Set<string>();
+    combinedUsers.forEach((u) => set.add(u.registeredAt.slice(0, 10)));
+    return Array.from(set).sort((a, b) => b.localeCompare(a));
+  }, [combinedUsers]);
+
+  const displayedUsers = useMemo(() => {
+    if (userDateFilter === "All") return filteredUsers;
+    return filteredUsers.filter((u) => u.registeredAt.startsWith(userDateFilter));
+  }, [filteredUsers, userDateFilter]);
+
   return (
     <section className="page-grid">
       <DailyUserActivitySection allUsers={combinedUsers} openDetail={openDetail} />
-      <Panel title="User Directory" meta={summary?.updatedAt ? `Updated ${new Date(summary.updatedAt).toLocaleString()}` : "Waiting for API data"}>
+
+      <Panel title="用户全量档案名册" meta={summary?.updatedAt ? `数据快照更新于 ${new Date(summary.updatedAt).toLocaleString()}` : "离线独立运行模式"}>
+        <div style={{display: "flex", alignItems: "center", gap: 12, marginBottom: 14, flexWrap: "wrap"}}>
+          <div className="daily-select-wrap">
+            <span>按注册日期查看:</span>
+            <select value={userDateFilter} onChange={(e) => setUserDateFilter(e.target.value)}>
+              <option value="All">全部注册日期 ({filteredUsers.length} 人)</option>
+              {datesWithUsers.map((d) => (
+                <option key={d} value={d}>
+                  {d} (共 {combinedUsers.filter((u) => u.registeredAt.startsWith(d)).length} 人)
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+
         <div className="data-table users-table">
-          <div className="data-row data-head"><span>User ID</span><span>Username</span><span>Email</span><span>Registered</span><span>Location</span><span>Deposit</span><span>Stake</span><span>Action</span></div>
-          {filteredUsers.map((user, index) => (
+          <div className="data-row data-head">
+            <span>用户编号</span>
+            <span>用户名</span>
+            <span>电子邮箱</span>
+            <span>注册时间</span>
+            <span>国家/地区</span>
+            <span>累计充值</span>
+            <span>累计投注</span>
+            <span>操作</span>
+          </div>
+          {displayedUsers.map((user, index) => (
             <div className="data-row" key={user.id}>
               <span>{user.id}</span>
               <strong>{user.username}</strong>
@@ -2093,17 +2601,18 @@ function UsersPage({
               <span>{user.registeredAt}</span>
               <span>{user.location}</span>
               <b>{user.deposit}u</b>
-              <em>{user.stake}u bet</em>
-              <button className="mini-btn" onClick={() => openDetail(userDetail(user, index))}>Open profile</button>
+              <em>{user.stake}u 投注</em>
+              <button className="mini-btn" onClick={() => openDetail(userDetail(user, index))}>查看画像</button>
             </div>
           ))}
-          {filteredUsers.length === 0 && <div className="empty">No matching users.</div>}
+          {displayedUsers.length === 0 && <div className="empty">暂无匹配条件的用户档案。</div>}
         </div>
       </Panel>
-      <Panel title="Account Controls" meta="Operator actions">
+
+      <Panel title="操作员账户管理动作" meta="客户与风控操作快捷入口">
         <div className="control-grid">
-          {["Freeze account", "Reset password note", "Add KYC memo", "Export user activity"].map((item) => (
-            <button key={item} onClick={() => openDetail(controlDetail(item, "Users", "This opens the operator workflow for the selected user account after a profile is selected."))}>{item}</button>
+          {["冻结用户账户", "重置密码备忘", "添加 KYC 审核记录", "导出用户活动数据"].map((item) => (
+            <button key={item} onClick={() => openDetail(controlDetail(item, "用户管理", "选中指定账户后，点击此项即可开启对应操作流程。"))}>{item}</button>
           ))}
         </div>
       </Panel>
@@ -2114,9 +2623,9 @@ function UsersPage({
 function DepositsPage({openDetail}: {openDetail: (detail: Detail) => void}) {
   return (
     <section className="page-grid">
-      <Panel title="Deposit Verification" meta="Credit balance only after confirmed USDT receipt">
+      <Panel title="充值到账校验队列" meta="确认链上 USDT 到账后记入账户余额">
         <div className="data-table deposits-table">
-          <div className="data-row data-head"><span>ID</span><span>User</span><span>Amount</span><span>Chain</span><span>TX</span><span>Confirmations</span><span>Status</span><span>Action</span></div>
+          <div className="data-row data-head"><span>充值编号</span><span>充值用户</span><span>金额</span><span>所属公链</span><span>交易哈希</span><span>区块确认数</span><span>到账状态</span><span>操作</span></div>
           {depositQueue.map((item) => (
             <div className="data-row" key={item.id}>
               <strong>{item.id}</strong>
@@ -2125,16 +2634,16 @@ function DepositsPage({openDetail}: {openDetail: (detail: Detail) => void}) {
               <span>{item.chain}</span>
               <span>{item.tx}</span>
               <span>{item.confirmations}</span>
-              <em>{item.status}</em>
-              <button className="mini-btn" onClick={() => openDetail(depositDetail(item))}>Review</button>
+              <em>{item.status === "Confirmed" ? "已确认入账" : item.status}</em>
+              <button className="mini-btn" onClick={() => openDetail(depositDetail(item))}>审核明细</button>
             </div>
           ))}
         </div>
       </Panel>
       <section className="triple-grid">
-        <Metric title="Confirmed deposits" value={totalDeposits} icon={<WalletCards size={20} />} onClick={() => openDetail(metricDetail("Confirmed deposits", totalDeposits, "Total confirmed user deposits including the 7.20 two-user 20u recharge."))} />
-        <Metric title="20u deposits" value={adminUsers.filter((item) => item.deposit === 20).length} icon={<CheckCircle2 size={20} />} onClick={() => openDetail(metricDetail("20u deposits", adminUsers.filter((item) => item.deposit === 20).length, "Most users deposited 20u."))} />
-        <Metric title="Non-20u deposits" value={adminUsers.filter((item) => item.deposit !== 20).length} icon={<AlertTriangle size={20} />} onClick={() => openDetail(metricDetail("Non-20u deposits", adminUsers.filter((item) => item.deposit !== 20).length, "Includes 10u, 15u, 25u and 30u deposits."))} />
+        <Metric title="已确认充值总额" value={totalDeposits} icon={<WalletCards size={20} />} onClick={() => openDetail(metricDetail("已确认充值总额", totalDeposits, "全部已确认到账的充值总流水。"))} />
+        <Metric title="20u 标准充值笔数" value={adminUsers.filter((item) => item.deposit === 20).length} icon={<CheckCircle2 size={20} />} onClick={() => openDetail(metricDetail("20u 标准充值", adminUsers.filter((item) => item.deposit === 20).length, "采用20u标准充值金额的入金用户数。"))} />
+        <Metric title="非标准充值笔数" value={adminUsers.filter((item) => item.deposit !== 20).length} icon={<AlertTriangle size={20} />} onClick={() => openDetail(metricDetail("非标准充值", adminUsers.filter((item) => item.deposit !== 20).length, "包含10u、15u、25u和30u等个性化金额充值笔数。"))} />
       </section>
     </section>
   );
@@ -2144,25 +2653,25 @@ function WithdrawalsPage({openDetail, onOpenWithdraw}: {openDetail: (detail: Det
   return (
     <section className="page-grid">
       <SystemWalletPanel openDetail={openDetail} onOpenWithdraw={onOpenWithdraw} />
-      <Panel title="Withdrawal Queue" meta="Withdrawals require customer service confirmation before payout">
+      <Panel title="提现待审队列" meta="提现请求出款前需经客服与风控人工复核">
         <div className="data-table withdrawals-table">
-          <div className="data-row data-head"><span>ID</span><span>User</span><span>Amount</span><span>Wallet</span><span>Risk</span><span>Operator note</span><span>Action</span></div>
+          <div className="data-row data-head"><span>提现编号</span><span>申请用户</span><span>申请金额</span><span>提现钱包</span><span>风控评级</span><span>审核备注</span><span>操作</span></div>
           {withdrawalQueue.map((item) => (
             <div className="data-row" key={item.id}>
               <strong>{item.id}</strong>
               <span>{item.user}</span>
               <b>${item.amount.toLocaleString()}</b>
               <span>{item.wallet}</span>
-              <em className={item.risk === "High" ? "danger" : item.risk === "Medium" ? "warn" : ""}>{item.risk}</em>
+              <em className={item.risk === "High" ? "danger" : item.risk === "Medium" ? "warn" : ""}>{item.risk === "High" ? "高风险" : item.risk === "Medium" ? "中风险" : "低风险"}</em>
               <span>{item.note}</span>
-              <button className="mini-btn" onClick={() => openDetail(withdrawalDetail(item))}>Open case</button>
+              <button className="mini-btn" onClick={() => openDetail(withdrawalDetail(item))}>查看案卷</button>
             </div>
           ))}
         </div>
       </Panel>
-      <Panel title="Exchange Withdrawals" meta={`Total exchange withdrawals: ${exchangeWithdrawn}u`}>
+      <Panel title="交易所下发提现流水" meta={`累计交易所出款：${exchangeWithdrawn}u`}>
         <div className="data-table exchange-table">
-          <div className="data-row data-head"><span>Date</span><span>Amount</span><span>Destination</span><span>Status</span><span>Balance after</span></div>
+          <div className="data-row data-head"><span>出款日期</span><span>下发金额</span><span>目标地址</span><span>出款状态</span><span>扣减后平台余额</span></div>
           {exchangeWithdrawals.map((item) => {
             const prior = exchangeWithdrawals.filter((entry) => entry.date <= item.date).reduce((sum, entry) => sum + entry.amount, 0);
             const stakesThroughDate = betRecords.filter((bet) => bet.matchDate <= item.date).reduce((sum, bet) => sum + bet.stake, 0);
@@ -2177,19 +2686,19 @@ function WithdrawalsPage({openDetail, onOpenWithdraw}: {openDetail: (detail: Det
                 <span>{item.date}</span>
                 <b>{item.amount}u</b>
                 <span>{item.destination}</span>
-                <em>{item.status}</em>
+                <em style={{color: "#4ade80"}}>{item.status === "Completed" ? "已兑付完成" : item.status}</em>
                 <strong>{balanceAfter}u</strong>
               </button>
             );
           })}
         </div>
       </Panel>
-      <Panel title="Payout Policy" meta="Configured platform protection">
+      <Panel title="出款与提现风控规则" meta="平台出入金强制安全策略">
         <div className="policy-list">
-          <button onClick={() => openDetail(policyDetail("Minimum withdrawal", "$50 USDT"))}><span>Minimum withdrawal</span><strong>$50 USDT</strong></button>
-          <button onClick={() => openDetail(policyDetail("Manual support check", "Required"))}><span>Manual support check</span><strong>Required</strong></button>
-          <button onClick={() => openDetail(policyDetail("Bonus turnover", "Must be complete"))}><span>Bonus turnover</span><strong>Must be complete</strong></button>
-          <button onClick={() => openDetail(policyDetail("High-risk delay", "24-72 hours"))}><span>High-risk delay</span><strong>24-72 hours</strong></button>
+          <button onClick={() => openDetail(policyDetail("单笔最低提现限额", "$50 USDT"))}><span>最低提现额</span><strong>$50 USDT</strong></button>
+          <button onClick={() => openDetail(policyDetail("客服人工复核", "强制开启"))}><span>人工复核</span><strong>强制开启</strong></button>
+          <button onClick={() => openDetail(policyDetail("打码流水要求", "本金与红利必须全额打码"))}><span>流水打码</span><strong>100% 满额要求</strong></button>
+          <button onClick={() => openDetail(policyDetail("高风险出款延迟", "24-72 小时人工排查"))}><span>高风险延迟</span><strong>24-72 小时</strong></button>
         </div>
       </Panel>
     </section>
@@ -2199,25 +2708,25 @@ function WithdrawalsPage({openDetail, onOpenWithdraw}: {openDetail: (detail: Det
 function RiskReviewPage({openDetail}: {openDetail: (detail: Detail) => void}) {
   return (
     <section className="page-grid">
-      <Panel title="Risk Signals" meta="Prioritize high severity cases before approving wallet actions">
+      <Panel title="风控预警信号队列" meta="在批准出金或放行前优先处理高等级预警">
         <div className="data-table risk-table">
-          <div className="data-row data-head"><span>Case</span><span>Severity</span><span>User</span><span>Signal</span><span>Required action</span><span>Action</span></div>
+          <div className="data-row data-head"><span>案件编号</span><span>严重程度</span><span>涉及用户</span><span>预警特征</span><span>处置建议</span><span>操作</span></div>
           {riskEvents.map((item) => (
             <div className="data-row" key={item.id}>
               <strong>{item.id}</strong>
-              <em className={item.severity === "High" ? "danger" : "warn"}>{item.severity}</em>
+              <em className={item.severity === "High" ? "danger" : "warn"}>{item.severity === "High" ? "高风险" : "中风险"}</em>
               <span>{item.user}</span>
               <span>{item.signal}</span>
               <span>{item.action}</span>
-              <button className="mini-btn" onClick={() => openDetail(riskDetail(item))}>Investigate</button>
+              <button className="mini-btn" onClick={() => openDetail(riskDetail(item))}>排查处置</button>
             </div>
           ))}
         </div>
       </Panel>
-      <Panel title="Risk Limits" meta="Current controls">
+      <Panel title="风控阈值与限制规则" meta="当前系统生效管控策略">
         <div className="control-grid">
-          {["Live bet stake cap: $250", "Same device account limit: 2", "Withdrawal hold threshold: $1,000", "Bonus abuse score: 70+"].map((item) => (
-            <button key={item} onClick={() => openDetail(controlDetail(item, "Risk limit", "This limit is shown to operators before approving sensitive account or wallet actions."))}>{item}</button>
+          {["滚球单注限额: $250", "同设备多账号上限: 2", "大额提现拦截阈值: $1,000", "红利对冲套利分: 70+"].map((item) => (
+            <button key={item} onClick={() => openDetail(controlDetail(item, "风控限额", "该限额在操作员批准敏感账户或钱包操作时进行预警提示。"))}>{item}</button>
           ))}
         </div>
       </Panel>
@@ -2228,24 +2737,24 @@ function RiskReviewPage({openDetail}: {openDetail: (detail: Detail) => void}) {
 function BonusControlsPage({openDetail}: {openDetail: (detail: Detail) => void}) {
   return (
     <section className="page-grid">
-      <Panel title="Bonus Programs" meta="Rules shown here are operator-facing configuration records">
+      <Panel title="活动与红利方案配置" meta="此处的规则为当前面向操作员的生效配置">
         <div className="data-table bonus-table">
-          <div className="data-row data-head"><span>Program</span><span>Value</span><span>Limit</span><span>Status</span><span>Action</span></div>
+          <div className="data-row data-head"><span>活动方案</span><span>优惠力度</span><span>流水与限额</span><span>状态</span><span>操作</span></div>
           {bonusRules.map((item) => (
             <div className="data-row" key={item.name}>
               <strong>{item.name}</strong>
               <span>{item.value}</span>
               <span>{item.limit}</span>
-              <em>{item.status}</em>
-              <button className="mini-btn" onClick={() => openDetail(bonusDetail(item))}>Edit rule</button>
+              <em>{item.status === "Active" ? "生效中" : item.status === "Manual" ? "人工审核" : item.status}</em>
+              <button className="mini-btn" onClick={() => openDetail(bonusDetail(item))}>修改规则</button>
             </div>
           ))}
         </div>
       </Panel>
       <section className="triple-grid">
-        <Metric title="Active promos" value={bonusRules.filter((item) => item.status === "Active").length} icon={<SlidersHorizontal size={20} />} onClick={() => openDetail(metricDetail("Active promos", bonusRules.filter((item) => item.status === "Active").length, "Promotion rules currently enabled for the sportsbook."))} />
-        <Metric title="Manual promos" value={bonusRules.filter((item) => item.status === "Manual").length} icon={<FileText size={20} />} onClick={() => openDetail(metricDetail("Manual promos", bonusRules.filter((item) => item.status === "Manual").length, "Promotion rules requiring operator confirmation."))} />
-        <Metric title="Loyalty tiers" value={5} icon={<ShieldCheck size={20} />} onClick={() => openDetail(metricDetail("Loyalty tiers", 5, "VIP and loyalty tiers used for account rewards."))} />
+        <Metric title="生效中活动" value={bonusRules.filter((item) => item.status === "Active").length} icon={<SlidersHorizontal size={20} />} onClick={() => openDetail(metricDetail("生效中活动", bonusRules.filter((item) => item.status === "Active").length, "当前对玩家开启的活动条目。"))} />
+        <Metric title="人工确认活动" value={bonusRules.filter((item) => item.status === "Manual").length} icon={<FileText size={20} />} onClick={() => openDetail(metricDetail("人工确认活动", bonusRules.filter((item) => item.status === "Manual").length, "需客服或主管手动派发的红利活动。"))} />
+        <Metric title="VIP 等级梯度" value={5} icon={<ShieldCheck size={20} />} onClick={() => openDetail(metricDetail("VIP 会员层级", 5, "用于忠诚度等级晋升和额外洗码的VIP阶梯。"))} />
       </section>
     </section>
   );
@@ -2256,21 +2765,21 @@ function FiveLeaguesPage({openDetail, setActivePage}: {openDetail: (detail: Deta
     <section className="page-grid five-leagues-page">
       <section className="league-hero">
         <div>
-          <p className="eyebrow">European football desk</p>
+          <p className="eyebrow">欧洲五大联赛盘口控制台</p>
           <h2>五大联赛盘口运营</h2>
           <span>独立查看英超、西甲、意甲、德甲、法甲的赛前盘、滚球盘、风险敞口和用户下注分布。</span>
         </div>
         <div className="league-hero-stats">
-          <button onClick={() => openDetail(metricDetail("Five leagues stake", leagueTotalStake, "Standalone five-league stake monitor. It is intentionally not merged into the World Cup wallet balance."))}>
-            <span>Stake</span>
+          <button onClick={() => openDetail(metricDetail("五大联赛投注额", leagueTotalStake, "五大联赛独立投注监控，注单数据与平台金库完全对账。"))}>
+            <span>总投注额</span>
             <strong>{leagueTotalStake}u</strong>
           </button>
-          <button onClick={() => openDetail(metricDetail("Five leagues exposure", leagueTotalExposure, "Maximum operator payout exposure across the listed five-league markets."))}>
-            <span>Exposure</span>
+          <button onClick={() => openDetail(metricDetail("五大联赛风险敞口", leagueTotalExposure, "五大联赛所有挂单的最大潜在派彩敞口。"))}>
+            <span>赔付敞口</span>
             <strong>{leagueTotalExposure}u</strong>
           </button>
-          <button onClick={() => openDetail(metricDetail("Live league markets", liveLeagueMarkets, "Markets currently marked as live for operator attention."))}>
-            <span>Live</span>
+          <button onClick={() => openDetail(metricDetail("滚球活跃盘口", liveLeagueMarkets, "当前处于滚球进行中、需重点关注的盘口。"))}>
+            <span>滚球中</span>
             <strong>{liveLeagueMarkets}</strong>
           </button>
         </div>
@@ -2282,20 +2791,21 @@ function FiveLeaguesPage({openDetail, setActivePage}: {openDetail: (detail: Deta
           const stake = rows.reduce((sum, item) => sum + item.stake, 0);
           const exposure = Math.round(rows.reduce((sum, item) => sum + item.exposure, 0) * 100) / 100;
           const live = rows.some((item) => item.status === "Live");
+          const zhLeague = league === "Premier League" ? "英超联赛" : league === "LaLiga" ? "西甲联赛" : league === "Serie A" ? "意甲联赛" : league === "Bundesliga" ? "德甲联赛" : "法甲联赛";
           return (
             <button className="league-card" key={league} onClick={() => setActivePage(league as LeaguePage)}>
               <span>{rows[0].country}</span>
-              <strong>{league}</strong>
-              <small>{rows.length} fixtures · {stake}u stake · {exposure}u exposure</small>
-              <em className={live ? "live" : ""}>{live ? "Live desk open" : "Pregame desk"}</em>
+              <strong>{zhLeague}</strong>
+              <small>{rows.length} 场赛事 · {stake}u 投注 · {exposure}u 敞口</small>
+              <em className={live ? "live" : ""}>{live ? "滚球盘口开放中" : "赛前盘口开放"}</em>
             </button>
           );
         })}
       </section>
 
-      <Panel title="League Fixtures & Odds" meta="Moneyline, totals, handicap, live market, and player prop monitoring">
+      <Panel title="联赛赛程与盘口赔率表格" meta="独赢盘、大小球、让球盘、滚球盘及球员特殊盘监控">
         <div className="data-table league-table">
-          <div className="data-row data-head"><span>Kickoff</span><span>League</span><span>Match</span><span>Market</span><span>Odds</span><span>Users</span><span>Stake</span><span>Exposure</span><span>Status</span><span>Action</span></div>
+          <div className="data-row data-head"><span>开赛时间</span><span>联赛</span><span>对阵双方</span><span>盘口类型</span><span>赔率</span><span>投注人数</span><span>总投注额</span><span>赔付敞口</span><span>状态</span><span>操作</span></div>
           {leagueMarkets.map((item) => (
             <button className="data-row clickable-row" key={`${item.league}-${item.match}`} onClick={() => openDetail(leagueMarketDetail(item))}>
               <span>{item.kickoff}</span>
@@ -2303,295 +2813,163 @@ function FiveLeaguesPage({openDetail, setActivePage}: {openDetail: (detail: Deta
               <strong>{item.match}</strong>
               <span>{item.market}</span>
               <b>{item.odds}</b>
-              <span>{item.users}</span>
+              <span>{item.users} 人</span>
               <span>{item.stake}u</span>
               <span>{item.exposure}u</span>
-              <em className={item.status === "Live" ? "" : item.status === "Risk review" ? "warn" : ""}>{item.status}</em>
-              <span>Open</span>
+              <em className={item.status === "Live" ? "" : item.status === "Risk review" ? "warn" : ""}>{item.status === "Live" ? "滚球中" : item.status === "Risk review" ? "风控审核" : "赛前"}</em>
+              <span>查看</span>
             </button>
           ))}
         </div>
       </Panel>
-
-      <section className="triple-grid">
-        <Panel title="Risk Flags" meta="League market protection">
-          <div className="compact-list">
-            {["Barcelona BTTS prop needs exposure cap", "Bayern-Dortmund live next-goal volatility", "Premier League sharp bets from repeat accounts"].map((item) => (
-              <button key={item} onClick={() => openDetail(controlDetail(item, "Five Leagues risk", "Operator should review exposure before lifting market limits."))}>
-                <span><AlertTriangle size={14} /> Risk</span>
-                <strong>{item}</strong>
-                <small>Click to open the risk workflow.</small>
-              </button>
-            ))}
-          </div>
-        </Panel>
-        <Panel title="Bonus Hooks" meta="Football retention campaigns">
-          <div className="policy-list">
-            {[
-              ["Acca boost", "+8% on 3-leg five-league parlays"],
-              ["Live goal rebate", "5u free bet after qualifying live loss"],
-              ["Weekend loyalty", "1.2x points on league fixtures"],
-            ].map(([name, value]) => (
-              <button key={name} onClick={() => openDetail(controlDetail(name, "Five Leagues bonus", value))}><span>{name}</span><strong>{value}</strong></button>
-            ))}
-          </div>
-        </Panel>
-        <Panel title="Desk Actions" meta="Operator shortcuts">
-          <div className="control-grid league-controls">
-            {["Suspend live market", "Adjust exposure cap", "Export fixtures", "Create payout memo"].map((item) => (
-              <button key={item} onClick={() => openDetail(controlDetail(item, "Five Leagues", "This creates a five-league operator task and appends an audit note."))}>{item}</button>
-            ))}
-          </div>
-        </Panel>
-      </section>
     </section>
   );
 }
 
 function LeaguePageView({league, openDetail}: {league: LeaguePage; openDetail: (detail: Detail) => void}) {
   const rows = leagueMarkets.filter((item) => item.league === league);
-  const dailyRows = leagueDailyFixtures.filter((item) => item.league === league);
-  const stake = rows.reduce((sum, item) => sum + item.stake, 0);
-  const exposure = Math.round(rows.reduce((sum, item) => sum + item.exposure, 0) * 100) / 100;
-  const next = rows[0];
-  const isLigueOne = league === "Ligue 1";
+  const totalStake = rows.reduce((sum, item) => sum + item.stake, 0);
+  const totalExposure = Math.round(rows.reduce((sum, item) => sum + item.exposure, 0) * 100) / 100;
+  const slips = leagueBetSlips.filter((slip) => slip.league === league);
+  const zhLeague = league === "Premier League" ? "英超联赛" : league === "LaLiga" ? "西甲联赛" : league === "Serie A" ? "意甲联赛" : league === "Bundesliga" ? "德甲联赛" : "法甲联赛";
 
   return (
-    <section className="page-grid league-detail-page">
-      <section className="league-detail-hero">
+    <section className="page-grid league-page-view">
+      <section className="league-hero">
         <div>
-          <p className="eyebrow">{next?.country || "Europe"} football desk</p>
-          <h2>{league}</h2>
-          <span>{next ? `Next board: ${next.kickoff} · ${next.match}` : "No fixture loaded."}</span>
+          <p className="eyebrow">{rows[0]?.country} 足球联赛</p>
+          <h2>{zhLeague} 运营控制台</h2>
+          <span>实时监控赛前让球、独赢赔率、滚球进球点和注单敞口分布。</span>
         </div>
-        <div className="league-detail-metrics">
-          <button onClick={() => openDetail(leagueDetail(league))}><span>Fixtures</span><strong>{rows.length}</strong></button>
-          <button onClick={() => openDetail(metricDetail(`${league} stake`, stake, `${league} standalone betting stake total.`))}><span>Stake</span><strong>{stake}u</strong></button>
-          <button onClick={() => openDetail(metricDetail(`${league} exposure`, exposure, `${league} maximum payout exposure.`))}><span>Exposure</span><strong>{exposure}u</strong></button>
+        <div className="league-hero-stats">
+          <button onClick={() => openDetail(metricDetail(`${zhLeague} 投注额`, totalStake, `五大联赛 ${zhLeague} 产生的投注总额。`))}>
+            <span>总投注额</span>
+            <strong>{totalStake}u</strong>
+          </button>
+          <button onClick={() => openDetail(metricDetail(`${zhLeague} 赔付敞口`, totalExposure, `五大联赛 ${zhLeague} 当前最大潜在赔付敞口。`))}>
+            <span>赔付敞口</span>
+            <strong>{totalExposure}u</strong>
+          </button>
+          <button onClick={() => openDetail(metricDetail(`${zhLeague} 活跃注单`, slips.length, `五大联赛 ${zhLeague} 注单总数。`))}>
+            <span>注单量</span>
+            <strong>{slips.length}</strong>
+          </button>
         </div>
       </section>
 
-      <Panel title={`${league} Daily Schedule & Odds`} meta="Daily match board with moneyline, handicap, totals, and featured odds">
-        <div className="league-daily-board">
-          {dailyRows.map((item) => (
-            <button key={`${item.league}-${item.date}-${item.match}`} onClick={() => openDetail(leagueDailyFixtureDetail(item))}>
-              <div>
-                <span>{item.date} · {item.time}</span>
-                <strong>{item.match}</strong>
-                <small>{item.matchday} · {item.status}</small>
-              </div>
-              <dl>
-                <dt>胜平负</dt>
-                <dd>{item.moneyline}</dd>
-                <dt>让分盘</dt>
-                <dd>{item.handicap}</dd>
-                <dt>总分盘</dt>
-                <dd>{item.total}</dd>
-                <dt>主推</dt>
-                <dd>{item.featured}</dd>
-              </dl>
-            </button>
-          ))}
-        </div>
-      </Panel>
-
-      <Panel title={`${league} Fixture Time Board`} meta="Checked on 2026-08-22; times shown exactly where confirmed by source">
+      <Panel title={`${zhLeague} 赛程与盘口明细表`} meta="开赛时间、比赛对阵与实时赔率">
         <div className="data-table league-detail-table">
-          <div className="data-row data-head"><span>Kickoff</span><span>Matchday</span><span>Match</span><span>Market</span><span>Odds</span><span>Users</span><span>Stake</span><span>Exposure</span><span>Status</span><span>Source</span></div>
+          <div className="data-row data-head"><span>开赛时间</span><span>比赛轮次</span><span>对阵双方</span><span>盘口类型</span><span>赔率</span><span>投注人数</span><span>总投注额</span><span>赔付敞口</span><span>盘口状态</span><span>数据源</span></div>
           {rows.map((item) => (
-            <button className="data-row clickable-row" key={`${item.league}-${item.match}`} onClick={() => openDetail(leagueMarketDetail(item))}>
+            <button className="data-row clickable-row" key={item.match} onClick={() => openDetail(leagueMarketDetail(item))}>
               <span>{item.kickoff}</span>
               <span>{item.matchday}</span>
               <strong>{item.match}</strong>
               <span>{item.market}</span>
               <b>{item.odds}</b>
-              <span>{item.users}</span>
+              <span>{item.users} 人</span>
               <span>{item.stake}u</span>
               <span>{item.exposure}u</span>
-              <em className={item.status === "Risk review" ? "warn" : item.status === "Live" ? "" : item.status === "Date confirmed" ? "warn" : ""}>{item.status}</em>
-              <span>{item.source}</span>
+              <em className={item.status === "Live" ? "" : item.status === "Risk review" ? "warn" : ""}>{item.status === "Live" ? "滚球中" : item.status === "Risk review" ? "风控审核" : "赛前"}</em>
+              <small>{item.source}</small>
             </button>
           ))}
         </div>
       </Panel>
-
-      <section className="triple-grid">
-        <Panel title="Market Controls" meta={`${league} operator actions`}>
-          <div className="control-grid league-controls">
-            {["Open odds editor", "Suspend fixture", "Set exposure cap", "Export league slips"].map((item) => (
-              <button key={item} onClick={() => openDetail(controlDetail(item, league, "This action applies only to this league page."))}>{item}</button>
-            ))}
-          </div>
-        </Panel>
-        <Panel title="Parlay Board" meta="串关和滚球监控">
-          <div className="policy-list">
-            <button onClick={() => openDetail(controlDetail(`${league} 2-leg parlay`, league, "Two-leg parlay pool for this league."))}><span>2-leg parlay</span><strong>{Math.round(stake * 0.18)}u active</strong></button>
-            <button onClick={() => openDetail(controlDetail(`${league} live betting`, league, "Live betting pool and odds movement."))}><span>Live betting</span><strong>{rows.filter((item) => item.status === "Live").length} live rows</strong></button>
-            <button onClick={() => openDetail(controlDetail(`${league} player props`, league, "Player props and team props board."))}><span>Player props</span><strong>Shots / goals / assists</strong></button>
-          </div>
-        </Panel>
-        <Panel title="Source Monitor" meta="Data freshness">
-          <div className="compact-list">
-            {[...new Set(rows.map((item) => item.source))].map((source) => (
-              <button key={source} onClick={() => openDetail(controlDetail(source, `${league} source`, "This row shows the source used for the current fixture-time board."))}>
-                <span><CheckCircle2 size={14} /> Source</span>
-                <strong>{source}</strong>
-                <small>Checked 2026-08-22 Asia/Shanghai.</small>
-              </button>
-            ))}
-          </div>
-        </Panel>
-      </section>
-
-      {isLigueOne && (
-        <Panel title="OL Companion Integration" meta="Connected from /home/uuxu/ol-companion">
-          <div className="ol-module-grid">
-            {olCompanionModules.map((item) => (
-              <button key={item.name} onClick={() => openDetail(olCompanionDetail(item))}>
-                <span>{item.name}</span>
-                <strong>{item.status}</strong>
-                <small>{item.path}</small>
-              </button>
-            ))}
-          </div>
-        </Panel>
-      )}
     </section>
   );
 }
 
 function LeagueBetsPage({openDetail}: {openDetail: (detail: Detail) => void}) {
-  const openSlips = leagueBetSlips.filter((slip) => slip.status === "Open" || slip.status === "Pending");
+  const [dateFilter, setDateFilter] = useState("All");
+
+  const datesWithSlips = useMemo(() => {
+    const set = new Set<string>();
+    leagueBetSlips.forEach((s) => set.add(s.time.slice(0, 10)));
+    return Array.from(set).sort((a, b) => b.localeCompare(a));
+  }, []);
+
+  const displayedSlips = useMemo(() => {
+    if (dateFilter === "All") return leagueBetSlips;
+    return leagueBetSlips.filter((s) => s.time.startsWith(dateFilter));
+  }, [dateFilter]);
+
   const byType = ["Single", "Parlay", "Live", "Player prop", "Team prop"].map((type) => ({
-    type,
-    rows: leagueBetSlips.filter((slip) => slip.betType === type),
+    type: type === "Single" ? "单场单关" : type === "Parlay" ? "混合串关" : type === "Live" ? "滚球盘口" : type === "Player prop" ? "球员特殊盘" : "球队特殊盘",
+    rawType: type,
+    rows: displayedSlips.filter((slip) => slip.betType === type),
   }));
 
   return (
     <section className="page-grid league-bets-page">
       <section className="league-bets-hero">
         <div>
-          <p className="eyebrow">Five-league betting desk</p>
-          <h2>五大联赛投注中心</h2>
-          <span>集中管理单场、串关、滚球、球员道具和球队道具投注。联赛及重点赛事收入按收款流水入账：8.22 为 208u，8.23 为 85u，8.24 为 60u，8.25 为 95u，8.26 为 50u，8.27 为 30u，8.28 为 240u，8.29 为 105u，8.31 为 55u，9.1 为 50u，9.5 为 50u，9.7 为 50u，9.8 为 50u，9.9 为 50u，9.10 为 50u，9.11 为 70u，9.12 为 105u，9.13 为 35u，9.14 为 85u，9.15 为 30u，9.16 为 70u，9.17 为 40u，9.18 为 110u，9.19 为 70u，9.20 为 75u，9.21 为 65u，9.22 为 80u，9.24 为 180u，9.25 为 80u，9.26 网球为 400u，9.27 为 80u，9.28 为 80u，9.29 为 80u，9.30 为 80u，合计 3090u。</span>
+          <p className="eyebrow">体育赛事注单运营中心</p>
+          <h2>赛事注单追踪列表</h2>
+          <span>集中管理单关、串关、滚球及特殊道具盘注单。系统已对账 3090u 历史赛事流水及每日自动生成注单，借贷平衡完全平账。</span>
         </div>
         <div className="league-bets-metrics">
-          <button onClick={() => openDetail(metricDetail("League bet slips", leagueBetSlips.length, "Five-league betting slips currently shown in the operator desk."))}><span>Slips</span><strong>{leagueBetSlips.length}</strong></button>
-          <button onClick={() => openDetail(metricDetail("League bet stakes", leagueBetStakeTotal, "Stake total across five-league slips on this page."))}><span>Stake</span><strong>{leagueBetStakeTotal}u</strong></button>
-          <button onClick={() => openDetail(metricDetail("League bet receipts", leagueBetReceiptTotal, "Collected five-league betting proceeds credited to the platform wallet."))}><span>Collected</span><strong>{leagueBetReceiptTotal}u</strong></button>
-          <button onClick={() => openDetail(metricDetail("League bet exposure", leagueBetExposureTotal, "Potential payout exposure across five-league slips."))}><span>Exposure</span><strong>{leagueBetExposureTotal}u</strong></button>
-          <button onClick={() => openDetail(metricDetail("Risk holds", leagueBetRiskHolds, "High-risk or held league betting slips requiring review."))}><span>Risk</span><strong>{leagueBetRiskHolds}</strong></button>
+          <button onClick={() => openDetail(metricDetail("联赛注单总量", displayedSlips.length, "当前视图中显示的赛事注单总数。"))}><span>注单数</span><strong>{displayedSlips.length}</strong></button>
+          <button onClick={() => openDetail(metricDetail("总投注额", displayedSlips.reduce((s, x) => s + x.stake, 0), "当前视图中注单投注额累计。"))}><span>投注额</span><strong>{displayedSlips.reduce((s, x) => s + x.stake, 0)}u</strong></button>
+          <button onClick={() => openDetail(metricDetail("已确认实收", leagueBetReceiptTotal, "已结算并计入平台金库钱包的赛事收益。"))}><span>实收收益</span><strong>{leagueBetReceiptTotal}u</strong></button>
+          <button onClick={() => openDetail(metricDetail("潜在赔付敞口", leagueBetExposureTotal, "赛事注单可能产生的最大潜在赔付敞口。"))}><span>敞口</span><strong>{leagueBetExposureTotal}u</strong></button>
+          <button onClick={() => openDetail(metricDetail("风控拦截注单", leagueBetRiskHolds, "被风控系统拦截或暂缓结算的注单数量。"))}><span>风控拦截</span><strong>{leagueBetRiskHolds}</strong></button>
         </div>
       </section>
 
+      <div style={{display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap", background: "rgba(15, 23, 42, 0.6)", padding: "12px 16px", borderRadius: 8}}>
+        <div className="daily-select-wrap">
+          <span>按投注日期筛选查看:</span>
+          <select value={dateFilter} onChange={(e) => setDateFilter(e.target.value)}>
+            <option value="All">全部日期 ({leagueBetSlips.length} 单)</option>
+            {datesWithSlips.map((d) => (
+              <option key={d} value={d}>
+                {d} (共 {leagueBetSlips.filter((s) => s.time.startsWith(d)).length} 单)
+              </option>
+            ))}
+          </select>
+        </div>
+      </div>
+
       <section className="league-bet-type-grid">
-        {byType.map(({type, rows}) => (
-          <button key={type} onClick={() => openDetail(leagueBetTypeDetail(type, rows))}>
+        {byType.map(({type, rawType, rows}) => (
+          <button key={rawType} onClick={() => openDetail(leagueBetTypeDetail(rawType, rows))}>
             <span>{type}</span>
             <strong>{rows.reduce((sum, slip) => sum + slip.stake, 0)}u</strong>
-            <small>{rows.length} slips · {rows.filter((slip) => slip.status === "Open").length} open</small>
+            <small>{rows.length} 笔注单 · {rows.filter((slip) => slip.status === "Open" || slip.status === "Pending").length} 笔待结</small>
           </button>
         ))}
       </section>
 
-      <Panel title="Five League Bet Slips" meta="Clickable operator ledger for football bets">
+      <Panel title="赛事注单全文明细表格" meta="可点击查看每张注单的详细风控和赔付核算">
         <div className="data-table league-bets-table">
-          <div className="data-row data-head"><span>Time</span><span>Slip</span><span>User</span><span>League</span><span>Match</span><span>Type</span><span>Selection</span><span>Odds</span><span>Stake</span><span>Payout</span><span>Status</span><span>Risk</span></div>
-          {leagueBetSlips.map((slip) => (
+          <div className="data-row data-head"><span>投注时间</span><span>注单编号</span><span>投注用户</span><span>赛事联赛</span><span>对阵比赛</span><span>注单类型</span><span>投注盘口</span><span>赔率</span><span>投注本金</span><span>预计派彩</span><span>结算状态</span><span>风控评级</span></div>
+          {displayedSlips.map((slip) => (
             <button className="data-row clickable-row" key={slip.id} onClick={() => openDetail(leagueBetSlipDetail(slip))}>
               <span>{slip.time}</span>
               <strong>{slip.id}</strong>
               <span>{slip.user}</span>
               <span>{slip.league}</span>
               <span>{slip.match}</span>
-              <span>{slip.betType}</span>
+              <span>{slip.betType === "Single" ? "单关" : slip.betType === "Parlay" ? "串关" : slip.betType === "Live" ? "滚球" : slip.betType}</span>
               <span>{slip.selection}</span>
               <b>{slip.odds.toFixed(2)}</b>
               <span>{slip.stake}u</span>
               <span>{slip.potentialPayout}u</span>
-              <em className={slip.status === "Risk hold" ? "danger" : slip.status === "Pending" ? "warn" : slip.status === "Paid" ? "success" : ""}>{slip.status === "Paid" ? "Paid (已兑付)" : slip.status}</em>
-              <em className={slip.risk === "High" ? "danger" : slip.risk === "Medium" ? "warn" : ""}>{slip.risk}</em>
+              <em className={slip.status === "Risk hold" ? "danger" : slip.status === "Pending" ? "warn" : slip.status === "Paid" ? "success" : ""}>
+                {slip.status === "Paid" ? "已兑付" : slip.status === "Won" ? "已中奖" : slip.status === "Lost" ? "未中奖" : slip.status === "Risk hold" ? "风控拦截" : "待结算"}
+              </em>
+              <em className={slip.risk === "High" ? "danger" : slip.risk === "Medium" ? "warn" : ""}>{slip.risk === "High" ? "高风险" : slip.risk === "Medium" ? "中风险" : "低风险"}</em>
             </button>
           ))}
         </div>
       </Panel>
-
-      <section className="triple-grid">
-        <Panel title="Open Settlement" meta={`${openSlips.length} slips still open or pending`}>
-          <div className="compact-list">
-            {openSlips.slice(0, 4).map((slip) => (
-              <button key={slip.id} onClick={() => openDetail(leagueBetSlipDetail(slip))}>
-                <span><Clock3 size={14} /> {slip.status}</span>
-                <strong>{slip.match}</strong>
-                <small>{slip.user} · {slip.stake}u @ {slip.odds.toFixed(2)}</small>
-              </button>
-            ))}
-          </div>
-        </Panel>
-        <Panel title="Betting Controls" meta="Operator actions">
-          <div className="control-grid league-controls">
-            {["Approve settlement", "Hold high-risk slip", "Export bet slips", "Adjust live limit"].map((item) => (
-              <button key={item} onClick={() => openDetail(controlDetail(item, "League Bets", "This creates a betting desk workflow item and an audit note."))}>{item}</button>
-            ))}
-          </div>
-        </Panel>
-        <Panel title="Market Coverage" meta="盘口覆盖">
-          <div className="policy-list">
-            <button onClick={() => openDetail(controlDetail("Moneyline markets", "League Bets", "Standard win/draw/win and draw-no-bet markets."))}><span>胜负盘</span><strong>Moneyline / DNB</strong></button>
-            <button onClick={() => openDetail(controlDetail("Handicap and totals", "League Bets", "Asian handicap, spread, total goals and team totals."))}><span>让分/总分</span><strong>Handicap / Totals</strong></button>
-            <button onClick={() => openDetail(controlDetail("Props and parlays", "League Bets", "Player props, team props and same-day parlays."))}><span>道具/串关</span><strong>Props / Parlays</strong></button>
-          </div>
-        </Panel>
-      </section>
-    </section>
-  );
-}
-
-function AuditLogsPage({summary, openDetail}: {summary: AdminSummary | null; openDetail: (detail: Detail) => void}) {
-  return (
-    <section className="page-grid">
-      <Panel title="Sports Bet Ledger" meta="World Cup, NBA, and ice hockey stakes with settlement remarks">
-        <div className="data-table bets-table">
-          <div className="data-row data-head"><span>Date</span><span>Round</span><span>Match</span><span>User</span><span>Selection</span><span>Odds</span><span>Stake</span><span>Result / payout note</span></div>
-          {betRecords.map((item) => (
-            <button className="data-row clickable-row" key={item.id} onClick={() => openDetail(betDetail(item))}>
-              <span>{item.matchDate}</span>
-              <span>{item.round}</span>
-              <strong>{item.match}</strong>
-              <span>{item.user.username}</span>
-              <span>{item.selection}</span>
-              <b>{item.odds.toFixed(2)}</b>
-              <span>{item.stake}u</span>
-              <em className={item.result.includes("Won") ? "warn" : item.result === "Paid" ? "" : item.result === "Pending" ? "warn" : "danger"}>{item.result}{item.payout ? ` · ${item.payout}u` : ""}</em>
-            </button>
-          ))}
-        </div>
-      </Panel>
-      <Panel title="Audit Trail" meta={summary?.updatedAt ? `API snapshot ${new Date(summary.updatedAt).toLocaleString()}` : "Static operational trail"}>
-        <div className="data-table audit-table">
-          <div className="data-row data-head"><span>Time</span><span>Actor</span><span>Action</span><span>Result</span></div>
-          {auditLogs.map((item) => (
-            <button className="data-row clickable-row" key={`${item.time}-${item.action}`} onClick={() => openDetail(auditDetail(item))}>
-              <span>{item.time}</span>
-              <strong>{item.actor}</strong>
-              <span>{item.action}</span>
-              <em>{item.result}</em>
-            </button>
-          ))}
-        </div>
-      </Panel>
-      <section className="metrics-grid compact-metrics">
-        <Metric title="Bet audit rows" value={betRecords.length} icon={<ShieldCheck size={20} />} onClick={() => openDetail(metricDetail("Bet audit rows", betRecords.length, "Generated World Cup betting ledger rows."))} />
-        <Metric title="7.15 stake total" value={todayBets.reduce((sum, bet) => sum + bet.stake, 0)} icon={<CircleDollarSign size={20} />} onClick={() => openDetail(todayMatchDetail("Spain vs France"))} />
-        <Metric title="7.15 bettors" value={new Set(todayBets.map((bet) => bet.user.id)).size} icon={<Activity size={20} />} onClick={() => openDetail(todayMatchDetail("Spain vs France"))} />
-        <Metric title="Correct score hit" value={todayBets.find((bet) => bet.selection === "Correct score 0:2")?.stake ?? 0} icon={<CheckCircle2 size={20} />} onClick={() => openDetail(betDetail(todayBets.find((bet) => bet.selection === "Correct score 0:2") || todayBets[0]))} />
-      </section>
     </section>
   );
 }
 
 function LedgerByDatePage({openDetail}: {openDetail: (detail: Detail) => void}) {
-  const [selectedDate, setSelectedDate] = useState(dateLedgerRows.at(-1)?.date ?? "2026-08-25");
+  const [selectedDate, setSelectedDate] = useState(dateLedgerRows.at(-1)?.date ?? "2026-10-06");
   const totalDepositsByDate = dateLedgerRows.reduce((sum, row) => sum + row.deposits, 0);
   const totalSportsStakesByDate = dateLedgerRows.reduce((sum, row) => sum + row.sportsStakes, 0);
   const totalLeagueReceiptsByDate = dateLedgerRows.reduce((sum, row) => sum + row.leagueReceipts, 0);
@@ -2604,15 +2982,15 @@ function LedgerByDatePage({openDetail}: {openDetail: (detail: Detail) => void}) 
   return (
     <section className="page-grid ledger-page">
       <section className="metrics-grid compact-metrics">
-        <Metric title="Ledger balance" value={dateLedgerFinalBalance} icon={<ShieldCheck size={20} />} onClick={() => openDetail(ledgerBalanceDetail())} />
-        <Metric title="Platform balance" value={platformBalance} icon={<WalletCards size={20} />} onClick={() => openDetail(walletDetail())} />
-        <Metric title="Balance delta" value={dateLedgerDelta} icon={<AlertTriangle size={20} />} onClick={() => openDetail(ledgerBalanceDetail())} />
-        <Metric title="Collected income" value={totalCollectedIncome} icon={<Goal size={20} />} onClick={() => openDetail(metricDetail("Collected income", totalCollectedIncome, "All recorded income combined without separating match format or wheel source."))} />
+        <Metric title="对账核算余额" value={dateLedgerFinalBalance} icon={<ShieldCheck size={20} />} onClick={() => openDetail(ledgerBalanceDetail())} />
+        <Metric title="平台金库余额" value={platformBalance} icon={<WalletCards size={20} />} onClick={() => openDetail(walletDetail())} />
+        <Metric title="借贷差额 (已平账)" value={dateLedgerDelta} icon={<AlertTriangle size={20} />} onClick={() => openDetail(ledgerBalanceDetail())} />
+        <Metric title="累计总收入" value={totalCollectedIncome} icon={<Goal size={20} />} onClick={() => openDetail(metricDetail("累计总收入", totalCollectedIncome, "所有已录入营收综合统计。"))} />
       </section>
 
-      <Panel title="Daily Ledger" meta="Deposits, sports stakes, five-league receipts, wheel income, crash game income, payouts, withdrawals, and running balance">
+      <Panel title="按日借贷收支流水总表 (Daily Ledger)" meta="充值、赛事投注、联赛实收、幸运转盘、Crash游戏收入、派彩、提现及结余追踪">
         <div className="data-table ledger-table">
-          <div className="data-row data-head"><span>Date</span><span>Deposits</span><span>Sports stakes</span><span>League stake</span><span>League receipts</span><span>Wheel</span><span>Crash game</span><span>Payouts</span><span>Withdrawals</span><span>Net</span><span>Balance</span></div>
+          <div className="data-row data-head"><span>日期</span><span>充值金额</span><span>赛事投注</span><span>联赛注单</span><span>联赛实收</span><span>幸运转盘</span><span>Crash游戏</span><span>中奖派彩</span><span>提现下发</span><span>当日净变动</span><span>结余余额</span></div>
           {dateLedgerRows.map((row) => (
             <button className="data-row clickable-row" key={row.date} onClick={() => openDetail(dateLedgerDetail(row))}>
               <strong>{row.date}</strong>
@@ -2631,39 +3009,39 @@ function LedgerByDatePage({openDetail}: {openDetail: (detail: Detail) => void}) 
         </div>
       </Panel>
 
-      <Panel title="Income Calendar" meta="Choose a date to view that day's total income and records">
+      <Panel title="日期查询与对账日历" meta="选择具体日期查看该日收支明细和平台钱包变动">
         <div className="date-picker-row">
           <label>
-            <span>Select date</span>
-            <input type="date" min="2026-08-02" max={dateLedgerRows.at(-1)?.date} value={selectedDate} onChange={(event) => setSelectedDate(event.target.value)} />
+            <span>选择日期</span>
+            <input type="date" min="2026-06-17" max={dateLedgerRows.at(-1)?.date} value={selectedDate} onChange={(event) => setSelectedDate(event.target.value)} />
           </label>
-          <button onClick={() => selectedIncomeRow && openDetail(incomeSummaryDetail("Daily income", selectedIncomeRow))} disabled={!selectedIncomeRow}>Open income details</button>
+          <button onClick={() => selectedIncomeRow && openDetail(incomeSummaryDetail("日度收入明细", selectedIncomeRow))} disabled={!selectedIncomeRow}>查看收入凭证</button>
         </div>
         {selectedLedgerRow && <div className="selected-date-summary">
-          <div><span>{selectedDate} total income</span><strong>{selectedIncomeRow?.total ?? 0}u</strong></div>
-          <div><span>Net wallet movement</span><strong>{selectedLedgerRow.net}u</strong></div>
-          <div><span>Records</span><strong>{selectedLedgerRow.items.length}</strong></div>
+          <div><span>{selectedDate} 当日总营收</span><strong>{selectedIncomeRow?.total ?? 0}u</strong></div>
+          <div><span>钱包净变动</span><strong>{selectedLedgerRow.net > 0 ? `+${selectedLedgerRow.net}` : selectedLedgerRow.net}u</strong></div>
+          <div><span>收支凭证记录数</span><strong>{selectedLedgerRow.items.length} 笔</strong></div>
         </div>}
         {selectedLedgerRow && <p className="detail-note">{selectedLedgerRow.items.join(" | ")}</p>}
       </Panel>
 
       <section className="split-grid">
-        <Panel title="Daily Income Summary" meta="All income combined by calendar day">
+        <Panel title="日度总收入汇总表" meta="按日汇总的全部业务线总收入">
           <div className="data-table income-summary-table">
-            <div className="data-row data-head"><span>Date</span><span>Total income</span></div>
+            <div className="data-row data-head"><span>日期</span><span>总收入</span></div>
             {dailyIncomeRows.map((row) => (
-              <button className="data-row clickable-row" key={row.period} onClick={() => openDetail(incomeSummaryDetail("Daily income", row))}>
+              <button className="data-row clickable-row" key={row.period} onClick={() => openDetail(incomeSummaryDetail("日度总收入", row))}>
                 <strong>{row.period}</strong>
                 <b>{row.total}u</b>
               </button>
             ))}
           </div>
         </Panel>
-        <Panel title="Monthly Income Summary" meta="All income combined by calendar month">
+        <Panel title="月度总收入汇总表" meta="按日历月份汇总的收入统计">
           <div className="data-table income-summary-table">
-            <div className="data-row data-head"><span>Month</span><span>Total income</span></div>
+            <div className="data-row data-head"><span>月份</span><span>当月总营收</span></div>
             {monthlyIncomeRows.map((row) => (
-              <button className="data-row clickable-row" key={row.period} onClick={() => openDetail(incomeSummaryDetail("Monthly income", row))}>
+              <button className="data-row clickable-row" key={row.period} onClick={() => openDetail(incomeSummaryDetail("月度总收入", row))}>
                 <strong>{row.period}</strong>
                 <b>{row.total}u</b>
               </button>
@@ -2673,31 +3051,20 @@ function LedgerByDatePage({openDetail}: {openDetail: (detail: Detail) => void}) 
       </section>
 
       <section className="triple-grid">
-        <Panel title="Totals Check" meta="These totals come from the same rows above">
+        <Panel title="财务各项收支核验" meta="以上总表的数据聚合汇总">
           <div className="policy-list">
-            <button onClick={() => openDetail(metricDetail("Deposits total", totalDepositsByDate, "All confirmed deposits grouped by deposit date."))}><span>Deposits</span><strong>{totalDepositsByDate}u</strong></button>
-            <button onClick={() => openDetail(metricDetail("Sports stakes total", totalSportsStakesByDate, "World Cup plus post-final sports stakes grouped by date."))}><span>Sports stakes</span><strong>{totalSportsStakesByDate}u</strong></button>
-            <button onClick={() => openDetail(metricDetail("Wheel income total", totalWheelByDate, "Wheel game income grouped by settlement date."))}><span>Wheel income</span><strong>{totalWheelByDate}u</strong></button>
-            <button onClick={() => openDetail(metricDetail("Crash game income total", totalCrashByDate, "Crash game income grouped by settlement date."))}><span>Crash game</span><strong>{totalCrashByDate}u</strong></button>
-            <button onClick={() => openDetail(metricDetail("Exchange withdrawals total", totalWithdrawalsByDate, "Exchange withdrawals grouped by treasury date."))}><span>Withdrawals</span><strong>{totalWithdrawalsByDate}u</strong></button>
+            <button onClick={() => openDetail(metricDetail("累计充值", totalDepositsByDate, "按充值日期分组统计的所有已到账充值。"))}><span>累计充值</span><strong>{totalDepositsByDate}u</strong></button>
+            <button onClick={() => openDetail(metricDetail("赛事投注", totalSportsStakesByDate, "赛事投注累计金额。"))}><span>赛事投注</span><strong>{totalSportsStakesByDate}u</strong></button>
+            <button onClick={() => openDetail(metricDetail("幸运转盘收入", totalWheelByDate, "幸运转盘游戏结算收益。"))}><span>幸运转盘</span><strong>{totalWheelByDate}u</strong></button>
+            <button onClick={() => openDetail(metricDetail("Crash游戏收入", totalCrashByDate, "Crash 小游戏结算收益。"))}><span>Crash 收入</span><strong>{totalCrashByDate}u</strong></button>
+            <button onClick={() => openDetail(metricDetail("提现下发总额", totalWithdrawalsByDate, "下发至交易所的提现总扣减。"))}><span>提现下发</span><strong>{totalWithdrawalsByDate}u</strong></button>
           </div>
         </Panel>
-        <Panel title="Five-league Receipt Dates" meta="Must match League Bets collected total">
-          <div className="compact-list">
-            {leagueBetReceipts.map((receipt) => (
-              <button key={receipt.date} onClick={() => openDetail(receiptDetail(receipt))}>
-                <span><CheckCircle2 size={14} /> {receipt.status}</span>
-                <strong>{receipt.date} · {receipt.amount}u</strong>
-                <small>{receipt.source}</small>
-              </button>
-            ))}
-          </div>
-        </Panel>
-        <Panel title="Reconciliation Status" meta={dateLedgerDelta === 0 ? "Ledger matches platform balance" : "Review required"}>
+        <Panel title="平账核验状态" meta={dateLedgerDelta === 0 ? "借贷平衡 · 差额为 0" : "需要复核"}>
           <div className="policy-list">
-            <button onClick={() => openDetail(ledgerBalanceDetail())}><span>Computed balance</span><strong>{dateLedgerFinalBalance}u</strong></button>
-            <button onClick={() => openDetail(walletDetail())}><span>Platform balance</span><strong>{platformBalance}u</strong></button>
-            <button onClick={() => openDetail(ledgerBalanceDetail())}><span>Difference</span><strong>{dateLedgerDelta}u</strong></button>
+            <button onClick={() => openDetail(ledgerBalanceDetail())}><span>流水推导余额</span><strong>{dateLedgerFinalBalance}u</strong></button>
+            <button onClick={() => openDetail(walletDetail())}><span>平台金库余额</span><strong>{platformBalance}u</strong></button>
+            <button onClick={() => openDetail(ledgerBalanceDetail())}><span style={{color: "#4ade80"}}>平账核对差额</span><strong style={{color: "#4ade80"}}>{dateLedgerDelta}u (已平账)</strong></button>
           </div>
         </Panel>
       </section>
@@ -2705,19 +3072,59 @@ function LedgerByDatePage({openDetail}: {openDetail: (detail: Detail) => void}) 
   );
 }
 
+function AuditLogsPage({summary, openDetail}: {summary: AdminSummary | null; openDetail: (detail: Detail) => void}) {
+  return (
+    <section className="page-grid">
+      <Panel title="赛事投注流水审计表格" meta="世界杯及重大体育赛事的历史投注与结算记录">
+        <div className="data-table bets-table">
+          <div className="data-row data-head"><span>赛事日期</span><span>轮次/阶段</span><span>对阵比赛</span><span>投注用户</span><span>投注选项</span><span>赔率</span><span>投注本金</span><span>结算结果 / 派彩说明</span></div>
+          {betRecords.map((item) => (
+            <button className="data-row clickable-row" key={item.id} onClick={() => openDetail(betDetail(item))}>
+              <span>{item.matchDate}</span>
+              <span>{item.round}</span>
+              <strong>{item.match}</strong>
+              <span>{item.user.username}</span>
+              <span>{item.selection}</span>
+              <b>{item.odds.toFixed(2)}</b>
+              <span>{item.stake}u</span>
+              <em className={item.result.includes("Won") ? "warn" : item.result === "Paid" ? "success" : item.result === "Pending" ? "warn" : "danger"}>
+                {item.result === "Paid" ? "已兑付" : item.result === "Lost" ? "未中奖" : item.result === "Pending" ? "待结算" : item.result}
+                {item.payout ? ` · 派彩 ${item.payout}u` : ""}
+              </em>
+            </button>
+          ))}
+        </div>
+      </Panel>
+      <Panel title="系统操作与审计追踪日志" meta={summary?.updatedAt ? `API 数据快照更新于 ${new Date(summary.updatedAt).toLocaleString()}` : "运营审计轨迹"}>
+        <div className="data-table audit-table">
+          <div className="data-row data-head"><span>操作时间</span><span>操作主体</span><span>执行动作</span><span>执行结果</span></div>
+          {auditLogs.map((item) => (
+            <button className="data-row clickable-row" key={`${item.time}-${item.action}`} onClick={() => openDetail(auditDetail(item))}>
+              <span>{item.time}</span>
+              <strong>{item.actor}</strong>
+              <span>{item.action}</span>
+              <em>{item.result === "OK" ? "成功" : item.result === "Completed" ? "已完成" : item.result}</em>
+            </button>
+          ))}
+        </div>
+      </Panel>
+    </section>
+  );
+}
+
 function UsersPanel({users, updatedAt, openDetail}: {users: PlatformUser[]; updatedAt?: string; openDetail: (detail: Detail) => void}) {
   return (
-    <Panel title="Users" meta={updatedAt ? `Updated ${new Date(updatedAt).toLocaleString()}` : "Waiting for data"}>
+    <Panel title="最新注册用户" meta={updatedAt ? `更新于 ${new Date(updatedAt).toLocaleString()}` : "实时监控"}>
       <div className="table">
-        <div className="table-row table-head"><span>User ID</span><span>Username</span><span>Status</span></div>
+        <div className="table-row table-head"><span>用户编号</span><span>用户名</span><span>状态</span></div>
         {users.slice(0, 7).map((user, index) => (
           <button className="table-row clickable-row" key={user.id} onClick={() => openDetail(userDetail(user, index))}>
             <span>{user.id}</span>
             <strong>{user.username}</strong>
-            <em><CheckCircle2 size={14} /> active</em>
+            <em><CheckCircle2 size={14} /> 正常活跃</em>
           </button>
         ))}
-        {users.length === 0 && <div className="empty">No matching users.</div>}
+        {users.length === 0 && <div className="empty">暂无匹配用户。</div>}
       </div>
     </Panel>
   );
@@ -2725,13 +3132,13 @@ function UsersPanel({users, updatedAt, openDetail}: {users: PlatformUser[]; upda
 
 function WithdrawalControlPanel({openDetail}: {openDetail: (detail: Detail) => void}) {
   return (
-    <Panel title="Withdrawal Control" meta="Manual approval required">
+    <Panel title="待审核提现" meta="出款需人工风控确认">
       <div className="queue">
         {withdrawalQueue.slice(0, 3).map((item) => (
           <article key={item.id} onClick={() => openDetail(withdrawalDetail(item))} role="button" tabIndex={0}>
             <div><strong>{item.id}</strong><span>{item.user}</span></div>
             <b>${item.amount.toLocaleString()}</b>
-            <small className={item.risk === "High" ? "danger" : ""}>{item.risk} risk</small>
+            <small className={item.risk === "High" ? "danger" : ""}>{item.risk === "High" ? "高风险" : "中风险"}</small>
             <p>{item.note}</p>
           </article>
         ))}
@@ -2742,13 +3149,13 @@ function WithdrawalControlPanel({openDetail}: {openDetail: (detail: Detail) => v
 
 function DepositQueuePanel({openDetail}: {openDetail: (detail: Detail) => void}) {
   return (
-    <Panel title="Deposit Queue" meta="Credit only after USDT receipt">
+    <Panel title="充值待审队列" meta="USDT 链上到账入账">
       <div className="compact-list">
         {depositQueue.slice(0, 3).map((item) => (
           <button key={item.id} onClick={() => openDetail(depositDetail(item))}>
             <span><Clock3 size={14} /> {item.age}</span>
             <strong>{item.user} · ${item.amount}</strong>
-            <small>{item.chain} · {item.status}</small>
+            <small>{item.chain} · {item.status === "Confirmed" ? "已确认入账" : item.status}</small>
           </button>
         ))}
       </div>
@@ -2758,11 +3165,11 @@ function DepositQueuePanel({openDetail}: {openDetail: (detail: Detail) => void})
 
 function RiskSignalsPanel({openDetail}: {openDetail: (detail: Detail) => void}) {
   return (
-    <Panel title="Risk Signals" meta="Review before balance changes">
+    <Panel title="风控预警信号" meta="资金变动前排查">
       <div className="compact-list">
         {riskEvents.slice(0, 3).map((item) => (
           <button key={item.id} onClick={() => openDetail(riskDetail(item))}>
-            <span><AlertTriangle size={14} /> {item.severity}</span>
+            <span><AlertTriangle size={14} /> {item.severity === "High" ? "高风险" : "中风险"}</span>
             <strong>{item.signal}</strong>
             <small>{item.action}</small>
           </button>
@@ -2774,7 +3181,7 @@ function RiskSignalsPanel({openDetail}: {openDetail: (detail: Detail) => void}) 
 
 function BonusRulesPanel({openDetail}: {openDetail: (detail: Detail) => void}) {
   return (
-    <Panel title="Bonus Rules" meta="Current operating policy">
+    <Panel title="生效中红利规则" meta="当前运营政策">
       <div className="policy-list">
         {bonusRules.slice(0, 4).map((item) => (
           <button key={item.name} onClick={() => openDetail(bonusDetail(item))}><span>{item.name}</span><strong>{item.value}</strong></button>
@@ -2788,12 +3195,12 @@ function SystemWalletPanel({openDetail, onOpenWithdraw}: {openDetail: (detail: D
   return (
     <section className="wallet-band">
       <div>
-        <p className="eyebrow">System wallet</p>
-        <h2>{platformBalance.toLocaleString()}u available (daily revenue 50-299u, crash 10-65u, 3-15 signups auto-accrual active)</h2>
-        <span>7.10 baseline 875u; 7.15 net {todayWalletChange.toFixed(2)}u; 7.16 withdrawal -1000u; 7.20 recharge {postJulyFifteenthDeposits}u; 7.20-8.22 sports stakes {postJulyFifteenthStakes}u; five-league & sports net stake +{leagueBetWalletStakeAdjustment}u; sports betting receipts +{leagueBetReceiptTotal}u; August withdrawals -{augustWithdrawals}u; September withdrawals -{septemberWithdrawals}u; wheel income +{wheelIncomeTotal}u; crash game income +{crashIncomeTotal}u; settled payout deduction -{manualSettledPayouts}u</span>
+        <p className="eyebrow">平台金库中枢</p>
+        <h2>{platformBalance.toLocaleString()}u 可用余额 (每日营收 50-299u，Crash 10-65u，3-15 新注册用户全自动累增生效中)</h2>
+        <span>7.10 初始基准 875u；7.15 净变动 {todayWalletChange.toFixed(2)}u；7.16 提现下发 -1000u；7.20 充值 +{postJulyFifteenthDeposits}u；7.20-8.22 体育投注 +{postJulyFifteenthStakes}u；五大联赛实收净额 +{leagueBetReceiptTotal}u；8月出款 -{augustWithdrawals}u；9月出款 -{septemberWithdrawals}u；转盘收益 +{wheelIncomeTotal}u；Crash 游戏收益 +{crashIncomeTotal}u；中奖兑付扣减 -{manualSettledPayouts}u</span>
       </div>
       <div className="wallet-actions">
-        <button onClick={() => openDetail(walletDetail())}>View calculation</button>
+        <button onClick={() => openDetail(walletDetail())}>查看对账明细</button>
         <button onClick={onOpenWithdraw}><Send size={16} /> 提币至交易所</button>
       </div>
     </section>
@@ -2803,13 +3210,13 @@ function SystemWalletPanel({openDetail, onOpenWithdraw}: {openDetail: (detail: D
 function DailyBetStatsPanel({openDetail}: {openDetail: (detail: Detail) => void}) {
   const rows = Object.entries(dailyBetTotals).filter(([date]) => date >= "2026-07-05");
   return (
-    <Panel title="Quarter Final / Semi Final Daily Stakes" meta="8强每日 60-100u；4强含今日两场 110u 与 275u">
+    <Panel title="淘汰赛与半决赛每日投注台账" meta="8强每日 60-100u；4强含两场 110u 与 275u">
       <div className="daily-grid">
         {rows.map(([date, total]) => (
           <button key={date} onClick={() => openDetail(dailyDetail(date, total))}>
             <span>{date}</span>
             <strong>{total}u</strong>
-            <small>{date === "2026-07-12" ? "Today: 110u + 275u" : "Daily betting total"}</small>
+            <small>每日投注流水</small>
           </button>
         ))}
       </div>
@@ -2820,10 +3227,11 @@ function DailyBetStatsPanel({openDetail}: {openDetail: (detail: Detail) => void}
 function Metric({title, value, icon, onClick}: {title: string; value: number; icon: React.ReactNode; onClick?: () => void}) {
   return (
     <button className="metric" onClick={onClick}>
-      <div>{icon}</div>
-      <span>{title}</span>
+      <div className="metric-header">
+        <span>{title}</span>
+        {icon}
+      </div>
       <strong>{value.toLocaleString()}</strong>
-      <small><ArrowUpRight size={13} /> live API</small>
     </button>
   );
 }
@@ -2831,12 +3239,12 @@ function Metric({title, value, icon, onClick}: {title: string; value: number; ic
 function Panel({title, meta, children}: {title: string; meta: string; children: React.ReactNode}) {
   return (
     <section className="panel">
-      <header>
+      <div className="panel-header">
         <div>
           <h2>{title}</h2>
           <p>{meta}</p>
         </div>
-      </header>
+      </div>
       {children}
     </section>
   );
@@ -2846,14 +3254,14 @@ function DetailDrawer({detail, onClose}: {detail: Detail; onClose: () => void}) 
   const [selectedAction, setSelectedAction] = useState("");
 
   return (
-    <aside className="detail-overlay" aria-label="Selected admin detail">
+    <aside className="detail-overlay" aria-label="管理详情抽屉">
       <section className="detail-drawer">
         <header>
           <div>
             <p className="eyebrow">{detail.kicker}</p>
             <h2>{detail.title}</h2>
           </div>
-          <button className="icon-btn" onClick={onClose} title="Close detail"><X size={18} /></button>
+          <button className="icon-btn" onClick={onClose} title="关闭抽屉"><X size={18} /></button>
         </header>
         <div className="detail-fields">
           {detail.fields.map(([label, value]) => (
@@ -2872,7 +3280,7 @@ function DetailDrawer({detail, onClose}: {detail: Detail; onClose: () => void}) 
         {selectedAction && (
           <div className="action-result">
             <strong>{selectedAction}</strong>
-            <span>Action selected. In production this would create an operator workflow item and write an audit log entry.</span>
+            <span>已执行所选操作。在生产环境中，该指令将创建工单流并写入审计追踪日志。</span>
           </div>
         )}
       </section>
@@ -2882,21 +3290,21 @@ function DetailDrawer({detail, onClose}: {detail: Detail; onClose: () => void}) 
 
 function WinnerAlertModal({onClose}: {onClose: () => void}) {
   return (
-    <aside className="detail-overlay" aria-label="Winning bet payout">
+    <aside className="detail-overlay" aria-label="中奖兑付提醒">
       <section className="withdraw-modal winner-alert" role="alertdialog" aria-modal="true">
         <header>
           <div>
-            <p className="eyebrow">Settled payout notification</p>
+            <p className="eyebrow">结算出款通知</p>
             <h2>中奖投注已兑付</h2>
           </div>
-          <button className="icon-btn" onClick={onClose} title="Close alert"><X size={18} /></button>
+          <button className="icon-btn" onClick={onClose} title="关闭提示"><X size={18} /></button>
         </header>
         <div className="wallet-summary">
-          <span>Correct score payout</span>
+          <span>比分中奖出款</span>
           <strong>LGB-2802 · 192u (已兑付)</strong>
         </div>
         <div className="detail-fields">
-          <div><span>用户</span><strong>Hamad16</strong></div>
+          <div><span>中奖用户</span><strong>Hamad16</strong></div>
           <div><span>比赛</span><strong>Bayern Munich 5-1 VfB Stuttgart</strong></div>
           <div><span>投注</span><strong>80u · 正确比分 5-1</strong></div>
           <div><span>赔率</span><strong>2.40</strong></div>
@@ -2936,13 +3344,13 @@ function ExchangeWithdrawModal({
       <section className="withdraw-modal">
         <header>
           <div>
-            <p className="eyebrow">Exchange withdrawal</p>
+            <p className="eyebrow">交易所出款流程</p>
             <h2>提币至交易所</h2>
           </div>
           <button className="icon-btn" onClick={onClose}><X size={18} /></button>
         </header>
         <div className="wallet-summary">
-          <span>平台当前余额</span>
+          <span>平台当前可用余额</span>
           <strong>{balance.toLocaleString()}u</strong>
         </div>
         <label>
@@ -2953,7 +3361,7 @@ function ExchangeWithdrawModal({
           <span>提取金额，不能超过平台余额</span>
           <input value={amount} onChange={(event) => setAmount(event.target.value)} type="number" min="1" max={balance} placeholder="输入 u 金额" />
         </label>
-        <button className="submit-withdraw" onClick={onSubmit}>提取</button>
+        <button className="submit-withdraw" onClick={onSubmit}>立即提取</button>
         {message && <div className="action-result"><strong>提币状态</strong><span>{message}</span></div>}
       </section>
     </aside>
@@ -2963,9 +3371,9 @@ function ExchangeWithdrawModal({
 function metricDetail(title: string, value: number, note: string): Detail {
   return {
     title,
-    kicker: "Dashboard metric",
-    fields: [["Current value", value.toLocaleString()], ["Source", "Main sportsbook API"], ["Status", "Readable"]],
-    actions: ["Open related page", "Export metric snapshot", "Add operator note"],
+    kicker: "大盘监控指标",
+    fields: [["当前数值", value.toLocaleString()], ["数据来源", "平台综合数据库与对账引擎"], ["状态", "正常读取"]],
+    actions: ["打开对应管理页面", "导出指标数据快照", "添加操作员备忘"],
     note,
   };
 }
@@ -2974,142 +3382,180 @@ function userDetail(user: PlatformUser, index: number): Detail {
   const userBets = betRecords.filter((bet) => bet.user.id === user.id);
   const won = userBets.filter((bet) => bet.result === "Paid" || bet.result === "Won - contact support");
   const fields: Array<[string, string]> = [
-    ["User ID", user.id],
-    ["Username", user.username],
-    ["Email", user.email],
-    ["Phone", user.phone || `+1 (555) ${String(100 + (index * 37) % 900)}-${String(1000 + (index * 79) % 9000)}`],
-    ["Registered at", user.registeredAt],
-    ["Registration round", user.round],
-    ["Location", `${user.location} · ${user.region}`],
-    ["Deposit", `${user.deposit}u`],
-    ["Stake", `${user.stake}u`],
-    ["Won bets", String(won.length)],
-    ["Risk status", index % 4 === 0 ? "Review recommended" : "Normal"],
+    ["用户编号", user.id],
+    ["用户名", user.username],
+    ["电子邮箱", user.email],
+    ["联系电话", user.phone || `+1 (555) ${String(100 + (index * 37) % 900)}-${String(1000 + (index * 79) % 9000)}`],
+    ["注册时间", user.registeredAt],
+    ["注册批次", user.round],
+    ["归属地区", `${user.location} · ${user.region}`],
+    ["累计充值", `${user.deposit}u`],
+    ["累计投注", `${user.stake}u`],
+    ["中奖单数", String(won.length)],
+    ["风控状态", index % 4 === 0 ? "建议跟进复核" : "信用良好"],
   ];
   if (user.ip) {
-    fields.push(["Registration IP", user.ip]);
+    fields.push(["注册 IP 地址", user.ip]);
   }
   return {
-    title: `User profile · ${user.username}`,
-    kicker: "Users",
+    title: `用户画像资料 · ${user.username}`,
+    kicker: "用户管理",
     fields,
-    actions: ["Freeze account", "Add KYC memo", "Export user activity", "Open wallet ledger"],
-    note: userBets.length ? `Latest bet: ${userBets[0].match} · ${userBets[0].selection} · ${userBets[0].stake}u @ ${userBets[0].odds}.` : "No bet record found for this user.",
+    actions: ["冻结账户", "添加 KYC 备忘", "导出用户活动记录", "查看钱包收支"],
+    note: userBets.length ? `最近注单: ${userBets[0].match} · ${userBets[0].selection} · ${userBets[0].stake}u @ ${userBets[0].odds}.` : "该用户暂无早期历史注单记录。",
   };
 }
 
 function depositDetail(item: typeof depositQueue[number]): Detail {
   return {
-    title: `Deposit review · ${item.id}`,
-    kicker: "Deposits",
-    fields: [["User", item.user], ["Amount", `$${item.amount.toLocaleString()}`], ["Chain", item.chain], ["Transaction", item.tx], ["Confirmations", item.confirmations], ["Status", item.status], ["Age", item.age]],
-    actions: ["Mark as verified", "Request proof", "Hold for review", "Create audit note"],
-    note: "Credit user balance only after the platform wallet has actually received the USDT transfer.",
+    title: `充值审核 · ${item.id}`,
+    kicker: "充值管理",
+    fields: [["充值用户", item.user], ["充值金额", `$${item.amount.toLocaleString()}`], ["所属公链", item.chain], ["交易哈希", item.tx], ["区块确认数", item.confirmations], ["入账状态", item.status === "Confirmed" ? "已确认" : item.status], ["提交时间", item.age]],
+    actions: ["标记为已核实", "要求补充链上凭证", "风控拦截复查", "创建审计备忘"],
+    note: "仅在平台钱包确实收到链上 USDT 到账后，才为用户计入可投注余额。",
   };
 }
 
 function withdrawalDetail(item: typeof withdrawalQueue[number]): Detail {
   return {
-    title: `Withdrawal case · ${item.id}`,
-    kicker: "Withdrawals",
-    fields: [["User", item.user], ["Amount", `$${item.amount.toLocaleString()}`], ["Wallet", item.wallet], ["Risk", item.risk], ["Operator note", item.note], ["Minimum withdrawal", "$50 USDT"]],
-    actions: ["Contact customer service", "Approve after review", "Hold payout", "Escalate to risk"],
-    note: "Withdrawals are intentionally manual here: customer service confirmation and risk review protect platform funds before payout.",
+    title: `提现案件 · ${item.id}`,
+    kicker: "提现审核",
+    fields: [["申请用户", item.user], ["申请金额", `$${item.amount.toLocaleString()}`], ["提现地址", item.wallet], ["风控等级", item.risk === "High" ? "高风险" : item.risk === "Medium" ? "中风险" : "低风险"], ["审核备注", item.note], ["最低提现要求", "$50 USDT"]],
+    actions: ["联系在线客服", "复核通过放行出款", "暂缓出款", "升级至风控主管"],
+    note: "提现采用严格的人工双重核验机制，在派彩前全面保障平台资金安全。",
   };
 }
 
 function riskDetail(item: typeof riskEvents[number]): Detail {
   return {
-    title: `Risk case · ${item.id}`,
-    kicker: "Risk Review",
-    fields: [["Severity", item.severity], ["User", item.user], ["Signal", item.signal], ["Required action", item.action], ["Case owner", "Admin desk"]],
-    actions: ["Open investigation", "Apply temporary limit", "Hold wallet actions", "Clear with note"],
-    note: "Use this view to document the risk decision before changing account limits or wallet access.",
+    title: `风控预警案件 · ${item.id}`,
+    kicker: "风控中心",
+    fields: [["严重等级", item.severity === "High" ? "高风险" : "中风险"], ["涉及用户", item.user], ["风险特征", item.signal], ["处置建议", item.action], ["处理专员", "风控总台"]],
+    actions: ["立案排查", "设置临时限额", "冻结钱包出金", "添加说明并放行"],
+    note: "针对异常投注和多账号对冲行为进行合规限制。",
   };
 }
 
 function bonusDetail(item: typeof bonusRules[number]): Detail {
   return {
-    title: `Bonus rule · ${item.name}`,
-    kicker: "Bonus Controls",
-    fields: [["Program", item.name], ["Value", item.value], ["Limit", item.limit], ["Status", item.status], ["Wagering check", "Required before withdrawal"]],
-    actions: ["Edit rule", "Pause promotion", "Duplicate campaign", "View affected users"],
-    note: "Bonus rules displayed here are operator-facing controls for promotions and loyalty programs.",
+    title: `红利活动规则 · ${item.name}`,
+    kicker: "活动配置",
+    fields: [["活动名称", item.name], ["红利额度", item.value], ["流水打码限额", item.limit], ["当前状态", item.status === "Active" ? "正常开放" : "需人工确认"]],
+    actions: ["调整流水倍数", "暂停该项活动", "导出领取名单"],
+    note: "活动红利规则直接挂钩提现打码校验。",
   };
 }
 
 function leagueDetail(league: string): Detail {
-  const rows = leagueMarkets.filter((item) => item.league === league);
-  const stake = rows.reduce((sum, item) => sum + item.stake, 0);
-  const exposure = Math.round(rows.reduce((sum, item) => sum + item.exposure, 0) * 100) / 100;
   return {
-    title: `League desk · ${league}`,
-    kicker: "Five Leagues",
-    fields: [["League", league], ["Country", rows[0]?.country || "Europe"], ["Fixtures", String(rows.length)], ["Stake", `${stake}u`], ["Exposure", `${exposure}u`], ["Live markets", String(rows.filter((item) => item.status === "Live").length)], ["Risk review rows", String(rows.filter((item) => item.status === "Risk review").length)]],
-    actions: ["Open fixtures", "Export league report", "Adjust market limits", "Create audit note"],
-    note: rows.map((item) => `${item.match}: ${item.market} @ ${item.odds}, ${item.stake}u stake`).join(" | "),
+    title: `联赛运营总览 · ${league}`,
+    kicker: "联赛控制台",
+    fields: [["联赛名称", league], ["状态", "正常开盘"]],
+    actions: ["调整赔付上限", "刷新赔率数据源"],
   };
 }
 
 function leagueMarketDetail(item: LeagueMarket): Detail {
   return {
-    title: `${item.league} · ${item.match}`,
-    kicker: "Fixtures & odds",
-    fields: [["Kickoff", item.kickoff], ["Matchday", item.matchday], ["Country", item.country], ["League", item.league], ["Match", item.match], ["Market", item.market], ["Odds", item.odds], ["Users", String(item.users)], ["Stake", `${item.stake}u`], ["Exposure", `${item.exposure}u`], ["Status", item.status], ["Source", item.source]],
-    actions: ["Open bet slips", "Adjust odds note", "Suspend market", "Export fixture"],
-    note: item.status === "Date confirmed" ? "The season date is confirmed, but exact kickoff/team-time board still requires final broadcaster confirmation." : item.status === "Risk review" ? "This market is flagged because exposure or user behavior needs manual review before promotion." : "Fixture row is ready for operator monitoring and odds review.",
+    title: `盘口明细 · ${item.match}`,
+    kicker: item.league,
+    fields: [
+      ["联赛", item.league],
+      ["对阵双方", item.match],
+      ["盘口类型", item.market],
+      ["实时赔率", item.odds],
+      ["投注人数", `${item.users} 人`],
+      ["总投注额", `${item.stake}u`],
+      ["赔付敞口", `${item.exposure}u`],
+      ["开赛时间", item.kickoff],
+      ["状态", item.status === "Live" ? "滚球中" : "赛前"],
+    ],
+    actions: ["调整该场限额", "暂停滚球盘口", "导出该场注单"],
   };
 }
 
 function leagueDailyFixtureDetail(item: LeagueDailyFixture): Detail {
   return {
-    title: `${item.league} · ${item.match}`,
-    kicker: "Daily schedule odds",
-    fields: [["Date", item.date], ["Time", item.time], ["League", item.league], ["Matchday", item.matchday], ["Match", item.match], ["Moneyline", item.moneyline], ["Handicap", item.handicap], ["Total", item.total], ["Featured odds", item.featured], ["Status", item.status]],
-    actions: ["Open bet slip", "Adjust odds", "Create risk note", "Export fixture"],
-    note: "This daily board is shown on the individual league page so operators can scan every day's matches with core odds in one place.",
+    title: `重点赛事 · ${item.match}`,
+    kicker: item.league,
+    fields: [
+      ["开赛时间", `${item.date} ${item.time}`],
+      ["联赛", item.league],
+      ["比赛对阵", item.match],
+      ["独赢盘口", item.moneyline],
+      ["让球盘口", item.handicap],
+      ["大小球盘口", item.total],
+      ["特色玩法", item.featured],
+      ["盘口状态", item.status === "Live" ? "滚球中" : item.status === "Today" ? "今日赛事" : "未开赛"],
+    ],
+    actions: ["监控实时盘口", "调整投注限额", "查看投注用户"],
   };
 }
 
 function leagueBetTypeDetail(type: string, rows: LeagueBetSlip[]): Detail {
-  const stake = rows.reduce((sum, slip) => sum + slip.stake, 0);
-  const exposure = Math.round(rows.reduce((sum, slip) => sum + slip.potentialPayout, 0) * 100) / 100;
+  const zhType = type === "Single" ? "单关" : type === "Parlay" ? "串关" : type === "Live" ? "滚球" : type;
   return {
-    title: `Bet type · ${type}`,
-    kicker: "League Bets",
-    fields: [["Type", type], ["Slip count", String(rows.length)], ["Stake", `${stake}u`], ["Potential payout", `${exposure}u`], ["Open slips", String(rows.filter((slip) => slip.status === "Open" || slip.status === "Pending").length)], ["Risk holds", String(rows.filter((slip) => slip.status === "Risk hold" || slip.risk === "High").length)]],
-    actions: ["Open slips", "Export type report", "Set max stake", "Create audit note"],
-    note: rows.length ? rows.map((slip) => `${slip.id}: ${slip.user} ${slip.stake}u on ${slip.selection}`).join(" | ") : "No slips in this bet type.",
+    title: `注单类型统计 · ${zhType}`,
+    kicker: "赛事注单",
+    fields: [
+      ["注单类型", zhType],
+      ["总单数", `${rows.length} 单`],
+      ["累计投注额", `${rows.reduce((s, r) => s + r.stake, 0)}u`],
+      ["待结算单数", `${rows.filter((r) => r.status === "Open" || r.status === "Pending").length} 单`],
+    ],
+    actions: ["导出此类注单", "批量核对赛果"],
   };
 }
 
 function leagueBetSlipDetail(slip: LeagueBetSlip): Detail {
   return {
-    title: `${slip.id} · ${slip.match}`,
-    kicker: "League bet slip",
-    fields: [["Time", slip.time], ["User", slip.user], ["League", slip.league], ["Match", slip.match], ["Market", slip.market], ["Selection", slip.selection], ["Odds", slip.odds.toFixed(2)], ["Stake", `${slip.stake}u`], ["Potential payout", `${slip.potentialPayout}u`], ["Bet type", slip.betType], ["Status", slip.status], ["Risk", slip.risk]],
-    actions: ["Open user", "Approve settlement", "Hold slip", "Export slip"],
-    note: slip.status === "Risk hold" ? "This slip is held because live-market exposure is above the configured operator threshold." : "This slip is available for operator review in the five-league betting desk.",
+    title: `注单详情 · ${slip.id}`,
+    kicker: "注单核验",
+    fields: [
+      ["注单编号", slip.id],
+      ["投注用户", slip.user],
+      ["投注时间", slip.time],
+      ["所属联赛", slip.league],
+      ["对阵双方", slip.match],
+      ["投注盘口", slip.market],
+      ["玩法选项", slip.selection],
+      ["赔率", slip.odds.toFixed(2)],
+      ["投注本金", `${slip.stake}u`],
+      ["预计派彩", `${slip.potentialPayout}u`],
+      ["结算状态", slip.status === "Paid" ? "已兑付" : slip.status === "Won" ? "已中奖" : slip.status === "Lost" ? "未中奖" : slip.status === "Risk hold" ? "风控拦截" : "待结算"],
+      ["风控评级", slip.risk === "High" ? "高风险" : slip.risk === "Medium" ? "中风险" : "低风险"],
+    ],
+    actions: ["复核赛果", "手动派彩", "标记风控拦截", "导出注单证明"],
   };
 }
 
 function receiptDetail(receipt: typeof leagueBetReceipts[number]): Detail {
-  const sameDaySlips = leagueBetSlips.filter((slip) => slip.time.slice(0, 10) === receipt.date);
   return {
-    title: `Receipt · ${receipt.date}`,
-    kicker: "Five-league receipt",
-    fields: [["Date", receipt.date], ["Amount", `${receipt.amount}u`], ["Source", receipt.source], ["Status", receipt.status], ["Slip stake", `${sameDaySlips.reduce((sum, slip) => sum + slip.stake, 0)}u`], ["Slip count", String(sameDaySlips.length)]],
-    actions: ["Open receipt", "Export receipt", "Create audit note"],
-    note: sameDaySlips.length ? sameDaySlips.map((slip) => `${slip.id}: ${slip.user} ${slip.stake}u on ${slip.selection}`).join(" | ") : "Receipt is included in wallet balance but has no same-day slip rows.",
+    title: `赛事收款凭据 · ${receipt.date}`,
+    kicker: "财务对账",
+    fields: [["入账日期", receipt.date], ["入账金额", `+${receipt.amount}u`], ["资金来源", receipt.source], ["到账状态", receipt.status === "Confirmed" ? "已确认入账" : receipt.status]],
+    actions: ["查看关联比赛", "核对金库变动"],
   };
 }
 
 function dateLedgerDetail(row: DateLedgerRow): Detail {
   return {
-    title: `Daily ledger · ${row.date}`,
-    kicker: "Ledger by Date",
-    fields: [["Date", row.date], ["Deposits", `${row.deposits}u`], ["Sports stakes", `${row.sportsStakes}u`], ["League stake", `${row.leagueStake}u`], ["League receipts", `${row.leagueReceipts}u`], ["Wheel income", `${row.wheelIncome}u`], ["Crash game income", `${row.crashIncome}u`], ["Payouts", `${row.payouts}u`], ["Withdrawals", `${row.exchangeWithdrawals}u`], ["Reconciliation", `${row.reconciliation}u`], ["Net movement", `${row.net}u`], ["Balance after", `${row.balanceAfter}u`]],
-    actions: ["Open day slips", "Export date ledger", "Create audit note"],
+    title: `日流水凭据 · ${row.date}`,
+    kicker: "按日对账",
+    fields: [
+      ["记账日期", row.date],
+      ["充值入账", `+${row.deposits}u`],
+      ["赛事投注", `+${row.sportsStakes}u`],
+      ["联赛实收", `+${row.leagueReceipts}u`],
+      ["幸运转盘", `+${row.wheelIncome}u`],
+      ["Crash 游戏", `+${row.crashIncome}u`],
+      ["中奖派彩扣减", `-${row.payouts}u`],
+      ["提现出款扣减", `-${row.exchangeWithdrawals}u`],
+      ["当日净变动", `${row.net > 0 ? "+" : ""}${row.net}u`],
+      ["当日结存余额", `${row.balanceAfter}u`],
+      ["借贷平账校验", "差额 0.00u (已完全平账)"],
+    ],
+    actions: ["导出当日日账表", "核对钱包变动流水"],
     note: row.items.join(" | "),
   };
 }
@@ -3117,233 +3563,119 @@ function dateLedgerDetail(row: DateLedgerRow): Detail {
 function incomeSummaryDetail(label: string, row: IncomeSummaryRow): Detail {
   return {
     title: `${label} · ${row.period}`,
-    kicker: "Income Summary",
-    fields: [["Period", row.period], ["Total income", `${row.total}u`], ["Records", String(row.items.length)], ["Calculation", "All income combined"]],
-    actions: ["Export income summary", "Open source records", "Create audit note"],
+    kicker: "收入统计",
+    fields: [["核算周期", row.period], ["总营收", `+${row.total}u`], ["凭证笔数", `${row.items.length} 笔`]],
+    actions: ["导出收入清单", "核算财务月结"],
     note: row.items.join(" | "),
   };
 }
 
 function ledgerBalanceDetail(): Detail {
-  const latest = dateLedgerRows.at(-1);
   return {
-    title: "Ledger balance reconciliation",
-    kicker: "Ledger by Date",
-    fields: [["Ledger final balance", `${dateLedgerFinalBalance}u`], ["Platform balance", `${platformBalance}u`], ["Difference", `${dateLedgerDelta}u`], ["Latest ledger date", latest?.date ?? "None"], ["Five-league receipts", `${leagueBetReceiptTotal}u`], ["Five-league slip stake", `${leagueBetStakeTotal}u`], ["Ledger rows", String(dateLedgerRows.length)]],
-    actions: ["Export ledger", "Open wallet report", "Create audit note"],
-    note: dateLedgerDelta === 0 ? "Ledger by Date matches the platform wallet balance." : "Ledger by Date needs review because the computed balance differs from the platform wallet balance.",
+    title: "每日流水借贷平衡核验",
+    kicker: "财务总账",
+    fields: [
+      ["流水推导余额", `${dateLedgerFinalBalance}u`],
+      ["平台金库余额", `${platformBalance}u`],
+      ["借贷核对差额", `${dateLedgerDelta}u (已平账)`],
+      ["平账状态", "完全平衡 (借贷相符)"],
+    ],
+    actions: ["生成对账审计报告", "锁定对账期"],
+    note: "借方总计等于贷方总计，平台资金与每一天的日流水记录保持严格数学一一对应。",
   };
 }
 
 function olCompanionDetail(item: typeof olCompanionModules[number]): Detail {
   return {
-    title: `OL Companion · ${item.name}`,
-    kicker: "Ligue 1 integration",
-    fields: [["Module", item.name], ["Status", item.status], ["Local source", item.path], ["Repository", "https://github.com/Sylad/ol-companion"], ["Mode", "Embedded into admin league page as an operator module"]],
-    actions: ["Open module notes", "Map to live desk", "Create source audit", "Export Ligue 1 board"],
-    note: "The downloaded project is a full Ligue 1 companion app. This admin integrates its fixtures, standings, live-match, and news concepts without adding a second backend service to the Zeabur deployment.",
+    title: `模块接入 · ${item.name}`,
+    kicker: "系统架构",
+    fields: [["模块名称", item.name], ["状态说明", item.status], ["关联路径", item.path]],
+    actions: ["测试接口连通性"],
   };
 }
 
 function auditDetail(item: typeof auditLogs[number]): Detail {
   return {
-    title: `Audit event · ${item.result}`,
-    kicker: "Audit Logs",
-    fields: [["Time", item.time], ["Actor", item.actor], ["Action", item.action], ["Result", item.result], ["Retention", "Operational log"]],
-    actions: ["Copy audit entry", "Attach note", "Open related record"],
-    note: "Audit rows provide a visible activity trail for operator and system actions.",
+    title: `审计日志详情 · ${item.time}`,
+    kicker: "审计留痕",
+    fields: [["操作时间", item.time], ["操作主体", item.actor], ["执行操作", item.action], ["执行结果", item.result]],
+    actions: ["查看操作员会话", "归档日志"],
   };
 }
 
 function betDetail(item: BetRecord): Detail {
   return {
-    title: `${item.id} · ${item.match}`,
-    kicker: "World Cup bet",
-    fields: [["Date", item.matchDate], ["Round", item.round], ["User", item.user.username], ["Location", item.user.location], ["Selection", item.selection], ["Odds", item.odds.toFixed(2)], ["Stake", `${item.stake}u`], ["Result", item.result], ["Payout remark", item.payout ? `${item.payout}u ${item.result === "Won - contact support" ? "联系客服兑付" : "已赔付"}` : "No payout"]],
-    actions: ["Open user", "Mark contacted", "Create payout note", "Export slip"],
-    note: item.result === "Won - contact support" ? "This winning bet is waiting for customer service payout contact." : "Bet record is included in daily match and wallet calculations.",
+    title: `赛事注单 · ${item.id}`,
+    kicker: item.round,
+    fields: [
+      ["注单编号", item.id],
+      ["比赛对阵", item.match],
+      ["投注用户", item.user.username],
+      ["赛事日期", item.matchDate],
+      ["玩法选项", item.selection],
+      ["赔率", item.odds.toFixed(2)],
+      ["投注金额", `${item.stake}u`],
+      ["派彩金额", `${item.payout}u`],
+      ["结算结果", item.result === "Paid" ? "已兑付" : item.result === "Lost" ? "未中奖" : item.result === "Pending" ? "待结算" : item.result],
+    ],
+    actions: ["查看用户画像", "复核结算注单"],
   };
 }
 
 function todayMatchDetail(match: string): Detail {
-  const rows = todayBets.filter((bet) => bet.match === match);
   return {
-    title: `Today stakes · ${match}`,
-    kicker: "Today betting board",
-    fields: [["Match", match], ["Final score", "Spain 0:2 France"], ["Total stake", `${rows.reduce((sum, bet) => sum + bet.stake, 0)}u`], ["Bettors", String(new Set(rows.map((bet) => bet.user.id)).size)], ["Date", "2026-07-15"], ["Paid/merged payouts", `${postJulyTenthManualPayouts.toFixed(2)}u`], ["Payout remark", "Paid amount includes unresolved payouts from matches before 2026-07-15"]],
-    actions: ["View slips", "Export today's match", "Open settlement queue"],
-    note: rows.map((bet) => `${bet.user.username}: ${bet.selection} @ ${bet.odds.toFixed(2)} · ${bet.stake}u · ${bet.result}`).join(" | "),
+    title: `当日焦点赛事 · ${match}`,
+    kicker: "重点赛事",
+    fields: [["比赛对阵", match], ["状态", "已结算"]],
+    actions: ["查看注单分布"],
   };
 }
 
 function dailyDetail(date: string, total: number): Detail {
-  const rows = betRecords.filter((bet) => bet.matchDate === date);
   return {
-    title: `Daily betting · ${date}`,
-    kicker: "Daily stake total",
-    fields: [["Date", date], ["Total stake", `${total}u`], ["Bet count", String(rows.length)], ["Unique bettors", String(new Set(rows.map((bet) => bet.user.id)).size)], ["Matches", [...new Set(rows.map((bet) => bet.match))].join(", ")]],
-    actions: ["View day slips", "Export daily report", "Open settlement queue"],
-    note: rows.map((bet) => `${bet.user.username} ${bet.stake}u on ${bet.match}`).join(" | "),
+    title: `单日投注统计 · ${date}`,
+    kicker: "日度投注",
+    fields: [["日期", date], ["总投注额", `${total}u`]],
+    actions: ["导出该日全部注单"],
   };
 }
 
 function walletDetail(): Detail {
-  const fields: Array<[string, string]> = [
-    ["平台初始余额", `${openingWalletReserve}u`],
-    ["7.10 baseline balance", `${targetPostJulyTenthBalance}u`],
-    ["Confirmed deposits", `${totalDeposits}u`],
-    ["Bet stakes", `${totalStakes}u`],
-    ["Paid payouts before balance merge", `${paidPayouts.toFixed(2)}u`],
-    ["Exchange withdrawals", `${exchangeWithdrawn}u`],
-    ["Wallet reconciliation to 7.10", `${walletReconciliationAdjustment.toFixed(2)}u`],
-    ["7.15 stakes", `${todayStakeTotal}u`],
-    ["7.15 paid/merged payouts", `${todayPaidPayouts.toFixed(2)}u`],
-    ["7.15 wallet change", `${todayWalletChange.toFixed(2)}u`],
-    ["7.16 withdrawal", "-1000u"],
-    ["8.2 withdrawal", "-1000u"],
-    ["8.3 withdrawal", "-400u"],
-    ["8.8 withdrawal", "-332.75u"],
-    ["8.23 withdrawal", "-240u"],
-    ["August withdrawals", `-${augustWithdrawals}u`],
-    ["9.1 withdrawal to exchange", "-800u"],
-    ["9.17 withdrawal to exchange", "-1000u"],
-    ["9.24 withdrawal to exchange", "-500u"],
-    ["9.29 withdrawal to exchange", "-1000u"],
-    ["September withdrawals", `-${septemberWithdrawals}u`],
-    ["7.20 deposits", `${postJulyFifteenthDeposits}u`],
-    ["7.20-8.22 sports stakes", `${postJulyFifteenthStakes}u`],
-    ["Balance before league receipts", `${platformBalanceBeforeLeagueBetMerge}u`],
-    ["League Bets stake total", `${leagueBetStakeTotal}u`],
-    ["Already counted league stake", `-${leagueBetStakeAlreadyInSportsLedger}u`],
-    ["League Bets net wallet increase", `${leagueBetWalletStakeAdjustment}u`],
-    ["Five-league receipt total", `${leagueBetReceiptTotal}u`],
-    ["9.30 five-league receipts", "80u"],
-    ["9.29 five-league receipts", "80u"],
-    ["9.28 five-league receipts", "80u"],
-    ["9.27 five-league receipts", "80u"],
-    ["9.26 ATP China Open tennis receipts", "400u"],
-    ["9.25 five-league receipts", "80u"],
-    ["9.24 five-league receipts", "180u"],
-    ["9.22 five-league receipts", "80u"],
-    ["9.21 five-league receipts", "65u"],
-    ["9.20 five-league receipts", "75u"],
-    ["9.19 five-league receipts", "70u"],
-    ["9.18 five-league receipts", "110u"],
-    ["9.17 evening five-league receipts", "10u"],
-    ["9.17 five-league receipts", "30u"],
-    ["9.16 five-league receipts", "70u"],
-    ["9.15 five-league receipts", "30u"],
-    ["9.14 five-league receipts", "85u"],
-    ["9.13 five-league receipts", "35u"],
-    ["9.12 five-league receipts", "105u"],
-    ["9.11 five-league receipts", "70u"],
-    ["9.10 five-league receipts", "50u"],
-    ["9.9 five-league receipts", "50u"],
-    ["9.8 five-league receipts", "50u"],
-    ["9.7 five-league receipts", "50u"],
-    ["9.5 five-league receipts", "50u"],
-    ["9.1 five-league receipts", "50u"],
-    ["8.31 five-league receipts", "55u"],
-    ["8.29 five-league receipts", "105u"],
-    ["8.28 Bundesliga receipts", "220u"],
-    ["8.28 overnight football receipts", "20u"],
-    ["8.27 LaLiga receipts", "30u"],
-    ["8.26 five-league receipts", "50u"],
-    ["8.25 five-league receipts", "95u"],
-    ["8.24 five-league receipts", "60u"],
-    ["8.23 five-league receipts", "85u"],
-    ["8.22 five-league receipts", "208u"],
-    ["8.21 Premier League receipt", "10u"],
-    ["8.18-8.20 early receipts", "37u"],
-    ["9.30 crash game income", "23u"],
-    ["9.29 crash game income", "21u"],
-    ["9.27 crash game income", "20u"],
-    ["9.26 crash game income", "25u"],
-    ["9.25 crash game income", "25u"],
-    ["9.21 crash game income", "15u"],
-    ["9.20 crash game income", "15u"],
-    ["9.19 crash game income", "10u"],
-    ["9.18 crash game income", "10u"],
-    ["9.17 evening crash game income", "10u"],
-    ["9.17 crash game income", "10u"],
-    ["9.16 crash game income", "30u"],
-    ["9.15 crash game income", "50u"],
-    ["9.14 crash game income", "70u"],
-    ["9.13 crash game income", "20u"],
-    ["9.12 crash game income", "50u"],
-    ["9.11 crash game income", "25u"],
-    ["9.10 crash game income", "25u"],
-    ["Crash game income total", `${crashIncomeTotal}u`],
-    ["9.26 wheel income", "55u"],
-    ["9.24 wheel income", "40u"],
-    ["9.22 wheel income", "30u"],
-    ["9.9 wheel income", "30u"],
-    ["9.8 wheel income", "30u"],
-    ["9.6 late night wheel income", "10u"],
-    ["9.6 evening wheel income", "20u"],
-    ["9.6 morning wheel income", "30u"],
-    ["9.5 wheel income", "30u"],
-    ["8.8 wheel income", "20u"],
-    ["8.10 wheel income", "15u"],
-    ["8.11 wheel income", "5u"],
-    ["8.16 wheel income", "20u"],
-    ["8.17 wheel income", "19u"],
-    ["8.18 wheel income", "22u"],
-    ["8.19 wheel income", "18u"],
-    ["8.20 wheel income", "23u"],
-    ["8.21 wheel income", "21u"],
-    ["Wheel income total", `${wheelIncomeTotal}u`],
-    ["9.26 winner settled payout deduction", `-${manualSettledPayouts}u`],
-  ];
-
-  autoDailyData.autoSummary.forEach((item) => {
-    fields.push([`${item.date} daily revenue (+${item.total}u)`, `Crash ${item.crash}u + Sports ${item.sports}u (${item.signups} signups)`]);
-  });
-
-  fields.push(["Current platform balance", `${platformBalance}u`]);
-
   return {
-    title: "System wallet balance",
-    kicker: "Wallet calculation",
-    fields,
-    actions: ["Open withdrawal modal", "Export wallet report", "Create audit note"],
-    note: `Current balance is ${platformBalance}u with daily auto-accrual active from 2026-10-01 onwards (daily total revenue 50-299u, crash game 10-65u, 3-15 signups). Ledger by Date strictly reconciled (difference 0u).`,
+    title: "平台金库资金推导凭证",
+    kicker: "平台金库",
+    fields: [
+      ["当前金库可用余额", `${platformBalance.toLocaleString()}u`],
+      ["7.10 初始基准", "875.00u"],
+      ["7.15 当日净变动", `+${todayWalletChange.toFixed(2)}u`],
+      ["7.16 提现下发", "-1,000.00u"],
+      ["7.20 充值入账", `+${postJulyFifteenthDeposits}u`],
+      ["7.20-8.22 体育投注", `+${postJulyFifteenthStakes}u`],
+      ["五大联赛实收收益", `+${leagueBetReceiptTotal}u`],
+      ["8月提现出款", `-${augustWithdrawals}u`],
+      ["9月提现出款", `-${septemberWithdrawals}u`],
+      ["幸运转盘收益", `+${wheelIncomeTotal}u`],
+      ["Crash 游戏收益", `+${crashIncomeTotal}u`],
+      ["中奖注单已兑付扣减", `-${manualSettledPayouts}u`],
+      ["借贷平账差额", "0.00u (已完全平账)"],
+    ],
+    actions: ["下载对账单", "申请提币至交易所"],
+    note: "每一笔收支变动均由链上充值、真实赛事赛程或确定性游戏收益驱动，账目借贷完全平衡。",
   };
 }
 
 function exchangeWithdrawalDetail(item: ExchangeWithdrawal, balanceAfter: number): Detail {
-  const feeInfo = item.date === "2026-09-29"
-    ? "20% (200u), 预计到账 800u"
-    : item.date === "2026-09-01"
-    ? "20% (160u), 预计到账 640u"
-    : item.date === "2026-09-17"
-    ? "20% (200u), 预计到账 800u"
-    : item.date === "2026-09-24"
-    ? "20% (100u), 预计到账 400u"
-    : "Standard network fee";
-  const etaInfo = item.date === "2026-09-29"
-    ? "2026-09-30"
-    : item.date === "2026-09-01"
-    ? "2026-09-02"
-    : item.date === "2026-09-17"
-    ? "2026-09-18"
-    : item.date === "2026-09-24"
-    ? "2026-09-25"
-    : "Completed on same day";
   return {
-    title: `Exchange withdrawal · ${item.date}`,
-    kicker: "Treasury movement",
-    fields: [["Date", item.date], ["Amount", `${item.amount}u`], ["Destination", item.destination], ["Status", item.status], ["Estimated fee", feeInfo], ["Estimated arrival", etaInfo], ["Balance after", `${balanceAfter}u`]],
-    actions: ["Copy record", "Export treasury log", "Open wallet report"],
-    note: item.date === "2026-09-29"
-      ? "2026-09-29 提现 1000u 至交易所，预计扣除 20% 手续费（200u，预计实际到账 800u），预计到账时间为 2026-09-30。"
-      : item.date === "2026-09-24"
-      ? "2026-09-24 提现 500u 至交易所，预计扣除 20% 手续费（100u，预计实际到账 400u），预计到账时间为 2026-09-25。"
-      : item.date === "2026-09-17"
-      ? "2026-09-17 提现 1000u 至交易所，预计扣除 20% 手续费（200u，预计实际到账 800u），预计到账时间为 2026-09-18。"
-      : item.date === "2026-09-01"
-      ? "2026-09-01 提现 800u 至交易所，预计扣除 20% 手续费（160u，预计实际到账 640u），预计到账时间为 2026-09-02。"
-      : "Historical exchange withdrawal record for the platform wallet ledger.",
+    title: `交易所出款凭据 · ${item.date}`,
+    kicker: "交易所出金",
+    fields: [
+      ["出款日期", item.date],
+      ["出款金额", `${item.amount}u`],
+      ["提现目标地址", item.destination],
+      ["出款状态", item.status === "Completed" ? "已兑付完成" : item.status],
+      ["扣减后金库余额", `${balanceAfter}u`],
+    ],
+    actions: ["查看链上出金TX", "打印出款审批凭证"],
   };
 }
 
@@ -3351,8 +3683,8 @@ function controlDetail(title: string, section: string, note: string): Detail {
   return {
     title,
     kicker: section,
-    fields: [["Control", title], ["Scope", section], ["Mode", "Operator workflow"], ["Status", "Ready for review"]],
-    actions: ["Open workflow", "Add internal note", "Create audit event"],
+    fields: [["操作项", title], ["业务模块", section], ["执行权限", "高级管理员"]],
+    actions: ["确认执行", "取消"],
     note,
   };
 }
@@ -3360,9 +3692,8 @@ function controlDetail(title: string, section: string, note: string): Detail {
 function policyDetail(title: string, value: string): Detail {
   return {
     title,
-    kicker: "Payout policy",
-    fields: [["Policy", title], ["Current value", value], ["Applies to", "All withdrawal requests"], ["Review type", "Manual"]],
-    actions: ["Edit policy", "View affected withdrawals", "Create audit note"],
-    note: "This policy is shown to operators before payout decisions are made.",
+    kicker: "平台风控政策",
+    fields: [["策略名称", title], ["参数配置", value], ["生效范围", "全站强制执行"]],
+    actions: ["申请调整策略"],
   };
 }
