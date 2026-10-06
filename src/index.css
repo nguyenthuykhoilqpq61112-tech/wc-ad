@@ -2910,3 +2910,45 @@ nav button:hover,
   color: #334155 !important;
   font-weight: 700 !important;
 }
+
+
+/* ========================================================
+   最上面一排（工作区顶栏 Topbar）滚动吸顶固定
+======================================================== */
+.topbar {
+  position: sticky !important;
+  top: 0 !important;
+  z-index: 100 !important;
+  background: #f8fafc !important;
+  padding: 14px 20px !important;
+  margin: -24px -24px 20px -24px !important;
+  border-bottom: 1px solid #e2e8f0 !important;
+  box-shadow: 0 4px 16px rgba(15, 23, 42, 0.06) !important;
+}
+
+/* 表格表头（Table Header）滚动吸顶固定，保持在 topbar 下方紧贴 */
+.daily-master-table {
+  overflow-x: auto !important;
+  position: relative !important;
+}
+
+.daily-master-table .data-head {
+  position: sticky !important;
+  top: 73px !important;
+  z-index: 90 !important;
+  background: #f1f5f9 !important;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.06) !important;
+}
+
+.daily-activity-table .data-head,
+.activity-table .data-head,
+.bets-table .data-head,
+.league-table .data-head,
+.league-detail-table .data-head,
+.league-bets-table .data-head {
+  position: sticky !important;
+  top: 73px !important;
+  z-index: 85 !important;
+  background: #f1f5f9 !important;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.06) !important;
+}
