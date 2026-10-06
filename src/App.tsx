@@ -2170,41 +2170,53 @@ export function App() {
 
   if (!session) {
     return (
-      <main className="login-shell">
-        <section className="login-panel">
-          <div className="lockmark"><Lock size={22} /></div>
-          <p className="eyebrow">私有运营后台认证</p>
-          <h1>win-worldcup 管理控制台</h1>
-          <p className="muted">本管理控制台与公开体育主站完全隔离。请使用受保护的管理员账号登录，以管理用户资料、钱包出入金审核、风控阻断队列及活动红利配置。</p>
-          <form onSubmit={login} className="login-form">
-            <label>
-              <span>管理员用户名</span>
-              <input value={username} onChange={(event) => setUsername(event.target.value)} minLength={3} required />
-            </label>
-            <label>
-              <span>登录密码</span>
-              <input value={password} onChange={(event) => setPassword(event.target.value)} type="password" placeholder="输入任意密码或留空" />
-            </label>
-            {error && <div className="error">{error}</div>}
-            <button type="submit" disabled={loading}>{loading ? "正在验证访问权限..." : "登录管理后台"}</button>
-            <button
-              type="button"
-              onClick={() => enterAdminDirectly(username)}
-              style={{
-                background: "rgba(45, 212, 191, 0.15)",
-                border: "1px solid rgba(45, 212, 191, 0.4)",
-                color: "#2dd4bf",
-                cursor: "pointer",
-                padding: "12px",
-                fontWeight: 700,
-                marginTop: "-4px"
-              }}
-            >
-              免密一键进入后台
+      <main className="login-clean-shell">
+        <div className="login-clean-bg-glow"></div>
+        <div className="login-clean-card">
+          <div className="login-clean-header">
+            <div className="login-clean-badge">系统管理平台</div>
+            <h1 className="login-clean-title">用户登录</h1>
+            <p className="login-clean-desc">请输入您的管理员账号与密码进入控制台</p>
+          </div>
+
+          <form onSubmit={login} className="login-clean-form">
+            <div className="login-clean-field">
+              <label className="login-clean-label">账号</label>
+              <div className="login-clean-input-wrap">
+                <input
+                  type="text"
+                  className="login-clean-input"
+                  value={username}
+                  onChange={(event) => setUsername(event.target.value)}
+                  placeholder="请输入管理员账号"
+                  autoComplete="username"
+                  required
+                />
+              </div>
+            </div>
+
+            <div className="login-clean-field">
+              <label className="login-clean-label">密码</label>
+              <div className="login-clean-input-wrap">
+                <input
+                  type="password"
+                  className="login-clean-input"
+                  value={password}
+                  onChange={(event) => setPassword(event.target.value)}
+                  placeholder="请输入登录密码"
+                  autoComplete="current-password"
+                  required
+                />
+              </div>
+            </div>
+
+            {error && <div className="login-clean-error">{error}</div>}
+
+            <button type="submit" className="login-clean-btn" disabled={loading}>
+              {loading ? "正在登录..." : "登 录"}
             </button>
           </form>
-          <div className="endpoint">API 接口端点: {API_BASE}</div>
-        </section>
+        </div>
       </main>
     );
   }
