@@ -3,6 +3,8 @@ WORKDIR /app
 COPY package*.json ./
 RUN npm install
 COPY . .
+# 禁用构建缓存并强制执行干净编译
+ARG CACHEBUST=1
 RUN npm run build
 
 FROM nginx:1.27-alpine
