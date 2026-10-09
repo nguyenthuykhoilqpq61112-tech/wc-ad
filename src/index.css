@@ -2941,7 +2941,9 @@ nav button:hover,
 .drilldown-ledger-table,
 .drilldown-fixtures-table {
   position: relative !important;
-  overflow-x: auto !important;
+  overflow: visible !important;
+  overflow-x: visible !important;
+  overflow-y: visible !important;
 }
 
 /* 所有页面的表格第一排（表头 .data-head）固定吸顶 */
