@@ -1807,8 +1807,8 @@ nav button:hover,
 
 .daily-master-table .data-row {
   display: grid;
-  grid-template-columns: 140px 115px 110px 110px 95px 80px 110px 100px 115px 120px 110px 95px;
-  min-width: 1300px;
+  grid-template-columns: 140px 115px 110px 110px 130px 95px 80px 110px 100px 115px 120px 110px 95px;
+  min-width: 1430px;
   align-items: center;
   gap: 10px;
   padding: 12px 14px;
@@ -2913,42 +2913,63 @@ nav button:hover,
 
 
 /* ========================================================
-   最上面一排（工作区顶栏 Topbar）滚动吸顶固定
+   工作区顶栏（Topbar）恢复随页面自然滚动（不吸顶）
 ======================================================== */
 .topbar {
-  position: sticky !important;
-  top: 0 !important;
-  z-index: 100 !important;
-  background: #f8fafc !important;
-  padding: 14px 20px !important;
-  margin: -24px -24px 20px -24px !important;
-  border-bottom: 1px solid #e2e8f0 !important;
-  box-shadow: 0 4px 16px rgba(15, 23, 42, 0.06) !important;
+  position: static !important;
+  box-shadow: none !important;
+  border-bottom: none !important;
+  padding: 0 !important;
+  margin: 0 0 22px 0 !important;
+  background: transparent !important;
 }
 
-/* 表格表头（Table Header）滚动吸顶固定，保持在 topbar 下方紧贴 */
-.daily-master-table {
-  overflow-x: auto !important;
+/* ========================================================
+   每个页面表格第一排（表头 .data-head）滚动吸顶固定
+======================================================== */
+/* 表格容器允许表头相对于视口吸顶 */
+.data-table,
+.daily-master-table,
+.daily-activity-table,
+.activity-table,
+.bets-table,
+.league-table,
+.league-detail-table,
+.league-bets-table,
+.drilldown-users-table,
+.drilldown-bets-table,
+.drilldown-ledger-table,
+.drilldown-fixtures-table {
   position: relative !important;
+  overflow-x: auto !important;
 }
 
-.daily-master-table .data-head {
-  position: sticky !important;
-  top: 73px !important;
-  z-index: 90 !important;
-  background: #f1f5f9 !important;
-  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.06) !important;
-}
-
+/* 所有页面的表格第一排（表头 .data-head）固定吸顶 */
+.data-head,
+.data-row.data-head,
+.daily-master-table .data-head,
 .daily-activity-table .data-head,
 .activity-table .data-head,
 .bets-table .data-head,
 .league-table .data-head,
 .league-detail-table .data-head,
-.league-bets-table .data-head {
+.league-bets-table .data-head,
+.drilldown-users-table .data-head,
+.drilldown-bets-table .data-head,
+.drilldown-ledger-table .data-head,
+.drilldown-fixtures-table .data-head,
+.table-head {
   position: sticky !important;
-  top: 73px !important;
-  z-index: 85 !important;
+  top: 0 !important;
+  z-index: 100 !important;
   background: #f1f5f9 !important;
-  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.06) !important;
+  border-top: 1px solid #cbd5e1 !important;
+  border-bottom: 2px solid #94a3b8 !important;
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.08) !important;
+}
+
+.data-head span,
+.data-row.data-head span {
+  color: #334155 !important;
+  font-weight: 700 !important;
 }

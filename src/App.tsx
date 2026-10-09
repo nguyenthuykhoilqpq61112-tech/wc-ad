@@ -1523,6 +1523,7 @@ type DailyMasterRecord = {
   totalIncome: number;
   crashIncome: number;
   sportsIncome: number;
+  commissionIncome: number;
   newUsers: PlatformUser[];
   bettors: DailyBettor[];
   slips: LeagueBetSlip[];
@@ -1593,12 +1594,14 @@ function useDailyMasterRecords(allUsers: PlatformUser[]): DailyMasterRecord[] {
         });
       });
 
+      const commissionIncome = 0; // 从 2026-10-09 开始引入，目前暂无产生收入
       dateMap.set(date, {
         date,
         isToday: date === effectiveEnd,
         totalIncome,
         crashIncome,
         sportsIncome,
+        commissionIncome,
         newUsers,
         bettors,
         slips,
@@ -1737,6 +1740,7 @@ function DailyMasterTableView({
             <span>当日总收入</span>
             <span>Crash收益</span>
             <span>赛事净收益</span>
+            <span style={{ color: "#0284c7", fontWeight: 700 }}>Commission Income</span>
             <span>新注册用户</span>
             <span>注单量</span>
             <span>总投注额</span>
@@ -1762,6 +1766,9 @@ function DailyMasterTableView({
                 <strong style={{color: "#4ade80"}}>+{row.totalIncome.toFixed(2)}u</strong>
                 <span>+{row.crashIncome.toFixed(2)}u</span>
                 <span>+{row.sportsIncome.toFixed(2)}u</span>
+                <span style={{ color: row.date >= "2026-10-09" && row.commissionIncome > 0 ? "#10b981" : "#94a3b8", fontWeight: 600 }}>
+                  {row.date >= "2026-10-09" ? (row.commissionIncome > 0 ? `+${row.commissionIncome.toFixed(2)}u` : "-") : "-"}
+                </span>
                 <div>
                   <span className={`pill-badge ${row.newUsers.length > 0 ? "pill-new" : ""}`}>
                     +{row.newUsers.length} 人
