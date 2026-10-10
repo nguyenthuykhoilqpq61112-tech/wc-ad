@@ -145,6 +145,7 @@ type DateLedgerRow = {
   leagueReceipts: number;
   wheelIncome: number;
   crashIncome: number;
+  commissionIncome?: number;
   payouts: number;
   exchangeWithdrawals: number;
   reconciliation: number;
@@ -351,7 +352,7 @@ function getEffectiveEndDate(): string {
     if (typeof window !== "undefined") {
       const stored = localStorage.getItem("admin_sim_end_date");
       if (stored && /^\d{4}-\d{2}-\d{2}$/.test(stored)) {
-        return stored < "2026-10-01" ? "2026-10-01" : stored;
+        return stored < "2026-10-10" ? "2026-10-10" : stored;
       }
     }
     const now = new Date();
@@ -359,9 +360,9 @@ function getEffectiveEndDate(): string {
     const m = String(now.getMonth() + 1).padStart(2, "0");
     const d = String(now.getDate()).padStart(2, "0");
     const cur = `${y}-${m}-${d}`;
-    return cur < "2026-10-01" ? "2026-10-01" : cur;
+    return cur < "2026-10-10" ? "2026-10-10" : cur;
   } catch {
-    return "2026-10-01";
+    return "2026-10-10";
   }
 }
 
@@ -384,104 +385,305 @@ function generateAutoDailyData(endDate = getEffectiveEndDate()) {
   const autoSummary: Array<{date: string; total: number; crash: number; sports: number; signups: number}> = [];
 
   dates.forEach((date, dayIdx) => {
-    const rng = createRng(hashDate(date + "_daily_accrual_seed_v2"));
-    const totalIncome = Math.floor(rng() * (299 - 50 + 1)) + 50;
-    const maxCrash = Math.min(65, totalIncome);
-    const minCrash = Math.min(10, maxCrash);
-    const crashIncome = Math.floor(rng() * (maxCrash - minCrash + 1)) + minCrash;
-    const sportsIncome = totalIncome - crashIncome;
-    const regCount = Math.floor(rng() * (15 - 3 + 1)) + 3;
+    if (date === "2026-10-10") {
+      const sportsIncome = 201;
+      const crashIncome = 100;
+      const totalIncome = 301;
+      const regCount = 7;
 
-    autoCrashIncomes.push({date, amount: crashIncome, source: "Crash game", status: "Settled"});
-    autoLeagueReceipts.push({date, amount: sportsIncome, source: "Five-league & European fixtures betting proceeds", status: "Collected"});
-    autoSummary.push({date, total: totalIncome, crash: crashIncome, sports: sportsIncome, signups: regCount});
+      autoCrashIncomes.push(
+        {date, amount: 40, source: "Crash game (FelixDE304 wager 40u)", status: "Settled"},
+        {date, amount: 25, source: "Crash game (MateoES306 wager 25u)", status: "Settled"},
+        {date, amount: 20, source: "Crash game (ArthurUK307 wager 20u)", status: "Settled"},
+        {date, amount: 15, source: "Crash game (Omar11 wager 15u)", status: "Settled"}
+      );
+      autoLeagueReceipts.push({
+        date,
+        amount: sportsIncome,
+        source: "Five-league Saturday fixtures betting proceeds",
+        status: "Collected"
+      });
+      autoSummary.push({date, total: totalIncome, crash: crashIncome, sports: sportsIncome, signups: regCount});
 
-    const dayUsers: PlatformUser[] = [];
-    for (let i = 0; i < regCount; i++) {
-      const profile = COUNTRY_PROFILES[Math.floor(rng() * COUNTRY_PROFILES.length)];
-      const name = FIRST_NAMES[Math.floor(rng() * FIRST_NAMES.length)];
-      const num = 120 + dayIdx * 20 + i + 1;
-      const username = `${name}${profile.code}${num}`;
-      const domain = EMAIL_DOMAINS[Math.floor(rng() * EMAIL_DOMAINS.length)];
-      const email = `${name.toLowerCase()}.${profile.code.toLowerCase()}${num}@${domain}`;
-      const hour = String(9 + Math.floor(rng() * 12)).padStart(2, "0");
-      const min = String(Math.floor(rng() * 60)).padStart(2, "0");
-      const user: PlatformUser = {
-        id: `user_oct_${date.replace(/-/g, "").slice(4)}_${String(i + 1).padStart(2, "0")}`,
-        username,
-        email,
-        phone: `${profile.phonePrefix}${Math.floor(1000000 + rng() * 9000000)}`,
-        ip: `${Math.floor(60 + rng() * 140)}.${Math.floor(10 + rng() * 200)}.${Math.floor(10 + rng() * 200)}.${Math.floor(2 + rng() * 250)}`,
-        registeredAt: `${date} ${hour}:${min}`,
-        round: "October UEFA & European sports signups",
-        location: profile.country,
-        region: profile.region,
-        deposit: 0,
-        stake: 0,
+      // 保持原有10号生成的用户名（OliverIT301、LeoJP302、AlexanderJP303）不变，并新增用户
+      const day10Configs = [
+        {name: "Oliver", country: "Italy", code: "IT", region: "Europe" as const, phonePrefix: "+39 3"},
+        {name: "Leo", country: "Japan", code: "JP", region: "Asia" as const, phonePrefix: "+81 90"},
+        {name: "Alexander", country: "Japan", code: "JP", region: "Asia" as const, phonePrefix: "+81 90"},
+        {name: "Felix", country: "Germany", code: "DE", region: "Europe" as const, phonePrefix: "+49 15"},
+        {name: "Lucas", country: "France", code: "FR", region: "Europe" as const, phonePrefix: "+33 6"},
+        {name: "Mateo", country: "Spain", code: "ES", region: "Europe" as const, phonePrefix: "+34 6"},
+        {name: "Arthur", country: "United Kingdom", code: "UK", region: "Europe" as const, phonePrefix: "+44 7"},
+      ];
+
+      const dayUsers: PlatformUser[] = [];
+      day10Configs.forEach((cfg, idx) => {
+        const num = 301 + idx;
+        const username = `${cfg.name}${cfg.code}${num}`;
+        const email = `${cfg.name.toLowerCase()}.${cfg.code.toLowerCase()}${num}@gmail.com`;
+        const hour = String(9 + idx * 2).padStart(2, "0");
+        const min = String((idx * 14) % 60).padStart(2, "0");
+        const user: PlatformUser = {
+          id: `user_oct_1010_${String(idx + 1).padStart(2, "0")}`,
+          username,
+          email,
+          phone: `${cfg.phonePrefix}${5210000 + idx * 123456}`,
+          ip: `85.203.45.${10 + idx * 15}`,
+          registeredAt: `${date} ${hour}:${min}`,
+          round: "October UEFA & European sports signups",
+          location: cfg.country,
+          region: cfg.region,
+          deposit: 0,
+          stake: 0,
+        };
+        dayUsers.push(user);
+        autoUsers.push(user);
+      });
+
+      // 五大联赛周六实际比赛场次（开赛时间真实、互不相同）
+      const f1: LeagueDailyFixture = {
+        league: "Premier League",
+        date,
+        time: "12:30 BST",
+        match: "Manchester City vs Everton",
+        matchday: "Matchweek 8",
+        moneyline: "1.25 / 6.50 / 11.0",
+        handicap: "Manchester City -1.5 @ 1.82",
+        total: "Over 3.0 @ 1.80",
+        featured: "Man City win & over 2.5 @ 1.62",
+        status: "Today"
       };
-      dayUsers.push(user);
-      autoUsers.push(user);
+      const f2: LeagueDailyFixture = {
+        league: "Bundesliga",
+        date,
+        time: "15:30 CEST",
+        match: "Bayern Munich vs SC Freiburg",
+        matchday: "Matchday 7",
+        moneyline: "1.35 / 5.40 / 8.50",
+        handicap: "Bayern Munich -1.5 @ 1.78",
+        total: "Over 3.25 @ 1.85",
+        featured: "Bayern Munich win @ 1.35",
+        status: "Today"
+      };
+      const f3: LeagueDailyFixture = {
+        league: "LaLiga",
+        date,
+        time: "16:15 CEST",
+        match: "FC Barcelona vs Girona FC",
+        matchday: "Matchday 9",
+        moneyline: "1.42 / 4.80 / 7.20",
+        handicap: "FC Barcelona -1.25 @ 1.85",
+        total: "Over 2.75 @ 1.80",
+        featured: "Barcelona win @ 1.42",
+        status: "Today"
+      };
+      const f4: LeagueDailyFixture = {
+        league: "Serie A",
+        date,
+        time: "18:00 CEST",
+        match: "Juventus vs Bologna",
+        matchday: "Matchday 7",
+        moneyline: "1.80 / 3.40 / 4.50",
+        handicap: "Juventus -0.5 @ 1.80",
+        total: "Under 2.5 @ 1.75",
+        featured: "Under 2.5 goals @ 1.75",
+        status: "Upcoming"
+      };
+      const f5: LeagueDailyFixture = {
+        league: "Ligue 1",
+        date,
+        time: "21:00 CEST",
+        match: "Paris Saint-Germain vs RC Strasbourg",
+        matchday: "Matchweek 8",
+        moneyline: "1.30 / 5.80 / 9.20",
+        handicap: "PSG -1.5 @ 1.70",
+        total: "Over 3.0 @ 1.75",
+        featured: "PSG team total over 2.0 @ 1.68",
+        status: "Upcoming"
+      };
+      autoFixtures.push(f1, f2, f3, f4, f5);
+
+      // 下注用户：保留原有的 10 号用户 OliverIT301 与 Hamad16，并新增 LeoJP302、AlexanderJP303、LucasFR305
+      // 5 场比赛不同，下注金额 50 + 45 + 40 + 36 + 30 = 201u
+      dayUsers[0].stake = 50;
+      autoLeagueSlips.push({
+        id: `LGB-101001`,
+        time: `${date} 11:45`,
+        user: "OliverIT301",
+        league: "Premier League",
+        match: "Manchester City vs Everton",
+        market: "Asian handicap",
+        selection: "Manchester City -1.5",
+        odds: 1.82,
+        stake: 50,
+        potentialPayout: 91.0,
+        betType: "Single",
+        status: "Pending",
+        risk: "Low"
+      });
+      autoLeagueSlips.push({
+        id: `LGB-101002`,
+        time: `${date} 13:20`,
+        user: "Hamad16",
+        league: "Bundesliga",
+        match: "Bayern Munich vs SC Freiburg",
+        market: "Moneyline",
+        selection: "Bayern Munich win",
+        odds: 1.35,
+        stake: 45,
+        potentialPayout: 60.75,
+        betType: "Single",
+        status: "Pending",
+        risk: "Low"
+      });
+      dayUsers[1].stake = 40;
+      autoLeagueSlips.push({
+        id: `LGB-101003`,
+        time: `${date} 14:10`,
+        user: "LeoJP302",
+        league: "LaLiga",
+        match: "FC Barcelona vs Girona FC",
+        market: "Moneyline",
+        selection: "FC Barcelona win",
+        odds: 1.42,
+        stake: 40,
+        potentialPayout: 56.8,
+        betType: "Single",
+        status: "Pending",
+        risk: "Low"
+      });
+      dayUsers[2].stake = 36;
+      autoLeagueSlips.push({
+        id: `LGB-101004`,
+        time: `${date} 15:50`,
+        user: "AlexanderJP303",
+        league: "Serie A",
+        match: "Juventus vs Bologna",
+        market: "Total goals",
+        selection: "Under 2.5 goals",
+        odds: 1.75,
+        stake: 36,
+        potentialPayout: 63.0,
+        betType: "Single",
+        status: "Pending",
+        risk: "Low"
+      });
+      dayUsers[4].stake = 30;
+      autoLeagueSlips.push({
+        id: `LGB-101005`,
+        time: `${date} 17:35`,
+        user: "LucasFR305",
+        league: "Ligue 1",
+        match: "Paris Saint-Germain vs RC Strasbourg",
+        market: "Asian handicap",
+        selection: "PSG -1.5",
+        odds: 1.70,
+        stake: 30,
+        potentialPayout: 51.0,
+        betType: "Single",
+        status: "Pending",
+        risk: "Low"
+      });
+    } else {
+      const rng = createRng(hashDate(date + "_daily_accrual_seed_v2"));
+      const totalIncome = Math.floor(rng() * (299 - 50 + 1)) + 50;
+      const maxCrash = Math.min(65, totalIncome);
+      const minCrash = Math.min(10, maxCrash);
+      const crashIncome = Math.floor(rng() * (maxCrash - minCrash + 1)) + minCrash;
+      const sportsIncome = totalIncome - crashIncome;
+      const regCount = Math.floor(rng() * (15 - 3 + 1)) + 3;
+
+      autoCrashIncomes.push({date, amount: crashIncome, source: "Crash game", status: "Settled"});
+      autoLeagueReceipts.push({date, amount: sportsIncome, source: "Five-league & European fixtures betting proceeds", status: "Collected"});
+      autoSummary.push({date, total: totalIncome, crash: crashIncome, sports: sportsIncome, signups: regCount});
+
+      const dayUsers: PlatformUser[] = [];
+      for (let i = 0; i < regCount; i++) {
+        const profile = COUNTRY_PROFILES[Math.floor(rng() * COUNTRY_PROFILES.length)];
+        const name = FIRST_NAMES[Math.floor(rng() * FIRST_NAMES.length)];
+        const num = 120 + dayIdx * 20 + i + 1;
+        const username = `${name}${profile.code}${num}`;
+        const domain = EMAIL_DOMAINS[Math.floor(rng() * EMAIL_DOMAINS.length)];
+        const email = `${name.toLowerCase()}.${profile.code.toLowerCase()}${num}@${domain}`;
+        const hour = String(9 + Math.floor(rng() * 12)).padStart(2, "0");
+        const min = String(Math.floor(rng() * 60)).padStart(2, "0");
+        const user: PlatformUser = {
+          id: `user_oct_${date.replace(/-/g, "").slice(4)}_${String(i + 1).padStart(2, "0")}`,
+          username,
+          email,
+          phone: `${profile.phonePrefix}${Math.floor(1000000 + rng() * 9000000)}`,
+          ip: `${Math.floor(60 + rng() * 140)}.${Math.floor(10 + rng() * 200)}.${Math.floor(10 + rng() * 200)}.${Math.floor(2 + rng() * 250)}`,
+          registeredAt: `${date} ${hour}:${min}`,
+          round: "October UEFA & European sports signups",
+          location: profile.country,
+          region: profile.region,
+          deposit: 0,
+          stake: 0,
+        };
+        dayUsers.push(user);
+        autoUsers.push(user);
+      }
+
+      const m1 = MATCH_CATALOG[(dayIdx * 2) % MATCH_CATALOG.length];
+      const m2 = MATCH_CATALOG[(dayIdx * 2 + 1) % MATCH_CATALOG.length];
+      autoFixtures.push({
+        league: m1.league,
+        date,
+        time: "18:45 CET",
+        match: m1.match,
+        matchday: m1.matchday,
+        moneyline: m1.moneyline,
+        handicap: m1.handicap,
+        total: m1.total,
+        featured: m1.featured,
+        status: "Today"
+      });
+      autoFixtures.push({
+        league: m2.league,
+        date,
+        time: "21:00 CET",
+        match: m2.match,
+        matchday: m2.matchday,
+        moneyline: m2.moneyline,
+        handicap: m2.handicap,
+        total: m2.total,
+        featured: m2.featured,
+        status: "Upcoming"
+      });
+
+      const slip1Stake = 40;
+      dayUsers[0].stake = slip1Stake;
+      autoLeagueSlips.push({
+        id: `LGB-${date.replace(/-/g, "").slice(4)}01`,
+        time: `${date} 15:30`,
+        user: dayUsers[0].username,
+        league: m1.league,
+        match: m1.match,
+        market: m1.market,
+        selection: m1.selection,
+        odds: m1.odds,
+        stake: slip1Stake,
+        potentialPayout: Math.round(slip1Stake * m1.odds * 100) / 100,
+        betType: "Single",
+        status: "Pending",
+        risk: "Low"
+      });
+      autoLeagueSlips.push({
+        id: `LGB-${date.replace(/-/g, "").slice(4)}02`,
+        time: `${date} 17:45`,
+        user: "Hamad16",
+        league: m2.league,
+        match: m2.match,
+        market: m2.market,
+        selection: m2.selection,
+        odds: m2.odds,
+        stake: 30,
+        potentialPayout: Math.round(30 * m2.odds * 100) / 100,
+        betType: "Single",
+        status: "Pending",
+        risk: "Low"
+      });
     }
-
-    const m1 = MATCH_CATALOG[(dayIdx * 2) % MATCH_CATALOG.length];
-    const m2 = MATCH_CATALOG[(dayIdx * 2 + 1) % MATCH_CATALOG.length];
-    autoFixtures.push({
-      league: m1.league,
-      date,
-      time: "18:45 CET",
-      match: m1.match,
-      matchday: m1.matchday,
-      moneyline: m1.moneyline,
-      handicap: m1.handicap,
-      total: m1.total,
-      featured: m1.featured,
-      status: "Today"
-    });
-    autoFixtures.push({
-      league: m2.league,
-      date,
-      time: "21:00 CET",
-      match: m2.match,
-      matchday: m2.matchday,
-      moneyline: m2.moneyline,
-      handicap: m2.handicap,
-      total: m2.total,
-      featured: m2.featured,
-      status: "Upcoming"
-    });
-
-    const slip1Stake = 40;
-    dayUsers[0].stake = slip1Stake;
-    autoLeagueSlips.push({
-      id: `LGB-${date.replace(/-/g, "").slice(4)}01`,
-      time: `${date} 15:30`,
-      user: dayUsers[0].username,
-      league: m1.league,
-      match: m1.match,
-      market: m1.market,
-      selection: m1.selection,
-      odds: m1.odds,
-      stake: slip1Stake,
-      potentialPayout: Math.round(slip1Stake * m1.odds * 100) / 100,
-      betType: "Single",
-      status: "Pending",
-      risk: "Low"
-    });
-    autoLeagueSlips.push({
-      id: `LGB-${date.replace(/-/g, "").slice(4)}02`,
-      time: `${date} 17:45`,
-      user: "Hamad16",
-      league: m2.league,
-      match: m2.match,
-      market: m2.market,
-      selection: m2.selection,
-      odds: m2.odds,
-      stake: 30,
-      potentialPayout: Math.round(30 * m2.odds * 100) / 100,
-      betType: "Single",
-      status: "Pending",
-      risk: "Low"
-    });
   });
 
   return {autoUsers, autoCrashIncomes, autoLeagueReceipts, autoLeagueSlips, autoFixtures, autoDates: dates, autoSummary};
@@ -1037,15 +1239,19 @@ const leagueBetReceipts = [
   ...autoDailyData.autoLeagueReceipts,
 ];
 const leagueBetReceiptTotal = leagueBetReceipts.reduce((sum, item) => sum + item.amount, 0);
+const commissionIncomes: Array<{date: string; amount: number; source: string; status: string}> = [
+  {date: "2026-10-10", amount: 19, source: "Commission Income", status: "Settled"},
+];
+const commissionIncomeTotal = commissionIncomes.reduce((sum, item) => sum + item.amount, 0);
 const manualSettledPayouts = 207;
-const platformBalance = Math.round((platformBalanceBeforeLeagueBetMerge + leagueBetWalletStakeAdjustment + leagueBetReceiptTotal - manualSettledPayouts) * 100) / 100;
+const platformBalance = Math.round((platformBalanceBeforeLeagueBetMerge + leagueBetWalletStakeAdjustment + leagueBetReceiptTotal + commissionIncomeTotal - manualSettledPayouts) * 100) / 100;
 const ledgerReconciliationDate = "2026-07-10";
 
 function addLedgerAmount(rows: Record<string, Omit<DateLedgerRow, "date" | "net" | "balanceAfter">>, date: string, field: keyof Omit<DateLedgerRow, "date" | "net" | "balanceAfter" | "items">, amount: number, item: string) {
   if (!rows[date]) {
-    rows[date] = {deposits: 0, sportsStakes: 0, leagueStake: 0, leagueReceipts: 0, wheelIncome: 0, crashIncome: 0, payouts: 0, exchangeWithdrawals: 0, reconciliation: 0, items: []};
+    rows[date] = {deposits: 0, sportsStakes: 0, leagueStake: 0, leagueReceipts: 0, wheelIncome: 0, crashIncome: 0, commissionIncome: 0, payouts: 0, exchangeWithdrawals: 0, reconciliation: 0, items: []};
   }
-  rows[date][field] = Math.round((Number(rows[date][field]) + amount) * 100) / 100;
+  rows[date][field] = Math.round((Number(rows[date][field] || 0) + amount) * 100) / 100;
   rows[date].items.push(item);
 }
 
@@ -1073,6 +1279,9 @@ function buildDateLedgerRows(): DateLedgerRow[] {
   crashIncomes.forEach((income) => {
     addLedgerAmount(rows, income.date, "crashIncome", income.amount, `${income.source} income +${income.amount}u`);
   });
+  commissionIncomes.forEach((income) => {
+    addLedgerAmount(rows, income.date, "commissionIncome", income.amount, `Commission Income +${income.amount}u`);
+  });
   leagueBetSlips.forEach((slip) => {
     addLedgerAmount(rows, slip.time.slice(0, 10), "leagueStake", slip.stake, `League slip ${slip.id}: ${slip.user} ${slip.stake}u · ${slip.league} · ${slip.match} · ${slip.selection} @ ${slip.odds.toFixed(2)}`);
   });
@@ -1089,24 +1298,24 @@ function buildDateLedgerRows(): DateLedgerRow[] {
   for (let day = 2; day <= 31; day += 1) {
     const date = `2026-08-${String(day).padStart(2, "0")}`;
     if (!rows[date]) {
-      rows[date] = {deposits: 0, sportsStakes: 0, leagueStake: 0, leagueReceipts: 0, wheelIncome: 0, crashIncome: 0, payouts: 0, exchangeWithdrawals: 0, reconciliation: 0, items: ["No recorded wallet movement for this date."]};
+      rows[date] = {deposits: 0, sportsStakes: 0, leagueStake: 0, leagueReceipts: 0, wheelIncome: 0, crashIncome: 0, commissionIncome: 0, payouts: 0, exchangeWithdrawals: 0, reconciliation: 0, items: ["No recorded wallet movement for this date."]};
     }
   }
   for (let day = 1; day <= 30; day += 1) {
     const date = `2026-09-${String(day).padStart(2, "0")}`;
     if (!rows[date]) {
-      rows[date] = {deposits: 0, sportsStakes: 0, leagueStake: 0, leagueReceipts: 0, wheelIncome: 0, crashIncome: 0, payouts: 0, exchangeWithdrawals: 0, reconciliation: 0, items: ["No recorded wallet movement for this date."]};
+      rows[date] = {deposits: 0, sportsStakes: 0, leagueStake: 0, leagueReceipts: 0, wheelIncome: 0, crashIncome: 0, commissionIncome: 0, payouts: 0, exchangeWithdrawals: 0, reconciliation: 0, items: ["No recorded wallet movement for this date."]};
     }
   }
   autoDailyData.autoDates.forEach((date) => {
     if (!rows[date]) {
-      rows[date] = {deposits: 0, sportsStakes: 0, leagueStake: 0, leagueReceipts: 0, wheelIncome: 0, crashIncome: 0, payouts: 0, exchangeWithdrawals: 0, reconciliation: 0, items: ["No recorded wallet movement for this date."]};
+      rows[date] = {deposits: 0, sportsStakes: 0, leagueStake: 0, leagueReceipts: 0, wheelIncome: 0, crashIncome: 0, commissionIncome: 0, payouts: 0, exchangeWithdrawals: 0, reconciliation: 0, items: ["No recorded wallet movement for this date."]};
     }
   });
 
   // Reconcile the complete dated ledger to the same platform wallet total.
   // This prevents a later treasury withdrawal from being deducted twice.
-  const ledgerBeforeFinalReconciliation = Object.values(rows).reduce((total, row) => total + row.deposits + row.sportsStakes + row.leagueReceipts + row.wheelIncome + row.crashIncome - row.payouts - row.exchangeWithdrawals, 0);
+  const ledgerBeforeFinalReconciliation = Object.values(rows).reduce((total, row) => total + row.deposits + row.sportsStakes + row.leagueReceipts + row.wheelIncome + row.crashIncome + (row.commissionIncome || 0) - row.payouts - row.exchangeWithdrawals, 0);
   const finalReconciliation = Math.round((platformBalance - ledgerBeforeFinalReconciliation) * 100) / 100;
   rows[ledgerReconciliationDate].reconciliation = finalReconciliation;
   rows[ledgerReconciliationDate].items.push(`Final ledger reconciliation to platform balance ${platformBalance}u`);
@@ -1115,7 +1324,7 @@ function buildDateLedgerRows(): DateLedgerRow[] {
   return Object.entries(rows)
     .sort(([a], [b]) => a.localeCompare(b))
     .map(([date, row]) => {
-      const net = Math.round((row.deposits + row.sportsStakes + row.leagueReceipts + row.wheelIncome + row.crashIncome + row.reconciliation - row.payouts - row.exchangeWithdrawals) * 100) / 100;
+      const net = Math.round((row.deposits + row.sportsStakes + row.leagueReceipts + row.wheelIncome + row.crashIncome + (row.commissionIncome || 0) + row.reconciliation - row.payouts - row.exchangeWithdrawals) * 100) / 100;
       balanceAfter = Math.round((balanceAfter + net) * 100) / 100;
       return {...row, date, net, balanceAfter};
     });
@@ -1132,6 +1341,7 @@ function buildIncomeSummary(periodKey: (date: string) => string): IncomeSummaryR
   leagueBetReceipts.forEach((receipt) => add(receipt.date, receipt.amount, receipt.source));
   wheelIncomes.forEach((income) => add(income.date, income.amount, income.source));
   crashIncomes.forEach((income) => add(income.date, income.amount, income.source));
+  commissionIncomes.forEach((income) => add(income.date, income.amount, income.source));
   return Object.values(grouped).sort((a, b) => a.period.localeCompare(b.period));
 }
 
@@ -1279,6 +1489,11 @@ const bonusRules = [
 ];
 
 const auditLogs = [
+  {time: "2026-10-10 23:58", actor: "system", action: "Updated Ledger by Date with 10.10 total income 320u (sports 201u, crash 100u, commission 19u); current platform balance 1217u", result: "OK"},
+  {time: "2026-10-10 21:30", actor: "cashier", action: "Credited 19u Commission Income (分佣收益) for 10.10 to platform wallet", result: "OK"},
+  {time: "2026-10-10 20:45", actor: "cashier", action: "Credited 100u Crash game income for 10.10 to platform wallet (Settled user wagers: FelixDE304 40u, MateoES306 25u, ArthurUK307 20u, Omar11 15u)", result: "OK"},
+  {time: "2026-10-10 19:30", actor: "cashier", action: "Collected 201u from 10.10 Five-league betting proceeds (5 match slips: OliverIT301 50u, Hamad16 45u, LeoJP302 40u, AlexanderJP303 36u, LucasFR305 30u)", result: "OK"},
+  {time: "2026-10-10 18:00", actor: "system", action: "Registered 7 new users on 10.10 (OliverIT301, LeoJP302, AlexanderJP303, FelixDE304, LucasFR305, MateoES306, ArthurUK307)", result: "OK"},
   {time: "2026-10-05 21:00", actor: "cashier", action: "Submitted exchange treasury withdrawal of 1000u (Est. 20% fee: 200u, Net credited: 800u, ETA: 2026-10-08)", result: "Processing"},
   {time: "2026-10-05 23:58", actor: "system", action: "Updated Ledger by Date with 10.5 withdrawal -1000u; credited to exchange treasury on 10.8 (800u net)", result: "OK"},
   {time: "2026-10-01 23:58", actor: "system", action: "Updated Ledger by Date with 10.1 crash game income 35u and 5 new user signups; current platform balance 300u", result: "OK"},
@@ -1547,9 +1762,11 @@ function useDailyMasterRecords(allUsers: PlatformUser[]): DailyMasterRecord[] {
     dateLedgerRows.forEach((row) => {
       const date = row.date;
       const incRow = dailyIncomeRows.find((r) => r.period === date);
-      const totalIncome = incRow ? incRow.total : (row.crashIncome + row.leagueReceipts);
+      const commItem = commissionIncomes.find((c) => c.date === date);
+      const commissionIncome = commItem ? commItem.amount : 0;
+      const totalIncome = incRow ? incRow.total : (row.crashIncome + row.leagueReceipts + commissionIncome);
       const crashIncome = row.crashIncome;
-      const sportsIncome = incRow ? Math.max(0, Math.round((incRow.total - crashIncome) * 100) / 100) : (row.leagueReceipts > 0 ? row.leagueReceipts : row.sportsStakes);
+      const sportsIncome = incRow ? Math.max(0, Math.round((incRow.total - crashIncome - commissionIncome) * 100) / 100) : (row.leagueReceipts > 0 ? row.leagueReceipts : row.sportsStakes);
 
       const newUsers = allUsers.filter((u) => u.registeredAt.startsWith(date));
       const slips = leagueBetSlips.filter((s) => s.time.startsWith(date));
@@ -1593,8 +1810,6 @@ function useDailyMasterRecords(allUsers: PlatformUser[]): DailyMasterRecord[] {
           payout: bet.payout,
         });
       });
-
-      const commissionIncome = 0; // 从 2026-10-09 开始引入，目前暂无产生收入
       dateMap.set(date, {
         date,
         isToday: date === effectiveEnd,
@@ -1766,8 +1981,8 @@ function DailyMasterTableView({
                 <strong style={{color: "#4ade80"}}>+{row.totalIncome.toFixed(2)}u</strong>
                 <span>+{row.crashIncome.toFixed(2)}u</span>
                 <span>+{row.sportsIncome.toFixed(2)}u</span>
-                <span style={{ color: row.date >= "2026-10-09" && row.commissionIncome > 0 ? "#10b981" : "#94a3b8", fontWeight: 600 }}>
-                  {row.date >= "2026-10-09" ? (row.commissionIncome > 0 ? `+${row.commissionIncome.toFixed(2)}u` : "-") : "-"}
+                <span style={{ color: row.date >= "2026-10-09" && row.commissionIncome > 0 ? "#10b981" : "#94a3b8", fontWeight: 700 }}>
+                  {row.date >= "2026-10-09" ? (row.commissionIncome > 0 ? `${row.commissionIncome}u` : "-") : "-"}
                 </span>
                 <div>
                   <span className={`pill-badge ${row.newUsers.length > 0 ? "pill-new" : ""}`}>
@@ -1815,7 +2030,7 @@ function DailyMasterTableView({
                 {selectedRecord.isToday && <span className="badge-today">今日最新</span>}
               </h3>
               <p style={{margin: "4px 0 0", fontSize: 13, color: "#94a3b8"}}>
-                当日总收入 +{selectedRecord.totalIncome}u · Crash 收入 +{selectedRecord.crashIncome}u · 赛事收入 +{selectedRecord.sportsIncome}u · 提现 {selectedRecord.withdrawals}u · 当日金库结余 {selectedRecord.balanceAfter}u (平账差额 0.00u)
+                当日总收入 +{selectedRecord.totalIncome}u · Crash 收入 +{selectedRecord.crashIncome}u · 赛事收入 +{selectedRecord.sportsIncome}u{selectedRecord.commissionIncome > 0 ? ` · Commission Income ${selectedRecord.commissionIncome}u` : ""} · 提现 {selectedRecord.withdrawals}u · 当日金库结余 {selectedRecord.balanceAfter}u (平账差额 0.00u)
               </p>
             </div>
             <div className="day-drilldown-tabs">
@@ -1879,8 +2094,14 @@ function DailyMasterTableView({
           )}
 
           {drillTab === "bets" && (
-            <div className="data-table day-bet-table">
-              <div className="data-row data-head">
+            <div>
+              {selectedRecord.date === "2026-10-10" && (
+                <div style={{ background: "rgba(14, 165, 233, 0.08)", border: "1px solid rgba(14, 165, 233, 0.25)", borderRadius: 8, padding: "10px 14px", marginBottom: 14, fontSize: 13, color: "#38bdf8", display: "flex", alignItems: "center", gap: 8 }}>
+                  <span>✈️ <strong>小飞机 (Crash) 玩家下注流水 (共 100u 净收益)</strong>：FelixDE304 (下注 40u) · MateoES306 (下注 25u) · ArthurUK307 (下注 20u) · Omar11 (下注 15u) · 均为整数且末尾以 5/0 结尾已全部结算入账。</span>
+                </div>
+              )}
+              <div className="data-table day-bet-table">
+                <div className="data-row data-head">
                 <span>注单ID / 赛事</span>
                 <span>投注用户</span>
                 <span>用户类型</span>
@@ -1916,7 +2137,8 @@ function DailyMasterTableView({
                 <div className="empty">该日暂无体育赛事投注记录。</div>
               )}
             </div>
-          )}
+          </div>
+        )}
 
           {drillTab === "ledger" && (
             <div className="data-table day-ledger-table">
