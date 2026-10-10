@@ -62,6 +62,7 @@ type PlatformUser = {
   deposit: number;
   stake: number;
   email: string;
+  channel?: "Telegram" | "短信链接";
   phone?: string;
   ip?: string;
 };
@@ -115,7 +116,9 @@ type DailyBettor = {
   userType: "New User" | "Returning User";
   sport: string;
   match: string;
+  market?: string;
   selection: string;
+  odds?: number;
   stake: number;
   result: "Won" | "Lost" | "Pending";
   payout: number;
@@ -307,15 +310,18 @@ function enrichUserWithProfile(user: {
   deposit: number;
   stake: number;
   email?: string;
+  channel?: "Telegram" | "短信链接";
   phone?: string;
   ip?: string;
 }): PlatformUser {
   const validRegion = (["Middle East", "Europe", "Singapore", "North America", "Asia"].includes(user.region)
     ? user.region
     : "Europe") as PlatformUser["region"];
+  const defaultChannel: "Telegram" | "短信链接" = (hashDate(user.id + user.username) % 2 === 0) ? "Telegram" : "短信链接";
   return {
     ...user,
     region: validRegion,
+    channel: user.channel || defaultChannel,
     email: user.email || generateUserEmail(user.username),
     phone: user.phone || generateUserPhone(user.location, user.id),
     ip: user.ip || generateUserIp(user.id),
@@ -469,6 +475,7 @@ function generateAutoDailyData(endDate = getEffectiveEndDate()) {
           round: "October UEFA & European sports signups",
           location: cfg.country,
           region: cfg.region,
+          channel: (idx % 2 === 0 ? "Telegram" : "短信链接"),
           deposit: 0,
           stake: 0,
         };
@@ -685,6 +692,7 @@ function generateAutoDailyData(endDate = getEffectiveEndDate()) {
           round: "October UEFA & MLB postseason signups",
           location: profile.country,
           region: profile.region,
+          channel: (rng() > 0.5 ? "Telegram" : "短信链接"),
           deposit: 0,
           stake: 0,
         };
@@ -2078,7 +2086,9 @@ function useDailyMasterRecords(allUsers: PlatformUser[]): DailyMasterRecord[] {
           userType,
           sport: slip.league,
           match: slip.match,
+          market: slip.market,
           selection: slip.selection,
+          odds: slip.odds,
           stake: slip.stake,
           result,
           payout: result === "Won" ? slip.potentialPayout : 0,
@@ -2094,7 +2104,9 @@ function useDailyMasterRecords(allUsers: PlatformUser[]): DailyMasterRecord[] {
           userType,
           sport: bet.round,
           match: bet.match,
+          market: "独赢/常规盘",
           selection: bet.selection,
+          odds: bet.odds,
           stake: bet.stake,
           result,
           payout: bet.payout,
@@ -2135,32 +2147,60 @@ function DailyMasterTableView({
   onOpenWithdraw?: () => void;
 }) {
   const records = useDailyMasterRecords(allUsers);
-  const [filterMonth, setFilterMonth] = useState<"All" | "2026-10" | "2026-09" | "2026-08" | "2026-07" | "2026-06">("All");
-  const [selectedDate, setSelectedDate] = useState<string>(() => records[0]?.date || "2026-10-06");
-  const [drillTab, setDrillTab] = useState<"users" | "bets" | "ledger" | "fixtures">("users");
+  const minAvailDate = records[records.length - 1]?.date || "2026-06-01";
+  const maxAvailDate = records[0]?.date || "2026-10-12";
+
+  const [dateFilterMode, setDateFilterMode] = useState<"all" | "month" | "range" | "single">("all");
+  const [filterMonth, setFilterMonth] = useState<string>("All");
+  const [startDate, setStartDate] = useState<string>(minAvailDate);
+  const [endDate, setEndDate] = useState<string>(maxAvailDate);
+  const [selectedDate, setSelectedDate] = useState<string>(() => records[0]?.date || "2026-10-10");
+  const [drillTab, setDrillTab] = useState<"all_in_one" | "users" | "bets" | "ledger" | "fixtures">("all_in_one");
   const [query, setQuery] = useState("");
 
   const filteredRecords = useMemo(() => {
     return records.filter((r) => {
-      if (filterMonth !== "All" && !r.date.startsWith(filterMonth)) return false;
+      if (dateFilterMode === "month") {
+        if (filterMonth !== "All" && !r.date.startsWith(filterMonth)) return false;
+      } else if (dateFilterMode === "range") {
+        if (startDate && r.date < startDate) return false;
+        if (endDate && r.date > endDate) return false;
+      } else if (dateFilterMode === "single") {
+        if (selectedDate && r.date !== selectedDate) return false;
+      }
+
       if (query.trim()) {
         const q = query.toLowerCase();
         const matchesDate = r.date.includes(q);
-        const matchesUser = r.newUsers.some((u) => u.username.toLowerCase().includes(q) || u.email.toLowerCase().includes(q));
-        const matchesBettor = r.bettors.some((b) => b.username.toLowerCase().includes(q) || b.match.toLowerCase().includes(q));
+        const matchesUser = r.newUsers.some(
+          (u) =>
+            u.username.toLowerCase().includes(q) ||
+            u.email.toLowerCase().includes(q) ||
+            u.location.toLowerCase().includes(q) ||
+            (u.channel && u.channel.toLowerCase().includes(q))
+        );
+        const matchesBettor = r.bettors.some(
+          (b) =>
+            b.username.toLowerCase().includes(q) ||
+            b.match.toLowerCase().includes(q) ||
+            b.sport.toLowerCase().includes(q) ||
+            b.selection.toLowerCase().includes(q)
+        );
         if (!matchesDate && !matchesUser && !matchesBettor) return false;
       }
       return true;
     });
-  }, [records, filterMonth, query]);
+  }, [records, dateFilterMode, filterMonth, startDate, endDate, selectedDate, query]);
 
   const selectedRecord = useMemo(() => {
-    return records.find((r) => r.date === selectedDate) || records[0];
-  }, [records, selectedDate]);
+    return records.find((r) => r.date === selectedDate) || filteredRecords[0] || records[0];
+  }, [records, filteredRecords, selectedDate]);
 
   const totalScopeRevenue = useMemo(() => filteredRecords.reduce((s, r) => s + r.totalIncome, 0), [filteredRecords]);
   const totalScopeCrash = useMemo(() => filteredRecords.reduce((s, r) => s + r.crashIncome, 0), [filteredRecords]);
   const totalScopeSports = useMemo(() => filteredRecords.reduce((s, r) => s + r.sportsIncome, 0), [filteredRecords]);
+  const totalScopeMlb = useMemo(() => filteredRecords.reduce((s, r) => s + (r.mlbIncome || 0), 0), [filteredRecords]);
+  const totalScopeCommission = useMemo(() => filteredRecords.reduce((s, r) => s + (r.commissionIncome || 0), 0), [filteredRecords]);
   const totalScopeSignups = useMemo(() => filteredRecords.reduce((s, r) => s + r.newUsers.length, 0), [filteredRecords]);
   const totalScopeBettors = useMemo(() => filteredRecords.reduce((s, r) => s + r.bettors.length, 0), [filteredRecords]);
   const totalScopeWager = useMemo(() => filteredRecords.reduce((s, r) => s + r.bettors.reduce((sum, b) => sum + b.stake, 0), 0), [filteredRecords]);
@@ -2186,6 +2226,14 @@ function DailyMasterTableView({
           <strong>+{totalScopeSports.toLocaleString()} USDT</strong>
         </div>
         <div className="stat-pill">
+          <span>MLB 收益</span>
+          <strong style={{color: "#38bdf8"}}>+{totalScopeMlb.toLocaleString()} USDT</strong>
+        </div>
+        <div className="stat-pill">
+          <span>分佣收益</span>
+          <strong style={{color: "#10b981"}}>+{totalScopeCommission.toLocaleString()} USDT</strong>
+        </div>
+        <div className="stat-pill">
           <span>新注册用户</span>
           <strong>+{totalScopeSignups} 人</strong>
         </div>
@@ -2204,50 +2252,190 @@ function DailyMasterTableView({
       </div>
 
       <div className="daily-toolbar">
-        <div className="daily-toolbar-left">
-          <div className="btn-group">
-            <button className={filterMonth === "All" ? "active" : ""} onClick={() => setFilterMonth("All")}>全部历史</button>
-            <button className={filterMonth === "2026-10" ? "active" : ""} onClick={() => setFilterMonth("2026-10")}>2026年10月 (本月)</button>
-            <button className={filterMonth === "2026-09" ? "active" : ""} onClick={() => setFilterMonth("2026-09")}>2026年9月</button>
-            <button className={filterMonth === "2026-08" ? "active" : ""} onClick={() => setFilterMonth("2026-08")}>2026年8月</button>
-            <button className={filterMonth === "2026-07" ? "active" : ""} onClick={() => setFilterMonth("2026-07")}>2026年7月</button>
-            <button className={filterMonth === "2026-06" ? "active" : ""} onClick={() => setFilterMonth("2026-06")}>2026年6月</button>
+        <div className="daily-toolbar-left" style={{ display: "flex", flexDirection: "column", gap: 10, width: "100%" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap", justifyContent: "space-between" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+              <span style={{ fontSize: 13, fontWeight: 700, color: "#94a3b8" }}>筛选维度:</span>
+              <div className="btn-group">
+                <button
+                  className={dateFilterMode === "all" ? "active" : ""}
+                  onClick={() => {
+                    setDateFilterMode("all");
+                    setFilterMonth("All");
+                  }}
+                >
+                  全部历史
+                </button>
+                <button
+                  className={dateFilterMode === "month" ? "active" : ""}
+                  onClick={() => {
+                    setDateFilterMode("month");
+                    if (filterMonth === "All") setFilterMonth("2026-10");
+                  }}
+                >
+                  月份筛选
+                </button>
+                <button
+                  className={dateFilterMode === "range" ? "active" : ""}
+                  onClick={() => {
+                    setDateFilterMode("range");
+                  }}
+                >
+                  时间段选择 (起止区间)
+                </button>
+                <button
+                  className={dateFilterMode === "single" ? "active" : ""}
+                  onClick={() => {
+                    setDateFilterMode("single");
+                  }}
+                >
+                  单日精确选择
+                </button>
+              </div>
+            </div>
+
+            <div className="daily-toolbar-right" style={{ margin: 0 }}>
+              <label className="search search-inline" style={{ minWidth: 260 }}>
+                <Search size={15} />
+                <input
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                  placeholder="搜索日期、用户名、渠道、国家、赛事..."
+                />
+              </label>
+            </div>
           </div>
-          <div className="daily-select-wrap">
-            <span>跳转到具体日期:</span>
-            <select value={selectedDate} onChange={(e) => setSelectedDate(e.target.value)}>
-              {records.map((r) => (
-                <option key={r.date} value={r.date}>
-                  {r.date} {r.isToday ? "(今日)" : ""} · 总收 +{r.totalIncome}u · {r.newUsers.length}人注册
-                </option>
-              ))}
-            </select>
+
+          {/* 条件选择二级控制栏 */}
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 14,
+              flexWrap: "wrap",
+              background: "rgba(15, 23, 42, 0.45)",
+              padding: "10px 14px",
+              borderRadius: 6,
+              border: "1px solid rgba(148, 163, 184, 0.12)",
+            }}
+          >
+            {dateFilterMode === "month" && (
+              <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                <span style={{ fontSize: 13, color: "#cbd5e1" }}>选择月份:</span>
+                <div className="btn-group">
+                  <button className={filterMonth === "2026-10" ? "active" : ""} onClick={() => setFilterMonth("2026-10")}>
+                    2026年10月 (本月)
+                  </button>
+                  <button className={filterMonth === "2026-09" ? "active" : ""} onClick={() => setFilterMonth("2026-09")}>
+                    2026年9月
+                  </button>
+                  <button className={filterMonth === "2026-08" ? "active" : ""} onClick={() => setFilterMonth("2026-08")}>
+                    2026年8月
+                  </button>
+                  <button className={filterMonth === "2026-07" ? "active" : ""} onClick={() => setFilterMonth("2026-07")}>
+                    2026年7月
+                  </button>
+                  <button className={filterMonth === "2026-06" ? "active" : ""} onClick={() => setFilterMonth("2026-06")}>
+                    2026年6月
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {dateFilterMode === "range" && (
+              <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+                <span style={{ fontSize: 13, color: "#cbd5e1" }}>自定义时间段:</span>
+                <input
+                  type="date"
+                  className="date-input-field"
+                  value={startDate}
+                  min={minAvailDate}
+                  max={endDate || maxAvailDate}
+                  onChange={(e) => setStartDate(e.target.value)}
+                />
+                <span style={{ color: "#94a3b8" }}>至</span>
+                <input
+                  type="date"
+                  className="date-input-field"
+                  value={endDate}
+                  min={startDate || minAvailDate}
+                  max={maxAvailDate}
+                  onChange={(e) => setEndDate(e.target.value)}
+                />
+                <div className="btn-group" style={{ marginLeft: 6 }}>
+                  <button
+                    onClick={() => {
+                      setStartDate("2026-10-01");
+                      setEndDate(maxAvailDate);
+                    }}
+                  >
+                    10月至今
+                  </button>
+                  <button
+                    onClick={() => {
+                      setStartDate("2026-10-05");
+                      setEndDate("2026-10-12");
+                    }}
+                  >
+                    最近7天
+                  </button>
+                  <button
+                    onClick={() => {
+                      setStartDate(minAvailDate);
+                      setEndDate(maxAvailDate);
+                    }}
+                  >
+                    全部时间
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {dateFilterMode === "single" && (
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <span style={{ fontSize: 13, color: "#cbd5e1" }}>选择单一日历日期:</span>
+                <input
+                  type="date"
+                  className="date-input-field"
+                  value={selectedDate}
+                  min={minAvailDate}
+                  max={maxAvailDate}
+                  onChange={(e) => setSelectedDate(e.target.value)}
+                />
+              </div>
+            )}
+
+            <div className="daily-select-wrap" style={{ marginLeft: "auto" }}>
+              <span>定位聚焦日期:</span>
+              <select
+                value={selectedDate}
+                onChange={(e) => {
+                  setSelectedDate(e.target.value);
+                }}
+              >
+                {records.map((r) => (
+                  <option key={r.date} value={r.date}>
+                    {r.date} {r.isToday ? "(今日)" : ""} · 总收 +{r.totalIncome}u · {r.newUsers.length}人注册 · {r.bettors.length}单
+                  </option>
+                ))}
+              </select>
+            </div>
           </div>
-        </div>
-        <div className="daily-toolbar-right">
-          <label className="search search-inline">
-            <Search size={15} />
-            <input
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="搜索日期、用户名、邮箱、赛事 (如 2026-10-06, OliverUK98)..."
-            />
-          </label>
         </div>
       </div>
 
       <Panel
         title="按日运营与财务综合数据总表"
-        meta="每日自动生成收入、Crash收益、赛事净收益、新注册用户、注单量、提现流水与金库结余。点击任意行即可在下方下钻查看该日的四重大表格明细。"
+        meta="每日自动生成收入、Crash收益、赛事净收益、MLB收益、分佣收益、新注册用户、注单量、提现流水与金库结余。点击任意行即可在下方一览查看当日所有注册用户、渠道、投注比赛、赔率与胜负。"
       >
         <div className="data-table daily-master-table">
           <div className="data-row data-head">
             <span>日期</span>
             <span>当日总收入</span>
-            <span>Crash收益</span>
+            <span>Crash 收益</span>
             <span>赛事净收益</span>
-            <span style={{ color: "#38bdf8", fontWeight: 700 }}>MLB Income</span>
-            <span style={{ color: "#0284c7", fontWeight: 700 }}>Commission Income</span>
+            <span style={{ color: "#38bdf8", fontWeight: 700 }}>MLB 收益</span>
+            <span style={{ color: "#10b981", fontWeight: 700 }}>分佣收益</span>
             <span>新注册用户</span>
             <span>注单量</span>
             <span>总投注额</span>
@@ -2321,14 +2509,20 @@ function DailyMasterTableView({
             <div>
               <h3>
                 <CalendarDays size={20} color="#2dd4bf" />
-                {selectedRecord.date} 全景明细表格
+                {selectedRecord.date} 运营与投注全息综合大表
                 {selectedRecord.isToday && <span className="badge-today">今日最新</span>}
               </h3>
               <p style={{margin: "4px 0 0", fontSize: 13, color: "#94a3b8"}}>
-                当日总收入 +{selectedRecord.totalIncome}u · Crash 收入 +{selectedRecord.crashIncome}u · 赛事收入 +{selectedRecord.sportsIncome}u{selectedRecord.mlbIncome > 0 ? ` · MLB 收入 +${selectedRecord.mlbIncome}u` : ""}{selectedRecord.commissionIncome > 0 ? ` · Commission Income ${selectedRecord.commissionIncome}u` : ""} · 提现 {selectedRecord.withdrawals}u · 当日金库结余 {selectedRecord.balanceAfter}u (平账差额 0.00u)
+                当日总收入 +{selectedRecord.totalIncome}u · Crash 收益 +{selectedRecord.crashIncome}u · 赛事收益 +{selectedRecord.sportsIncome}u{selectedRecord.mlbIncome > 0 ? ` · MLB 收益 +${selectedRecord.mlbIncome}u` : ""}{selectedRecord.commissionIncome > 0 ? ` · 分佣收益 ${selectedRecord.commissionIncome}u` : ""} · 提现下发 {selectedRecord.withdrawals}u · 当日金库结余 {selectedRecord.balanceAfter}u (平账差额 0.00u)
               </p>
             </div>
             <div className="day-drilldown-tabs">
+              <button
+                className={drillTab === "all_in_one" ? "active" : ""}
+                onClick={() => setDrillTab("all_in_one")}
+              >
+                📊 当日全息一览 (注册+下注全息合并大表)
+              </button>
               <button
                 className={drillTab === "users" ? "active" : ""}
                 onClick={() => setDrillTab("users")}
@@ -2356,14 +2550,213 @@ function DailyMasterTableView({
             </div>
           </div>
 
+          {/* 当日全息一览大表：一张表看清注册、国家、渠道、下注数、比赛、新老用户、中奖状态、赔率 */}
+          {drillTab === "all_in_one" && (
+            <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
+              {/* 1. 当日核心看板汇总 */}
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
+                  gap: 12,
+                  background: "rgba(15, 23, 42, 0.45)",
+                  padding: 14,
+                  borderRadius: 8,
+                  border: "1px solid rgba(148, 163, 184, 0.15)",
+                }}
+              >
+                <div>
+                  <span style={{ fontSize: 12, color: "#94a3b8" }}>当日新注册用户:</span>
+                  <div style={{ fontSize: 16, fontWeight: 700, color: "#f1f5f9", marginTop: 2 }}>
+                    {selectedRecord.newUsers.length} 人
+                    <span style={{ fontSize: 12, fontWeight: "normal", color: "#38bdf8", marginLeft: 8 }}>
+                      (Telegram: {selectedRecord.newUsers.filter((u) => u.channel === "Telegram").length} · 短信链接: {selectedRecord.newUsers.filter((u) => u.channel === "短信链接").length})
+                    </span>
+                  </div>
+                </div>
+                <div>
+                  <span style={{ fontSize: 12, color: "#94a3b8" }}>覆盖国家/地区:</span>
+                  <div style={{ fontSize: 15, fontWeight: 600, color: "#cbd5e1", marginTop: 2 }}>
+                    {Array.from(new Set(selectedRecord.newUsers.map((u) => u.location))).join("、") || "老用户活跃"}
+                  </div>
+                </div>
+                <div>
+                  <span style={{ fontSize: 12, color: "#94a3b8" }}>投注单数 / 总投注额:</span>
+                  <div style={{ fontSize: 16, fontWeight: 700, color: "#f1f5f9", marginTop: 2 }}>
+                    {selectedRecord.bettors.length} 单 · {selectedRecord.bettors.reduce((s, b) => s + b.stake, 0)}u
+                    <span style={{ fontSize: 12, fontWeight: "normal", color: "#a78bfa", marginLeft: 8 }}>
+                      (新用户: {selectedRecord.bettors.filter((b) => b.userType === "New User").length} · 老用户: {selectedRecord.bettors.filter((b) => b.userType === "Returning User").length})
+                    </span>
+                  </div>
+                </div>
+                <div>
+                  <span style={{ fontSize: 12, color: "#94a3b8" }}>当日总收益结存:</span>
+                  <div style={{ fontSize: 16, fontWeight: 700, color: "#4ade80", marginTop: 2 }}>
+                    +{selectedRecord.totalIncome.toFixed(2)}u
+                    <span style={{ fontSize: 12, fontWeight: "normal", color: "#94a3b8", marginLeft: 6 }}>
+                      (金库: {selectedRecord.balanceAfter.toFixed(2)}u)
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* 2. 当日用户注册与渠道全景表 */}
+              <div>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
+                  <h4 style={{ margin: 0, fontSize: 14, color: "#f1f5f9", display: "flex", alignItems: "center", gap: 6 }}>
+                    👥 当日新注册用户及渠道列表 ({selectedRecord.newUsers.length} 人)
+                  </h4>
+                  <span style={{ fontSize: 12, color: "#94a3b8" }}>全部用户均已通过 KYC 认证与手机/邮箱验证</span>
+                </div>
+                <div className="data-table day-user-table">
+                  <div className="data-row data-head">
+                    <span>序号</span>
+                    <span>用户名</span>
+                    <span>注册渠道</span>
+                    <span>国家/地区</span>
+                    <span>电子邮箱</span>
+                    <span>注册时间</span>
+                    <span>账户余额</span>
+                    <span>今日下注</span>
+                    <span>操作</span>
+                  </div>
+                  {selectedRecord.newUsers.map((u, idx) => {
+                    const userWager = selectedRecord.bettors.filter((b) => b.username.toLowerCase() === u.username.toLowerCase()).reduce((s, b) => s + b.stake, 0);
+                    return (
+                      <div className="data-row" key={u.username}>
+                        <span>#{idx + 1}</span>
+                        <strong>{u.username}</strong>
+                        <div>
+                          <span
+                            className="channel-badge"
+                            style={{
+                              background: u.channel === "Telegram" ? "rgba(14, 165, 233, 0.15)" : "rgba(168, 85, 247, 0.15)",
+                              color: u.channel === "Telegram" ? "#38bdf8" : "#c084fc",
+                              border: `1px solid ${u.channel === "Telegram" ? "rgba(14, 165, 233, 0.35)" : "rgba(168, 85, 247, 0.35)"}`,
+                              padding: "2px 8px",
+                              borderRadius: 4,
+                              fontSize: 12,
+                              fontWeight: 600,
+                            }}
+                          >
+                            {u.channel === "Telegram" ? "✈️ Telegram" : "📱 短信链接"}
+                          </span>
+                        </div>
+                        <span>{u.location} · {u.region}</span>
+                        <span className="user-email-cell" title={u.email}>{u.email || "-"}</span>
+                        <span>{u.registeredAt}</span>
+                        <b>{u.deposit}u</b>
+                        <span style={{ color: userWager > 0 ? "#4ade80" : "#94a3b8", fontWeight: userWager > 0 ? 700 : "normal" }}>
+                          {userWager > 0 ? `${userWager}u` : "未下注"}
+                        </span>
+                        <button className="mini-btn" onClick={() => openDetail(userDetail(u, idx))}>查看画像</button>
+                      </div>
+                    );
+                  })}
+                  {selectedRecord.newUsers.length === 0 && (
+                    <div className="empty">该日无新注册用户记录（均为老用户活跃与下注）。</div>
+                  )}
+                </div>
+              </div>
+
+              {/* 3. 当日全量投注单综合明细表 */}
+              <div>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
+                  <h4 style={{ margin: 0, fontSize: 14, color: "#f1f5f9", display: "flex", alignItems: "center", gap: 6 }}>
+                    ⚽ 当日投注明细表（含新老用户、比赛、盘口、赔率与中奖结果）
+                  </h4>
+                  <span style={{ fontSize: 12, color: "#94a3b8" }}>共计 {selectedRecord.bettors.length} 笔赛事投注单</span>
+                </div>
+
+                {selectedRecord.date === "2026-10-10" && (
+                  <div style={{ background: "rgba(14, 165, 233, 0.08)", border: "1px solid rgba(14, 165, 233, 0.25)", borderRadius: 8, padding: "10px 14px", marginBottom: 12, fontSize: 13, color: "#38bdf8", display: "flex", alignItems: "center", gap: 8 }}>
+                    <span>✈️ <strong>小飞机 (Crash) 玩家下注流水 (共 100u 净收益)</strong>：FelixDE304 (下注 40u) · MateoES306 (下注 25u) · ArthurUK307 (下注 20u) · Omar11 (下注 15u) · 均为整数且末尾以 5/0 结尾已全部结算入账。</span>
+                  </div>
+                )}
+                {selectedRecord.date >= "2026-10-11" && selectedRecord.crashIncome > 0 && (
+                  <div style={{ background: "rgba(14, 165, 233, 0.08)", border: "1px solid rgba(14, 165, 233, 0.25)", borderRadius: 8, padding: "10px 14px", marginBottom: 12, fontSize: 13, color: "#38bdf8", display: "flex", alignItems: "center", gap: 8 }}>
+                    <span>✈️ <strong>小飞机 (Crash) 玩家下注流水 (共 +{selectedRecord.crashIncome}u 净收益)</strong>：{crashIncomes.find((c) => c.date === selectedRecord.date && c.details)?.details || `多位玩家不同金额下注，共计 +${selectedRecord.crashIncome}u`} · 已全部结算入账。</span>
+                  </div>
+                )}
+
+                <div className="data-table day-bet-table">
+                  <div className="data-row data-head">
+                    <span>注单号</span>
+                    <span>投注用户</span>
+                    <span>用户属性</span>
+                    <span>赛事/联赛</span>
+                    <span>下注比赛</span>
+                    <span>投注盘口</span>
+                    <span>下注时赔率</span>
+                    <span>投注金额</span>
+                    <span>中奖状态</span>
+                    <span>结算派彩</span>
+                  </div>
+                  {selectedRecord.bettors.map((b, idx) => {
+                    const displayOdds = b.odds ? b.odds.toFixed(2) : (b.payout > 0 ? (b.payout / b.stake).toFixed(2) : "1.82");
+                    return (
+                      <div className="data-row" key={`${b.username}-${b.match}-${idx}`}>
+                        <span>BET-{selectedRecord.date.replace(/-/g, "").slice(4)}-{String(idx + 1).padStart(3, "0")}</span>
+                        <strong>{b.username}</strong>
+                        <div>
+                          <span
+                            className="pill-badge"
+                            style={{
+                              background: b.userType === "New User" ? "rgba(34, 197, 94, 0.15)" : "rgba(148, 163, 184, 0.15)",
+                              color: b.userType === "New User" ? "#4ade80" : "#94a3b8",
+                              border: `1px solid ${b.userType === "New User" ? "rgba(34, 197, 94, 0.35)" : "rgba(148, 163, 184, 0.3)"}`,
+                              padding: "2px 6px",
+                              borderRadius: 4,
+                              fontSize: 11,
+                              fontWeight: 600,
+                            }}
+                          >
+                            {b.userType === "New User" ? "新用户" : "老用户"}
+                          </span>
+                        </div>
+                        <span>{b.sport}</span>
+                        <span title={b.match} style={{ fontWeight: 600, color: "#f8fafc" }}>{b.match}</span>
+                        <span style={{ color: "#38bdf8" }}>{b.selection}</span>
+                        <b style={{ color: "#facc15" }}>@{displayOdds}</b>
+                        <span style={{ fontWeight: 600 }}>{b.stake}u</span>
+                        <div>
+                          <em
+                            style={{
+                              padding: "2px 6px",
+                              borderRadius: 4,
+                              fontSize: 11,
+                              fontStyle: "normal",
+                              fontWeight: 600,
+                              background: b.result === "Won" ? "rgba(34, 197, 94, 0.15)" : b.result === "Lost" ? "rgba(239, 68, 68, 0.15)" : "rgba(234, 179, 8, 0.15)",
+                              color: b.result === "Won" ? "#4ade80" : b.result === "Lost" ? "#f87171" : "#facc15",
+                              border: `1px solid ${b.result === "Won" ? "rgba(34, 197, 94, 0.35)" : b.result === "Lost" ? "rgba(239, 68, 68, 0.35)" : "rgba(234, 179, 8, 0.35)"}`,
+                            }}
+                          >
+                            {b.result === "Won" ? "已中奖" : b.result === "Lost" ? "未中奖" : "待结算"}
+                          </em>
+                        </div>
+                        <strong style={{ color: b.payout > 0 ? "#4ade80" : "#94a3b8" }}>
+                          {b.payout > 0 ? `+${b.payout}u` : "0u"}
+                        </strong>
+                      </div>
+                    );
+                  })}
+                  {selectedRecord.bettors.length === 0 && (
+                    <div className="empty">该日暂无体育赛事投注记录。</div>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+
           {drillTab === "users" && (
             <div className="data-table day-user-table">
               <div className="data-row data-head">
                 <span>序号</span>
                 <span>用户名</span>
-                <span>电子邮箱</span>
-                <span>注册批次</span>
+                <span>注册渠道</span>
                 <span>国家/地区</span>
+                <span>电子邮箱</span>
                 <span>注册时间</span>
                 <span>实名认证</span>
                 <span>账户余额</span>
@@ -2373,9 +2766,23 @@ function DailyMasterTableView({
                 <div className="data-row" key={u.username}>
                   <span>#{idx + 1}</span>
                   <strong>{u.username}</strong>
-                  <span className="user-email-cell" title={u.email}>{u.email || "-"}</span>
-                  <span>{u.round}</span>
+                  <div>
+                    <span
+                      style={{
+                        background: u.channel === "Telegram" ? "rgba(14, 165, 233, 0.15)" : "rgba(168, 85, 247, 0.15)",
+                        color: u.channel === "Telegram" ? "#38bdf8" : "#c084fc",
+                        border: `1px solid ${u.channel === "Telegram" ? "rgba(14, 165, 233, 0.35)" : "rgba(168, 85, 247, 0.35)"}`,
+                        padding: "2px 8px",
+                        borderRadius: 4,
+                        fontSize: 12,
+                        fontWeight: 600,
+                      }}
+                    >
+                      {u.channel === "Telegram" ? "✈️ Telegram" : "📱 短信链接"}
+                    </span>
+                  </div>
                   <span>{u.location} · {u.region}</span>
+                  <span className="user-email-cell" title={u.email}>{u.email || "-"}</span>
                   <span>{u.registeredAt}</span>
                   <em style={{color: "#4ade80"}}>已认证</em>
                   <b>{u.deposit}u</b>
@@ -2402,43 +2809,46 @@ function DailyMasterTableView({
               )}
               <div className="data-table day-bet-table">
                 <div className="data-row data-head">
-                <span>注单ID / 赛事</span>
-                <span>投注用户</span>
-                <span>用户类型</span>
-                <span>联赛/赛事</span>
-                <span>对阵比赛</span>
-                <span>投注盘口</span>
-                <span>赔率</span>
-                <span>投注金额</span>
-                <span>派彩状态</span>
-                <span>结算派彩</span>
-              </div>
-              {selectedRecord.bettors.map((b, idx) => (
-                <div className="data-row" key={`${b.username}-${b.match}-${idx}`}>
-                  <span>BET-{selectedRecord.date.replace(/-/g, "").slice(4)}-{String(idx + 1).padStart(3, "0")}</span>
-                  <strong>{b.username}</strong>
-                  <span className={`pill-badge ${b.userType === "New User" ? "pill-new" : "pill-returning"}`}>
-                    {b.userType === "New User" ? "新用户" : "老用户"}
-                  </span>
-                  <span>{b.sport}</span>
-                  <span title={b.match}>{b.match}</span>
-                  <span style={{color: "#38bdf8"}}>{b.selection}</span>
-                  <b>{b.stake > 0 ? (b.payout > 0 ? (b.payout / b.stake).toFixed(2) : "1.85") : "1.80"}</b>
-                  <span>{b.stake}u</span>
-                  <em className={b.result === "Won" ? "success" : b.result === "Lost" ? "danger" : "warn"}>
-                    {b.result === "Won" ? "已中奖" : b.result === "Lost" ? "未中奖" : "待结算"}
-                  </em>
-                  <strong style={{color: b.payout > 0 ? "#4ade80" : "#94a3b8"}}>
-                    {b.payout > 0 ? `+${b.payout}u` : "0u"}
-                  </strong>
+                  <span>注单号</span>
+                  <span>投注用户</span>
+                  <span>用户属性</span>
+                  <span>赛事/联赛</span>
+                  <span>对阵比赛</span>
+                  <span>投注盘口</span>
+                  <span>赔率</span>
+                  <span>投注金额</span>
+                  <span>中奖状态</span>
+                  <span>结算派彩</span>
                 </div>
-              ))}
-              {selectedRecord.bettors.length === 0 && (
-                <div className="empty">该日暂无体育赛事投注记录。</div>
-              )}
+                {selectedRecord.bettors.map((b, idx) => {
+                  const displayOdds = b.odds ? b.odds.toFixed(2) : (b.payout > 0 ? (b.payout / b.stake).toFixed(2) : "1.82");
+                  return (
+                    <div className="data-row" key={`${b.username}-${b.match}-${idx}`}>
+                      <span>BET-{selectedRecord.date.replace(/-/g, "").slice(4)}-{String(idx + 1).padStart(3, "0")}</span>
+                      <strong>{b.username}</strong>
+                      <span className={`pill-badge ${b.userType === "New User" ? "pill-new" : "pill-returning"}`}>
+                        {b.userType === "New User" ? "新用户" : "老用户"}
+                      </span>
+                      <span>{b.sport}</span>
+                      <span title={b.match}>{b.match}</span>
+                      <span style={{color: "#38bdf8"}}>{b.selection}</span>
+                      <b style={{ color: "#facc15" }}>@{displayOdds}</b>
+                      <span>{b.stake}u</span>
+                      <em className={b.result === "Won" ? "success" : b.result === "Lost" ? "danger" : "warn"}>
+                        {b.result === "Won" ? "已中奖" : b.result === "Lost" ? "未中奖" : "待结算"}
+                      </em>
+                      <strong style={{color: b.payout > 0 ? "#4ade80" : "#94a3b8"}}>
+                        {b.payout > 0 ? `+${b.payout}u` : "0u"}
+                      </strong>
+                    </div>
+                  );
+                })}
+                {selectedRecord.bettors.length === 0 && (
+                  <div className="empty">该日暂无体育赛事投注记录。</div>
+                )}
+              </div>
             </div>
-          </div>
-        )}
+          )}
 
           {drillTab === "ledger" && (
             <div className="data-table day-ledger-table">
@@ -2567,7 +2977,9 @@ function buildDailyUserActivities(users: PlatformUser[]): DailyUserActivity[] {
           userType,
           sport: slip.league,
           match: slip.match,
+          market: slip.market,
           selection: slip.selection,
+          odds: slip.odds,
           stake: slip.stake,
           result,
           payout: result === "Won" ? slip.potentialPayout : 0,
@@ -2586,7 +2998,9 @@ function buildDailyUserActivities(users: PlatformUser[]): DailyUserActivity[] {
           userType,
           sport: bet.round,
           match: bet.match,
+          market: "独赢/常规盘",
           selection: bet.selection,
+          odds: bet.odds,
           stake: bet.stake,
           result,
           payout: bet.payout,
@@ -4288,6 +4702,7 @@ function userDetail(user: PlatformUser, index: number): Detail {
   const fields: Array<[string, string]> = [
     ["用户编号", user.id],
     ["用户名", user.username],
+    ["注册渠道", user.channel ? (user.channel === "Telegram" ? "✈️ Telegram" : "📱 短信链接") : "Telegram"],
     ["电子邮箱", user.email],
     ["联系电话", user.phone || `+1 (555) ${String(100 + (index * 37) % 900)}-${String(1000 + (index * 79) % 9000)}`],
     ["注册时间", user.registeredAt],
