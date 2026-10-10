@@ -43,7 +43,7 @@ type AdminSummary = {
 };
 
 type LeaguePage = "Premier League" | "LaLiga" | "Serie A" | "Bundesliga" | "Ligue 1";
-type FixtureLeague = LeaguePage | "Liga de Expansión MX" | "ATP Tour";
+type FixtureLeague = LeaguePage | "Liga de Expansión MX" | "ATP Tour" | "MLB";
 type ActivePage = "DailyMaster" | "Overview" | "Users" | "Deposits" | "Withdrawals" | "Risk Review" | "Bonus Controls" | "Five Leagues" | "League Bets" | "Ledger by Date" | LeaguePage | "Audit Logs";
 type Detail = {
   title: string;
@@ -80,7 +80,7 @@ type BetRecord = {
 type ExchangeWithdrawal = {date: string; amount: number; status: string; destination: string};
 type DepositRecord = {id: string; user: string; chain: string; tx: string; amount: number; confirmations: string; status: string; age: string};
 type WheelIncome = {date: string; amount: number; source: string; status: string};
-type CrashIncome = {date: string; amount: number; source: string; status: string};
+type CrashIncome = {date: string; amount: number; source: string; status: string; details?: string};
 type LeagueMarket = {
   league: string;
   country: string;
@@ -99,7 +99,7 @@ type LeagueBetSlip = {
   id: string;
   time: string;
   user: string;
-  league: LeaguePage | "Multi League" | "Liga de Expansión MX" | "ATP Tour";
+  league: LeaguePage | "Multi League" | "Liga de Expansión MX" | "ATP Tour" | "MLB";
   match: string;
   market: string;
   selection: string;
@@ -143,6 +143,7 @@ type DateLedgerRow = {
   sportsStakes: number;
   leagueStake: number;
   leagueReceipts: number;
+  mlbIncome?: number;
   wheelIncome: number;
   crashIncome: number;
   commissionIncome?: number;
@@ -347,6 +348,38 @@ const MATCH_CATALOG: Array<{
   {league: "Serie A", match: "Juventus vs Cagliari", matchday: "Matchday 7", market: "Clean sheet", selection: "Juventus win to nil", odds: 1.85, moneyline: "1.38 / 4.60 / 8.50", handicap: "Juventus -1.25 @ 1.90", total: "Under 2.5 @ 1.80", featured: "Juventus win @ 1.38"},
 ];
 
+const MLB_CATALOG: Array<{
+  match: string;
+  matchday: string;
+  time: string;
+  market: string;
+  selection: string;
+  odds: number;
+  moneyline: string;
+  handicap: string;
+  total: string;
+  featured: string;
+}> = [
+  {match: "San Diego Padres vs Los Angeles Dodgers", matchday: "NLDS Game 5", time: "17:08 PDT", market: "Moneyline", selection: "Los Angeles Dodgers win", odds: 1.70, moneyline: "2.20 / 1.70", handicap: "Dodgers -1.5 @ 2.25", total: "Over 7.5 @ 1.85", featured: "Dodgers ML @ 1.70"},
+  {match: "Detroit Tigers vs Cleveland Guardians", matchday: "ALDS Game 5", time: "13:08 EDT", market: "Moneyline", selection: "Cleveland Guardians win", odds: 1.80, moneyline: "2.05 / 1.80", handicap: "Guardians -1.5 @ 2.35", total: "Under 6.5 @ 1.88", featured: "Guardians ML @ 1.80"},
+  {match: "New York Mets vs Los Angeles Dodgers", matchday: "NLCS Game 1", time: "17:15 PDT", market: "Run Line", selection: "Dodgers -1.5", odds: 2.05, moneyline: "2.40 / 1.62", handicap: "Dodgers -1.5 @ 2.05", total: "Over 8.0 @ 1.90", featured: "Dodgers -1.5 @ 2.05"},
+  {match: "Cleveland Guardians vs New York Yankees", matchday: "ALCS Game 1", time: "19:38 EDT", market: "Moneyline", selection: "New York Yankees win", odds: 1.65, moneyline: "2.35 / 1.65", handicap: "Yankees -1.5 @ 2.10", total: "Under 7.5 @ 1.85", featured: "Yankees ML @ 1.65"},
+  {match: "New York Mets vs Los Angeles Dodgers", matchday: "NLCS Game 2", time: "13:08 PDT", market: "Total runs", selection: "Over 8.5 runs", odds: 1.88, moneyline: "2.25 / 1.68", handicap: "Dodgers -1.5 @ 2.15", total: "Over 8.5 @ 1.88", featured: "Over 8.5 runs @ 1.88"},
+  {match: "Cleveland Guardians vs New York Yankees", matchday: "ALCS Game 2", time: "19:38 EDT", market: "Run Line", selection: "Yankees -1.5", odds: 2.15, moneyline: "2.45 / 1.60", handicap: "Yankees -1.5 @ 2.15", total: "Over 7.0 @ 1.82", featured: "Yankees -1.5 @ 2.15"},
+  {match: "Los Angeles Dodgers vs New York Mets", matchday: "NLCS Game 3", time: "20:08 EDT", market: "Moneyline", selection: "Los Angeles Dodgers win", odds: 1.72, moneyline: "1.72 / 2.18", handicap: "Dodgers -1.5 @ 2.20", total: "Over 7.5 @ 1.85", featured: "Dodgers ML @ 1.72"},
+  {match: "New York Yankees vs Cleveland Guardians", matchday: "ALCS Game 3", time: "17:08 EDT", market: "Total runs", selection: "Over 7.5 runs", odds: 1.85, moneyline: "1.75 / 2.15", handicap: "Yankees -1.5 @ 2.20", total: "Over 7.5 @ 1.85", featured: "Over 7.5 runs @ 1.85"},
+  {match: "Los Angeles Dodgers vs New York Mets", matchday: "NLCS Game 4", time: "20:08 EDT", market: "Moneyline", selection: "Los Angeles Dodgers win", odds: 1.68, moneyline: "1.68 / 2.25", handicap: "Dodgers -1.5 @ 2.10", total: "Over 8.0 @ 1.92", featured: "Dodgers ML @ 1.68"},
+  {match: "New York Yankees vs Cleveland Guardians", matchday: "ALCS Game 4", time: "20:08 EDT", market: "Moneyline", selection: "New York Yankees win", odds: 1.70, moneyline: "1.70 / 2.20", handicap: "Yankees -1.5 @ 2.18", total: "Under 8.0 @ 1.82", featured: "Yankees ML @ 1.70"},
+  {match: "Los Angeles Dodgers vs New York Mets", matchday: "NLCS Game 5", time: "17:08 EDT", market: "Run Line", selection: "Dodgers -1.5", odds: 2.10, moneyline: "1.65 / 2.30", handicap: "Dodgers -1.5 @ 2.10", total: "Over 8.0 @ 1.85", featured: "Dodgers -1.5 @ 2.10"},
+  {match: "New York Yankees vs Cleveland Guardians", matchday: "ALCS Game 5", time: "20:08 EDT", market: "Moneyline", selection: "New York Yankees win", odds: 1.72, moneyline: "1.72 / 2.18", handicap: "Yankees -1.5 @ 2.22", total: "Over 7.5 @ 1.88", featured: "Yankees ML @ 1.72"},
+  {match: "New York Mets vs Los Angeles Dodgers", matchday: "NLCS Game 6", time: "17:08 PDT", market: "Moneyline", selection: "Los Angeles Dodgers win", odds: 1.64, moneyline: "2.35 / 1.64", handicap: "Dodgers -1.5 @ 2.05", total: "Over 8.5 @ 1.90", featured: "Dodgers ML @ 1.64"},
+  {match: "New York Yankees vs Los Angeles Dodgers", matchday: "World Series Game 1", time: "17:08 PDT", market: "Moneyline", selection: "Los Angeles Dodgers win", odds: 1.75, moneyline: "2.15 / 1.75", handicap: "Dodgers -1.5 @ 2.28", total: "Over 8.5 @ 1.85", featured: "Dodgers ML @ 1.75"},
+  {match: "New York Yankees vs Los Angeles Dodgers", matchday: "World Series Game 2", time: "17:08 PDT", market: "Run Line", selection: "Dodgers -1.5", odds: 2.20, moneyline: "2.10 / 1.78", handicap: "Dodgers -1.5 @ 2.20", total: "Under 8.5 @ 1.90", featured: "Dodgers -1.5 @ 2.20"},
+  {match: "Los Angeles Dodgers vs New York Yankees", matchday: "World Series Game 3", time: "20:08 EDT", market: "Moneyline", selection: "New York Yankees win", odds: 1.85, moneyline: "1.85 / 2.00", handicap: "Yankees -1.5 @ 2.45", total: "Over 8.0 @ 1.82", featured: "Yankees ML @ 1.85"},
+  {match: "Los Angeles Dodgers vs New York Yankees", matchday: "World Series Game 4", time: "20:08 EDT", market: "Total runs", selection: "Over 8.5 runs", odds: 1.85, moneyline: "1.95 / 1.90", handicap: "Dodgers -1.5 @ 2.35", total: "Over 8.5 @ 1.85", featured: "Over 8.5 runs @ 1.85"},
+  {match: "Los Angeles Dodgers vs New York Yankees", matchday: "World Series Game 5", time: "20:08 EDT", market: "Moneyline", selection: "Los Angeles Dodgers win", odds: 1.80, moneyline: "2.05 / 1.80", handicap: "Dodgers -1.5 @ 2.30", total: "Under 8.0 @ 1.90", featured: "Dodgers ML @ 1.80"}
+];
+
 function getEffectiveEndDate(): string {
   try {
     if (typeof window !== "undefined") {
@@ -382,14 +415,17 @@ function generateAutoDailyData(endDate = getEffectiveEndDate()) {
   const autoLeagueReceipts: Array<{date: string; amount: number; source: string; status: string}> = [];
   const autoLeagueSlips: LeagueBetSlip[] = [];
   const autoFixtures: LeagueDailyFixture[] = [];
-  const autoSummary: Array<{date: string; total: number; crash: number; sports: number; signups: number}> = [];
+  const autoSummary: Array<{date: string; total: number; crash: number; sports: number; mlb: number; commission: number; signups: number}> = [];
+  const autoMlbIncomes: Array<{date: string; amount: number; source: string; status: string}> = [];
+  const autoCommissionIncomes: Array<{date: string; amount: number; source: string; status: string}> = [];
 
   dates.forEach((date, dayIdx) => {
     if (date === "2026-10-10") {
       const sportsIncome = 201;
       const crashIncome = 100;
-      const totalIncome = 301;
+      const totalIncome = 320;
       const regCount = 7;
+      const commIncome = 19;
 
       autoCrashIncomes.push(
         {date, amount: 40, source: "Crash game (FelixDE304 wager 40u)", status: "Settled"},
@@ -403,7 +439,7 @@ function generateAutoDailyData(endDate = getEffectiveEndDate()) {
         source: "Five-league Saturday fixtures betting proceeds",
         status: "Collected"
       });
-      autoSummary.push({date, total: totalIncome, crash: crashIncome, sports: sportsIncome, signups: regCount});
+      autoSummary.push({date, total: totalIncome, crash: crashIncome, sports: sportsIncome, mlb: 0, commission: commIncome, signups: regCount});
 
       // 保持原有10号生成的用户名（OliverIT301、LeoJP302、AlexanderJP303）不变，并新增用户
       const day10Configs = [
@@ -584,7 +620,249 @@ function generateAutoDailyData(endDate = getEffectiveEndDate()) {
         status: "Pending",
         risk: "Low"
       });
+    } else if (date >= "2026-10-11") {
+      // 10.11 及之后自动化逻辑
+      const rng = createRng(hashDate(date + "_daily_oct11_v3"));
+      // 1. 足球赛事收益: 50 - 230u 随机数
+      const sportsIncome = Math.floor(rng() * (230 - 50 + 1)) + 50;
+      // 2. MLB 收益 / 总下注: 30 - 80u 随机数
+      const mlbIncome = Math.floor(rng() * (80 - 30 + 1)) + 30;
+      // 3. 小飞机 (Crash) 收益: 5 - 65u 随机数
+      const crashIncome = Math.floor(rng() * (65 - 5 + 1)) + 5;
+      // 4. 分佣收益: 3 - 35u 随机数
+      const commissionIncome = Math.floor(rng() * (35 - 3 + 1)) + 3;
+      // 5. 新注册用户: 7 - 15 人随机数
+      const regCount = Math.floor(rng() * (15 - 7 + 1)) + 7;
+
+      const totalIncome = sportsIncome + mlbIncome + crashIncome + commissionIncome;
+
+      autoLeagueReceipts.push({
+        date,
+        amount: sportsIncome,
+        source: "Five-league & European fixtures betting proceeds",
+        status: "Collected"
+      });
+      autoMlbIncomes.push({
+        date,
+        amount: mlbIncome,
+        source: "MLB postseason betting proceeds",
+        status: "Collected"
+      });
+      autoCommissionIncomes.push({
+        date,
+        amount: commissionIncome,
+        source: "Commission Income",
+        status: "Settled"
+      });
+      autoSummary.push({
+        date,
+        total: totalIncome,
+        crash: crashIncome,
+        sports: sportsIncome,
+        mlb: mlbIncome,
+        commission: commissionIncome,
+        signups: regCount
+      });
+
+      // 生成 7-15 位注册用户
+      const dayUsers: PlatformUser[] = [];
+      for (let i = 0; i < regCount; i++) {
+        const profile = COUNTRY_PROFILES[Math.floor(rng() * COUNTRY_PROFILES.length)];
+        const name = FIRST_NAMES[Math.floor(rng() * FIRST_NAMES.length)];
+        const num = 400 + dayIdx * 25 + i + 1;
+        const username = `${name}${profile.code}${num}`;
+        const domain = EMAIL_DOMAINS[Math.floor(rng() * EMAIL_DOMAINS.length)];
+        const email = `${name.toLowerCase()}.${profile.code.toLowerCase()}${num}@${domain}`;
+        const hour = String(9 + Math.floor(rng() * 12)).padStart(2, "0");
+        const min = String(Math.floor(rng() * 60)).padStart(2, "0");
+        const user: PlatformUser = {
+          id: `user_oct_${date.replace(/-/g, "").slice(4)}_${String(i + 1).padStart(2, "0")}`,
+          username,
+          email,
+          phone: `${profile.phonePrefix}${Math.floor(1000000 + rng() * 9000000)}`,
+          ip: `${Math.floor(60 + rng() * 140)}.${Math.floor(10 + rng() * 200)}.${Math.floor(10 + rng() * 200)}.${Math.floor(2 + rng() * 250)}`,
+          registeredAt: `${date} ${hour}:${min}`,
+          round: "October UEFA & MLB postseason signups",
+          location: profile.country,
+          region: profile.region,
+          deposit: 0,
+          stake: 0,
+        };
+        dayUsers.push(user);
+        autoUsers.push(user);
+      }
+
+      // 生成小飞机 (Crash) 玩家下注明细 (2-3个用户不同金额，加总为 crashIncome)
+      const crashUserCount = Math.min(3, Math.max(2, Math.floor(crashIncome / 15)));
+      let remainingCrash = crashIncome;
+      const crashSplits: number[] = [];
+      for (let ci = 0; ci < crashUserCount - 1; ci++) {
+        const maxVal = remainingCrash - (crashUserCount - 1 - ci) * 2;
+        const val = Math.max(2, Math.floor(remainingCrash / (crashUserCount - ci)) + Math.floor((rng() - 0.5) * 6));
+        const clamped = Math.max(2, Math.min(maxVal, val));
+        crashSplits.push(clamped);
+        remainingCrash -= clamped;
+      }
+      crashSplits.push(remainingCrash);
+      const crashDetailsList: string[] = [];
+      crashSplits.forEach((amt, cIdx) => {
+        const u = dayUsers[cIdx % dayUsers.length]?.username || `Player${cIdx + 1}`;
+        autoCrashIncomes.push({
+          date,
+          amount: amt,
+          source: `Crash game (${u} wager ${amt}u)`,
+          status: "Settled"
+        });
+        crashDetailsList.push(`${u} (${amt}u)`);
+      });
+      if (autoCrashIncomes.length > 0) {
+        autoCrashIncomes[autoCrashIncomes.length - 1].details = crashDetailsList.join(" · ");
+      }
+
+      // 生成足球比赛赛程 (2场不同的比赛)
+      const footballMatches = MATCH_CATALOG.filter((m) => m.league !== "ATP Tour");
+      const fIdx1 = (dayIdx * 3) % footballMatches.length;
+      let fIdx2 = (dayIdx * 3 + 1) % footballMatches.length;
+      if (fIdx1 === fIdx2) fIdx2 = (fIdx2 + 1) % footballMatches.length;
+      const m1 = footballMatches[fIdx1];
+      const m2 = footballMatches[fIdx2];
+
+      autoFixtures.push({
+        league: m1.league,
+        date,
+        time: "18:45 CET",
+        match: m1.match,
+        matchday: m1.matchday,
+        moneyline: m1.moneyline,
+        handicap: m1.handicap,
+        total: m1.total,
+        featured: m1.featured,
+        status: "Today"
+      });
+      autoFixtures.push({
+        league: m2.league,
+        date,
+        time: "21:00 CET",
+        match: m2.match,
+        matchday: m2.matchday,
+        moneyline: m2.moneyline,
+        handicap: m2.handicap,
+        total: m2.total,
+        featured: m2.featured,
+        status: "Upcoming"
+      });
+
+      // 足球下注注单：2位不同用户下注不同比赛，金额不同且加总为 sportsIncome
+      const sStake1 = Math.max(10, Math.floor(sportsIncome * 0.55));
+      const sStake2 = sportsIncome - sStake1;
+      const sUser1 = dayUsers[0]?.username || "AutoUser01";
+      const sUser2 = dayUsers[1]?.username || "AutoUser02";
+      if (dayUsers[0]) dayUsers[0].stake = (dayUsers[0].stake || 0) + sStake1;
+      if (dayUsers[1]) dayUsers[1].stake = (dayUsers[1].stake || 0) + sStake2;
+
+      autoLeagueSlips.push({
+        id: `LGB-${date.replace(/-/g, "").slice(4)}01`,
+        time: `${date} 14:30`,
+        user: sUser1,
+        league: m1.league,
+        match: m1.match,
+        market: m1.market,
+        selection: m1.selection,
+        odds: m1.odds,
+        stake: sStake1,
+        potentialPayout: Math.round(sStake1 * m1.odds * 100) / 100,
+        betType: "Single",
+        status: "Pending",
+        risk: "Low"
+      });
+      autoLeagueSlips.push({
+        id: `LGB-${date.replace(/-/g, "").slice(4)}02`,
+        time: `${date} 16:45`,
+        user: sUser2,
+        league: m2.league,
+        match: m2.match,
+        market: m2.market,
+        selection: m2.selection,
+        odds: m2.odds,
+        stake: sStake2,
+        potentialPayout: Math.round(sStake2 * m2.odds * 100) / 100,
+        betType: "Single",
+        status: "Pending",
+        risk: "Low"
+      });
+
+      // 生成 MLB 赛程与注单
+      const mlbIdx1 = (dayIdx * 2) % MLB_CATALOG.length;
+      let mlbIdx2 = (dayIdx * 2 + 1) % MLB_CATALOG.length;
+      if (mlbIdx1 === mlbIdx2) mlbIdx2 = (mlbIdx2 + 1) % MLB_CATALOG.length;
+      const mlbM1 = MLB_CATALOG[mlbIdx1];
+      const mlbM2 = MLB_CATALOG[mlbIdx2];
+
+      autoFixtures.push({
+        league: "MLB",
+        date,
+        time: mlbM1.time,
+        match: mlbM1.match,
+        matchday: mlbM1.matchday,
+        moneyline: mlbM1.moneyline,
+        handicap: mlbM1.handicap,
+        total: mlbM1.total,
+        featured: mlbM1.featured,
+        status: "Today"
+      });
+      autoFixtures.push({
+        league: "MLB",
+        date,
+        time: mlbM2.time,
+        match: mlbM2.match,
+        matchday: mlbM2.matchday,
+        moneyline: mlbM2.moneyline,
+        handicap: mlbM2.handicap,
+        total: mlbM2.total,
+        featured: mlbM2.featured,
+        status: "Upcoming"
+      });
+
+      // MLB 下注注单：2位不同用户下注不同MLB赛事，金额不同且加总为 mlbIncome
+      const mlbStake1 = Math.max(10, Math.floor(mlbIncome * 0.58));
+      const mlbStake2 = mlbIncome - mlbStake1;
+      const mlbUser1 = dayUsers[2 % dayUsers.length]?.username || "MLBUser01";
+      const mlbUser2 = dayUsers[3 % dayUsers.length]?.username || "MLBUser02";
+      if (dayUsers[2 % dayUsers.length]) dayUsers[2 % dayUsers.length].stake = (dayUsers[2 % dayUsers.length].stake || 0) + mlbStake1;
+      if (dayUsers[3 % dayUsers.length]) dayUsers[3 % dayUsers.length].stake = (dayUsers[3 % dayUsers.length].stake || 0) + mlbStake2;
+
+      autoLeagueSlips.push({
+        id: `MLB-${date.replace(/-/g, "").slice(4)}01`,
+        time: `${date} 18:20`,
+        user: mlbUser1,
+        league: "MLB",
+        match: mlbM1.match,
+        market: mlbM1.market,
+        selection: mlbM1.selection,
+        odds: mlbM1.odds,
+        stake: mlbStake1,
+        potentialPayout: Math.round(mlbStake1 * mlbM1.odds * 100) / 100,
+        betType: "Single",
+        status: "Pending",
+        risk: "Low"
+      });
+      autoLeagueSlips.push({
+        id: `MLB-${date.replace(/-/g, "").slice(4)}02`,
+        time: `${date} 19:40`,
+        user: mlbUser2,
+        league: "MLB",
+        match: mlbM2.match,
+        market: mlbM2.market,
+        selection: mlbM2.selection,
+        odds: mlbM2.odds,
+        stake: mlbStake2,
+        potentialPayout: Math.round(mlbStake2 * mlbM2.odds * 100) / 100,
+        betType: "Single",
+        status: "Pending",
+        risk: "Low"
+      });
     } else {
+      // 10.01 - 10.09 历史平稳数据
       const rng = createRng(hashDate(date + "_daily_accrual_seed_v2"));
       const totalIncome = Math.floor(rng() * (299 - 50 + 1)) + 50;
       const maxCrash = Math.min(65, totalIncome);
@@ -595,7 +873,7 @@ function generateAutoDailyData(endDate = getEffectiveEndDate()) {
 
       autoCrashIncomes.push({date, amount: crashIncome, source: "Crash game", status: "Settled"});
       autoLeagueReceipts.push({date, amount: sportsIncome, source: "Five-league & European fixtures betting proceeds", status: "Collected"});
-      autoSummary.push({date, total: totalIncome, crash: crashIncome, sports: sportsIncome, signups: regCount});
+      autoSummary.push({date, total: totalIncome, crash: crashIncome, sports: sportsIncome, mlb: 0, commission: 0, signups: regCount});
 
       const dayUsers: PlatformUser[] = [];
       for (let i = 0; i < regCount; i++) {
@@ -686,7 +964,7 @@ function generateAutoDailyData(endDate = getEffectiveEndDate()) {
     }
   });
 
-  return {autoUsers, autoCrashIncomes, autoLeagueReceipts, autoLeagueSlips, autoFixtures, autoDates: dates, autoSummary};
+  return {autoUsers, autoCrashIncomes, autoLeagueReceipts, autoLeagueSlips, autoFixtures, autoDates: dates, autoSummary, autoMlbIncomes, autoCommissionIncomes};
 }
 
 const autoDailyData = generateAutoDailyData();
@@ -1239,17 +1517,22 @@ const leagueBetReceipts = [
   ...autoDailyData.autoLeagueReceipts,
 ];
 const leagueBetReceiptTotal = leagueBetReceipts.reduce((sum, item) => sum + item.amount, 0);
+const mlbIncomes: Array<{date: string; amount: number; source: string; status: string}> = [
+  ...autoDailyData.autoMlbIncomes,
+];
+const mlbIncomeTotal = mlbIncomes.reduce((sum, item) => sum + item.amount, 0);
 const commissionIncomes: Array<{date: string; amount: number; source: string; status: string}> = [
   {date: "2026-10-10", amount: 19, source: "Commission Income", status: "Settled"},
+  ...autoDailyData.autoCommissionIncomes,
 ];
 const commissionIncomeTotal = commissionIncomes.reduce((sum, item) => sum + item.amount, 0);
 const manualSettledPayouts = 207;
-const platformBalance = Math.round((platformBalanceBeforeLeagueBetMerge + leagueBetWalletStakeAdjustment + leagueBetReceiptTotal + commissionIncomeTotal - manualSettledPayouts) * 100) / 100;
+const platformBalance = Math.round((platformBalanceBeforeLeagueBetMerge + leagueBetWalletStakeAdjustment + leagueBetReceiptTotal + mlbIncomeTotal + commissionIncomeTotal - manualSettledPayouts) * 100) / 100;
 const ledgerReconciliationDate = "2026-07-10";
 
 function addLedgerAmount(rows: Record<string, Omit<DateLedgerRow, "date" | "net" | "balanceAfter">>, date: string, field: keyof Omit<DateLedgerRow, "date" | "net" | "balanceAfter" | "items">, amount: number, item: string) {
   if (!rows[date]) {
-    rows[date] = {deposits: 0, sportsStakes: 0, leagueStake: 0, leagueReceipts: 0, wheelIncome: 0, crashIncome: 0, commissionIncome: 0, payouts: 0, exchangeWithdrawals: 0, reconciliation: 0, items: []};
+    rows[date] = {deposits: 0, sportsStakes: 0, leagueStake: 0, leagueReceipts: 0, mlbIncome: 0, wheelIncome: 0, crashIncome: 0, commissionIncome: 0, payouts: 0, exchangeWithdrawals: 0, reconciliation: 0, items: []};
   }
   rows[date][field] = Math.round((Number(rows[date][field] || 0) + amount) * 100) / 100;
   rows[date].items.push(item);
@@ -1279,6 +1562,9 @@ function buildDateLedgerRows(): DateLedgerRow[] {
   crashIncomes.forEach((income) => {
     addLedgerAmount(rows, income.date, "crashIncome", income.amount, `${income.source} income +${income.amount}u`);
   });
+  mlbIncomes.forEach((income) => {
+    addLedgerAmount(rows, income.date, "mlbIncome", income.amount, `${income.source} +${income.amount}u`);
+  });
   commissionIncomes.forEach((income) => {
     addLedgerAmount(rows, income.date, "commissionIncome", income.amount, `Commission Income +${income.amount}u`);
   });
@@ -1298,24 +1584,24 @@ function buildDateLedgerRows(): DateLedgerRow[] {
   for (let day = 2; day <= 31; day += 1) {
     const date = `2026-08-${String(day).padStart(2, "0")}`;
     if (!rows[date]) {
-      rows[date] = {deposits: 0, sportsStakes: 0, leagueStake: 0, leagueReceipts: 0, wheelIncome: 0, crashIncome: 0, commissionIncome: 0, payouts: 0, exchangeWithdrawals: 0, reconciliation: 0, items: ["No recorded wallet movement for this date."]};
+      rows[date] = {deposits: 0, sportsStakes: 0, leagueStake: 0, leagueReceipts: 0, mlbIncome: 0, wheelIncome: 0, crashIncome: 0, commissionIncome: 0, payouts: 0, exchangeWithdrawals: 0, reconciliation: 0, items: ["No recorded wallet movement for this date."]};
     }
   }
   for (let day = 1; day <= 30; day += 1) {
     const date = `2026-09-${String(day).padStart(2, "0")}`;
     if (!rows[date]) {
-      rows[date] = {deposits: 0, sportsStakes: 0, leagueStake: 0, leagueReceipts: 0, wheelIncome: 0, crashIncome: 0, commissionIncome: 0, payouts: 0, exchangeWithdrawals: 0, reconciliation: 0, items: ["No recorded wallet movement for this date."]};
+      rows[date] = {deposits: 0, sportsStakes: 0, leagueStake: 0, leagueReceipts: 0, mlbIncome: 0, wheelIncome: 0, crashIncome: 0, commissionIncome: 0, payouts: 0, exchangeWithdrawals: 0, reconciliation: 0, items: ["No recorded wallet movement for this date."]};
     }
   }
   autoDailyData.autoDates.forEach((date) => {
     if (!rows[date]) {
-      rows[date] = {deposits: 0, sportsStakes: 0, leagueStake: 0, leagueReceipts: 0, wheelIncome: 0, crashIncome: 0, commissionIncome: 0, payouts: 0, exchangeWithdrawals: 0, reconciliation: 0, items: ["No recorded wallet movement for this date."]};
+      rows[date] = {deposits: 0, sportsStakes: 0, leagueStake: 0, leagueReceipts: 0, mlbIncome: 0, wheelIncome: 0, crashIncome: 0, commissionIncome: 0, payouts: 0, exchangeWithdrawals: 0, reconciliation: 0, items: ["No recorded wallet movement for this date."]};
     }
   });
 
   // Reconcile the complete dated ledger to the same platform wallet total.
   // This prevents a later treasury withdrawal from being deducted twice.
-  const ledgerBeforeFinalReconciliation = Object.values(rows).reduce((total, row) => total + row.deposits + row.sportsStakes + row.leagueReceipts + row.wheelIncome + row.crashIncome + (row.commissionIncome || 0) - row.payouts - row.exchangeWithdrawals, 0);
+  const ledgerBeforeFinalReconciliation = Object.values(rows).reduce((total, row) => total + row.deposits + row.sportsStakes + row.leagueReceipts + (row.mlbIncome || 0) + row.wheelIncome + row.crashIncome + (row.commissionIncome || 0) - row.payouts - row.exchangeWithdrawals, 0);
   const finalReconciliation = Math.round((platformBalance - ledgerBeforeFinalReconciliation) * 100) / 100;
   rows[ledgerReconciliationDate].reconciliation = finalReconciliation;
   rows[ledgerReconciliationDate].items.push(`Final ledger reconciliation to platform balance ${platformBalance}u`);
@@ -1324,7 +1610,7 @@ function buildDateLedgerRows(): DateLedgerRow[] {
   return Object.entries(rows)
     .sort(([a], [b]) => a.localeCompare(b))
     .map(([date, row]) => {
-      const net = Math.round((row.deposits + row.sportsStakes + row.leagueReceipts + row.wheelIncome + row.crashIncome + (row.commissionIncome || 0) + row.reconciliation - row.payouts - row.exchangeWithdrawals) * 100) / 100;
+      const net = Math.round((row.deposits + row.sportsStakes + row.leagueReceipts + (row.mlbIncome || 0) + row.wheelIncome + row.crashIncome + (row.commissionIncome || 0) + row.reconciliation - row.payouts - row.exchangeWithdrawals) * 100) / 100;
       balanceAfter = Math.round((balanceAfter + net) * 100) / 100;
       return {...row, date, net, balanceAfter};
     });
@@ -1339,6 +1625,7 @@ function buildIncomeSummary(periodKey: (date: string) => string): IncomeSummaryR
     grouped[period].items.push(`${date} · ${label} +${amount}u`);
   };
   leagueBetReceipts.forEach((receipt) => add(receipt.date, receipt.amount, receipt.source));
+  mlbIncomes.forEach((income) => add(income.date, income.amount, income.source));
   wheelIncomes.forEach((income) => add(income.date, income.amount, income.source));
   crashIncomes.forEach((income) => add(income.date, income.amount, income.source));
   commissionIncomes.forEach((income) => add(income.date, income.amount, income.source));
@@ -1738,6 +2025,7 @@ type DailyMasterRecord = {
   totalIncome: number;
   crashIncome: number;
   sportsIncome: number;
+  mlbIncome: number;
   commissionIncome: number;
   newUsers: PlatformUser[];
   bettors: DailyBettor[];
@@ -1764,9 +2052,11 @@ function useDailyMasterRecords(allUsers: PlatformUser[]): DailyMasterRecord[] {
       const incRow = dailyIncomeRows.find((r) => r.period === date);
       const commItem = commissionIncomes.find((c) => c.date === date);
       const commissionIncome = commItem ? commItem.amount : 0;
-      const totalIncome = incRow ? incRow.total : (row.crashIncome + row.leagueReceipts + commissionIncome);
+      const mlbItem = mlbIncomes.find((m) => m.date === date);
+      const mlbIncome = mlbItem ? mlbItem.amount : 0;
+      const totalIncome = incRow ? incRow.total : (row.crashIncome + row.leagueReceipts + mlbIncome + commissionIncome);
       const crashIncome = row.crashIncome;
-      const sportsIncome = incRow ? Math.max(0, Math.round((incRow.total - crashIncome - commissionIncome) * 100) / 100) : (row.leagueReceipts > 0 ? row.leagueReceipts : row.sportsStakes);
+      const sportsIncome = incRow ? Math.max(0, Math.round((incRow.total - crashIncome - mlbIncome - commissionIncome) * 100) / 100) : (row.leagueReceipts > 0 ? row.leagueReceipts : row.sportsStakes);
 
       const newUsers = allUsers.filter((u) => u.registeredAt.startsWith(date));
       const slips = leagueBetSlips.filter((s) => s.time.startsWith(date));
@@ -1816,6 +2106,7 @@ function useDailyMasterRecords(allUsers: PlatformUser[]): DailyMasterRecord[] {
         totalIncome,
         crashIncome,
         sportsIncome,
+        mlbIncome,
         commissionIncome,
         newUsers,
         bettors,
@@ -1955,6 +2246,7 @@ function DailyMasterTableView({
             <span>当日总收入</span>
             <span>Crash收益</span>
             <span>赛事净收益</span>
+            <span style={{ color: "#38bdf8", fontWeight: 700 }}>MLB Income</span>
             <span style={{ color: "#0284c7", fontWeight: 700 }}>Commission Income</span>
             <span>新注册用户</span>
             <span>注单量</span>
@@ -1981,6 +2273,9 @@ function DailyMasterTableView({
                 <strong style={{color: "#4ade80"}}>+{row.totalIncome.toFixed(2)}u</strong>
                 <span>+{row.crashIncome.toFixed(2)}u</span>
                 <span>+{row.sportsIncome.toFixed(2)}u</span>
+                <span style={{ color: row.date >= "2026-10-11" && row.mlbIncome > 0 ? "#38bdf8" : "#94a3b8", fontWeight: 700 }}>
+                  {row.date >= "2026-10-11" ? (row.mlbIncome > 0 ? `+${row.mlbIncome.toFixed(2)}u` : "-") : "-"}
+                </span>
                 <span style={{ color: row.date >= "2026-10-09" && row.commissionIncome > 0 ? "#10b981" : "#94a3b8", fontWeight: 700 }}>
                   {row.date >= "2026-10-09" ? (row.commissionIncome > 0 ? `${row.commissionIncome}u` : "-") : "-"}
                 </span>
@@ -2030,7 +2325,7 @@ function DailyMasterTableView({
                 {selectedRecord.isToday && <span className="badge-today">今日最新</span>}
               </h3>
               <p style={{margin: "4px 0 0", fontSize: 13, color: "#94a3b8"}}>
-                当日总收入 +{selectedRecord.totalIncome}u · Crash 收入 +{selectedRecord.crashIncome}u · 赛事收入 +{selectedRecord.sportsIncome}u{selectedRecord.commissionIncome > 0 ? ` · Commission Income ${selectedRecord.commissionIncome}u` : ""} · 提现 {selectedRecord.withdrawals}u · 当日金库结余 {selectedRecord.balanceAfter}u (平账差额 0.00u)
+                当日总收入 +{selectedRecord.totalIncome}u · Crash 收入 +{selectedRecord.crashIncome}u · 赛事收入 +{selectedRecord.sportsIncome}u{selectedRecord.mlbIncome > 0 ? ` · MLB 收入 +${selectedRecord.mlbIncome}u` : ""}{selectedRecord.commissionIncome > 0 ? ` · Commission Income ${selectedRecord.commissionIncome}u` : ""} · 提现 {selectedRecord.withdrawals}u · 当日金库结余 {selectedRecord.balanceAfter}u (平账差额 0.00u)
               </p>
             </div>
             <div className="day-drilldown-tabs">
@@ -2100,6 +2395,11 @@ function DailyMasterTableView({
                   <span>✈️ <strong>小飞机 (Crash) 玩家下注流水 (共 100u 净收益)</strong>：FelixDE304 (下注 40u) · MateoES306 (下注 25u) · ArthurUK307 (下注 20u) · Omar11 (下注 15u) · 均为整数且末尾以 5/0 结尾已全部结算入账。</span>
                 </div>
               )}
+              {selectedRecord.date >= "2026-10-11" && selectedRecord.crashIncome > 0 && (
+                <div style={{ background: "rgba(14, 165, 233, 0.08)", border: "1px solid rgba(14, 165, 233, 0.25)", borderRadius: 8, padding: "10px 14px", marginBottom: 14, fontSize: 13, color: "#38bdf8", display: "flex", alignItems: "center", gap: 8 }}>
+                  <span>✈️ <strong>小飞机 (Crash) 玩家下注流水 (共 +{selectedRecord.crashIncome}u 净收益)</strong>：{crashIncomes.find((c) => c.date === selectedRecord.date && c.details)?.details || `多位玩家不同金额下注，共计 +${selectedRecord.crashIncome}u`} · 已全部结算入账。</span>
+                </div>
+              )}
               <div className="data-table day-bet-table">
                 <div className="data-row data-head">
                 <span>注单ID / 赛事</span>
@@ -2157,7 +2457,7 @@ function DailyMasterTableView({
                 return (
                   <div className="data-row" key={`${selectedRecord.date}-${idx}`}>
                     <span>{selectedRecord.date} 23:59</span>
-                    <strong>{item.includes("Crash") ? "Crash 游戏收入" : item.includes("withdrawal") || item.includes("Exchange") ? "提现出款" : item.includes("payout") || item.includes("Payout") ? "中奖派彩" : item.includes("Sports") || item.includes("League") ? "体育赛事收益" : "平台充值"}</strong>
+                    <strong>{item.includes("Crash") ? "Crash 游戏收入" : item.includes("MLB") ? "MLB 棒球收益" : item.includes("Commission") ? "分佣收益" : item.includes("withdrawal") || item.includes("Exchange") ? "提现出款" : item.includes("payout") || item.includes("Payout") ? "中奖派彩" : item.includes("Sports") || item.includes("League") || item.includes("fixtures") ? "体育赛事收益" : "平台充值"}</strong>
                     <span style={{color: "#cbd5e1"}}>{item}</span>
                     <span style={{color: isPositive ? "#4ade80" : "#94a3b8"}}>
                       {isPositive ? item.match(/\+(\d+(?:\.\d+)?)u/)?.[0] || "-" : "-"}
