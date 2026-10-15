@@ -1225,6 +1225,8 @@ const exchangeWithdrawals: ExchangeWithdrawal[] = [
   {date: "2026-09-24", amount: 500, status: "Processing", destination: "Exchange treasury (Est. 20% fee · ETA 9.25)"},
   {date: "2026-09-29", amount: 1000, status: "Processing", destination: "Exchange treasury (Est. 20% fee · ETA 9.30)"},
   {date: "2026-10-05", amount: 1000, status: "Processing", destination: "Exchange treasury (Est. 20% fee: 200u, Net: 800u · ETA 2026-10-08)"},
+  {date: "2026-10-14", amount: 600, status: "Processing", destination: "Exchange treasury (Est. 20% fee: 120u, Net: 480u · ETA 2026-10-15)"},
+  {date: "2026-10-14", amount: 1000, status: "Processing", destination: "Exchange treasury (Est. 8% fee: 80u, Net: 920u · ETA 2026-10-15)"},
 ];
 const openingWalletReserve = 0;
 const totalDeposits = allUsers.reduce((sum, user) => sum + user.deposit, 0);
@@ -1784,6 +1786,9 @@ const bonusRules = [
 ];
 
 const auditLogs = [
+  {time: "2026-10-14 21:00", actor: "cashier", action: "Submitted exchange treasury withdrawal of 1000u (Est. 8% fee: 80u, Net credited: 920u, ETA: 2026-10-15)", result: "Processing"},
+  {time: "2026-10-14 15:30", actor: "cashier", action: "Submitted exchange treasury withdrawal of 600u (Est. 20% fee: 120u, Net credited: 480u, ETA: 2026-10-15)", result: "Processing"},
+  {time: "2026-10-14 23:58", actor: "system", action: "Updated Ledger by Date with 10.14 withdrawals total -1600u (600u + 1000u); net closing balance 597u", result: "OK"},
   {time: "2026-10-10 23:58", actor: "system", action: "Updated Ledger by Date with 10.10 total income 320u (sports 201u, crash 100u, commission 19u); current platform balance 1217u", result: "OK"},
   {time: "2026-10-10 21:30", actor: "cashier", action: "Credited 19u Commission Income (分佣收益) for 10.10 to platform wallet", result: "OK"},
   {time: "2026-10-10 20:45", actor: "cashier", action: "Credited 100u Crash game income for 10.10 to platform wallet (Settled user wagers: FelixDE304 40u, MateoES306 25u, ArthurUK307 20u, Omar11 15u)", result: "OK"},
@@ -3633,17 +3638,24 @@ function WithdrawalsPage({openDetail, onOpenWithdraw}: {openDetail: (detail: Det
       <Panel title="交易所下发提现流水" meta={`累计交易所出款：${exchangeWithdrawn}u`}>
         <div className="data-table exchange-table">
           <div className="data-row data-head"><span>出款日期</span><span>下发金额</span><span>目标地址</span><span>出款状态</span><span>扣减后平台余额</span></div>
-          {exchangeWithdrawals.map((item) => {
-            const prior = exchangeWithdrawals.filter((entry) => entry.date <= item.date).reduce((sum, entry) => sum + entry.amount, 0);
-            const stakesThroughDate = betRecords.filter((bet) => bet.matchDate <= item.date).reduce((sum, bet) => sum + bet.stake, 0);
-            const payoutsThroughDate = item.date >= "2026-07-15"
-              ? postJulyTenthManualPayouts
-              : betRecords.filter((bet) => bet.matchDate <= item.date && bet.result === "Paid").reduce((sum, bet) => sum + bet.payout, 0);
-            const depositsThroughDate = depositQueue.filter((deposit) => deposit.age.slice(0, 10) <= item.date).reduce((sum, deposit) => sum + deposit.amount, 0);
-            const balanceAfter = dateLedgerRows.find((entry) => entry.date === item.date)?.balanceAfter
-              ?? Math.round((openingWalletReserve + depositsThroughDate + stakesThroughDate - payoutsThroughDate - prior + walletReconciliationAdjustment) * 100) / 100;
+          {exchangeWithdrawals.map((item, idx) => {
+            const sameDayWithdrawals = exchangeWithdrawals.filter((entry) => entry.date === item.date);
+            let balanceAfter = dateLedgerRows.find((entry) => entry.date === item.date)?.balanceAfter;
+            if (balanceAfter !== undefined && sameDayWithdrawals.length > 1) {
+              const itemIdxInDay = sameDayWithdrawals.indexOf(item);
+              const remainingWithdrawalsToday = sameDayWithdrawals.slice(itemIdxInDay + 1).reduce((sum, w) => sum + w.amount, 0);
+              balanceAfter = Math.round((balanceAfter + remainingWithdrawalsToday) * 100) / 100;
+            } else if (balanceAfter === undefined) {
+              const prior = exchangeWithdrawals.slice(0, idx + 1).reduce((sum, entry) => sum + entry.amount, 0);
+              const stakesThroughDate = betRecords.filter((bet) => bet.matchDate <= item.date).reduce((sum, bet) => sum + bet.stake, 0);
+              const payoutsThroughDate = item.date >= "2026-07-15"
+                ? postJulyTenthManualPayouts
+                : betRecords.filter((bet) => bet.matchDate <= item.date && bet.result === "Paid").reduce((sum, bet) => sum + bet.payout, 0);
+              const depositsThroughDate = depositQueue.filter((deposit) => deposit.age.slice(0, 10) <= item.date).reduce((sum, deposit) => sum + deposit.amount, 0);
+              balanceAfter = Math.round((openingWalletReserve + depositsThroughDate + stakesThroughDate - payoutsThroughDate - prior + walletReconciliationAdjustment) * 100) / 100;
+            }
             return (
-              <button className="data-row clickable-row" key={item.date} onClick={() => openDetail(exchangeWithdrawalDetail(item, balanceAfter))}>
+              <button className="data-row clickable-row" key={`${item.date}-${item.amount}-${idx}`} onClick={() => openDetail(exchangeWithdrawalDetail(item, balanceAfter))}>
                 <span>{item.date}</span>
                 <b>{item.amount}u</b>
                 <span>{item.destination}</span>
