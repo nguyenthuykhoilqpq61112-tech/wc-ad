@@ -1477,6 +1477,36 @@ const leagueBetSlips: LeagueBetSlip[] = [
   {id: "LGB-93001", time: "2026-09-30 14:30", user: "MasonUK111", league: "Premier League", match: "AFC Bournemouth vs Southampton", market: "Moneyline", selection: "Bournemouth win", odds: 1.75, stake: 50, potentialPayout: 87.5, betType: "Single", status: "Pending", risk: "Low"},
   {id: "LGB-93002", time: "2026-09-30 17:15", user: "Hamad16", league: "Serie A", match: "Parma vs Cagliari", market: "Total goals", selection: "Over 2.5", odds: 1.85, stake: 30, potentialPayout: 55.5, betType: "Single", status: "Pending", risk: "Low"},
   ...autoDailyData.autoLeagueSlips,
+  {
+    id: "LGB-101701",
+    time: "2026-10-17 01:25",
+    user: "Hamad16",
+    league: "Ligue 1",
+    match: "Paris Saint-Germain vs RC Strasbourg",
+    market: "Asian handicap",
+    selection: "Paris Saint-Germain -1.5",
+    odds: 1.80,
+    stake: 100,
+    potentialPayout: 180.0,
+    betType: "Single",
+    status: "Paid",
+    risk: "Low"
+  },
+  {
+    id: "MLB-101701",
+    time: "2026-10-17 02:45",
+    user: "OliverIT301",
+    league: "MLB",
+    match: "New York Yankees vs Cleveland Guardians",
+    market: "Run Line",
+    selection: "New York Yankees -1.5",
+    odds: 2.00,
+    stake: 80,
+    potentialPayout: 160.0,
+    betType: "Single",
+    status: "Paid",
+    risk: "Low"
+  },
 ] as LeagueBetSlip[];
 const leagueBetStakeTotal = leagueBetSlips.reduce((sum, slip) => sum + slip.stake, 0);
 const leagueBetExposureTotal = Math.round(leagueBetSlips.reduce((sum, slip) => sum + slip.potentialPayout, 0) * 100) / 100;
@@ -1537,7 +1567,40 @@ const commissionIncomes: Array<{date: string; amount: number; source: string; st
 ];
 const commissionIncomeTotal = commissionIncomes.reduce((sum, item) => sum + item.amount, 0);
 const manualSettledPayouts = 207;
-const platformBalance = Math.round((platformBalanceBeforeLeagueBetMerge + leagueBetWalletStakeAdjustment + leagueBetReceiptTotal + mlbIncomeTotal + commissionIncomeTotal - manualSettledPayouts) * 100) / 100;
+const octoberSettledPayoutRecords = [
+  {
+    id: "LGB-101701",
+    date: "2026-10-17",
+    time: "2026-10-17 01:25",
+    user: "Hamad16",
+    league: "Ligue 1",
+    match: "Paris Saint-Germain vs RC Strasbourg",
+    market: "Asian handicap",
+    selection: "Paris Saint-Germain -1.5",
+    odds: 1.80,
+    stake: 100,
+    payout: 180,
+    status: "Paid",
+    note: "10.16 20:45 CET 周五晚法甲焦点战（PSG 4-2 斯特拉斯堡完赛），10.17 凌晨 01:25 完成中奖全额兑付 180u"
+  },
+  {
+    id: "MLB-101701",
+    date: "2026-10-17",
+    time: "2026-10-17 02:45",
+    user: "OliverIT301",
+    league: "MLB",
+    match: "New York Yankees vs Cleveland Guardians",
+    market: "Run Line",
+    selection: "New York Yankees -1.5",
+    odds: 2.00,
+    stake: 80,
+    payout: 160,
+    status: "Paid",
+    note: "10.16 20:08 EDT 周五晚美职棒美联冠军赛G4（洋基 8-6 守护者完赛打出），10.17 凌晨 02:45 完成中奖全额兑付 160u"
+  }
+];
+const octoberSettledPayoutsTotal = octoberSettledPayoutRecords.reduce((sum, item) => sum + item.payout, 0);
+const platformBalance = Math.round((platformBalanceBeforeLeagueBetMerge + leagueBetWalletStakeAdjustment + leagueBetReceiptTotal + mlbIncomeTotal + commissionIncomeTotal - manualSettledPayouts - octoberSettledPayoutsTotal) * 100) / 100;
 const ledgerReconciliationDate = "2026-07-10";
 
 function addLedgerAmount(rows: Record<string, Omit<DateLedgerRow, "date" | "net" | "balanceAfter">>, date: string, field: keyof Omit<DateLedgerRow, "date" | "net" | "balanceAfter" | "items">, amount: number, item: string) {
@@ -1587,6 +1650,9 @@ function buildDateLedgerRows(): DateLedgerRow[] {
   if (manualSettledPayouts > 0) {
     addLedgerAmount(rows, "2026-09-26", "payouts", manualSettledPayouts, `Settled winner payout deduction -${manualSettledPayouts}u`);
   }
+  octoberSettledPayoutRecords.forEach((item) => {
+    addLedgerAmount(rows, item.date, "payouts", item.payout, `Settled winner payout ${item.id}: ${item.user} -${item.payout}u on ${item.match} (${item.selection} @ ${item.odds.toFixed(2)})`);
+  });
   addLedgerAmount(rows, ledgerReconciliationDate, "reconciliation", walletReconciliationAdjustment, `Wallet reconciliation to 7.10 baseline ${targetPostJulyTenthBalance}u`);
 
   // Keep the historical August and September calendar continuous so every date can be opened,
@@ -1719,6 +1785,8 @@ const leagueDailyFixtures: LeagueDailyFixture[] = [
   {league: "Premier League", date: "2026-09-29", time: "16:30 BST", match: "Manchester United vs Tottenham Hotspur", matchday: "Matchweek 6", moneyline: "2.30 / 3.70 / 2.85", handicap: "Tottenham +0.25 @ 1.85", total: "Over 3.0 @ 1.80", featured: "Tottenham win @ 2.85", status: "Today"},
   {league: "Premier League", date: "2026-09-30", time: "20:00 BST", match: "AFC Bournemouth vs Southampton", matchday: "Matchweek 6", moneyline: "1.75 / 3.80 / 4.60", handicap: "Bournemouth -0.5 @ 1.75", total: "Over 2.5 @ 1.70", featured: "Bournemouth win @ 1.75", status: "Today"},
   {league: "Serie A", date: "2026-09-30", time: "18:30 CEST", match: "Parma vs Cagliari", matchday: "Matchday 6", moneyline: "2.10 / 3.45 / 3.40", handicap: "Parma -0.25 @ 1.82", total: "Over 2.5 @ 1.85", featured: "Over 2.5 goals @ 1.85", status: "Today"},
+  {league: "Ligue 1", date: "2026-10-17", time: "01:25", match: "Paris Saint-Germain vs RC Strasbourg", matchday: "Matchweek 8", moneyline: "1.30 / 5.80 / 9.20", handicap: "PSG -1.5 @ 1.80", total: "Over 3.0 @ 1.75", featured: "PSG -1.5 @ 1.80", status: "Today"},
+  {league: "MLB", date: "2026-10-17", time: "02:45", match: "New York Yankees vs Cleveland Guardians", matchday: "ALCS Game 4", moneyline: "1.70 / 2.20", handicap: "Yankees -1.5 @ 2.00", total: "Under 8.0 @ 1.82", featured: "Yankees -1.5 @ 2.00", status: "Today"},
   ...autoDailyData.autoFixtures,
 ];
 const olCompanionModules = [
@@ -1786,6 +1854,9 @@ const bonusRules = [
 ];
 
 const auditLogs = [
+  {time: "2026-10-17 03:00", actor: "system", action: "Updated Ledger by Date with 10.17 early morning winner payouts total -340u (180u + 160u > 17th total income 300u); net day movement -40u, ledger reconciled at 0.00u", result: "OK"},
+  {time: "2026-10-17 02:45", actor: "cashier", action: "Completed manual payout of 160u for winning MLB slip MLB-101701 (OliverIT301 · New York Yankees -1.5 @ 2.00); status marked as Paid (已兑付)", result: "Completed"},
+  {time: "2026-10-17 01:25", actor: "cashier", action: "Completed manual payout of 180u for winning slip LGB-101701 (Hamad16 · Paris Saint-Germain -1.5 @ 1.80); status marked as Paid (已兑付)", result: "Completed"},
   {time: "2026-10-14 21:00", actor: "cashier", action: "Submitted exchange treasury withdrawal of 1000u (Est. 8% fee: 80u, Net credited: 920u, ETA: 2026-10-15)", result: "Processing"},
   {time: "2026-10-14 15:30", actor: "cashier", action: "Submitted exchange treasury withdrawal of 600u (Est. 20% fee: 120u, Net credited: 480u, ETA: 2026-10-15)", result: "Processing"},
   {time: "2026-10-14 23:58", actor: "system", action: "Updated Ledger by Date with 10.14 withdrawals total -1600u (600u + 1000u); net closing balance 597u", result: "OK"},
@@ -2044,6 +2115,7 @@ type DailyMasterRecord = {
   bettors: DailyBettor[];
   slips: LeagueBetSlip[];
   bets: BetRecord[];
+  payouts: number;
   withdrawals: number;
   net: number;
   balanceAfter: number;
@@ -2081,7 +2153,7 @@ function useDailyMasterRecords(allUsers: PlatformUser[]): DailyMasterRecord[] {
         const u = userMap.get(slip.user.toLowerCase());
         const regDate = u?.registeredAt ? u.registeredAt.slice(0, 10) : "";
         const userType: "New User" | "Returning User" = regDate === date ? "New User" : "Returning User";
-        const result: "Won" | "Lost" | "Pending" = slip.status.toLowerCase().includes("won")
+        const result: "Won" | "Lost" | "Pending" = (slip.status === "Won" || slip.status === "Paid" || slip.status.toLowerCase().includes("won"))
           ? "Won"
           : slip.status.toLowerCase().includes("lost")
           ? "Lost"
@@ -2096,7 +2168,7 @@ function useDailyMasterRecords(allUsers: PlatformUser[]): DailyMasterRecord[] {
           odds: slip.odds,
           stake: slip.stake,
           result,
-          payout: result === "Won" ? slip.potentialPayout : 0,
+          payout: (result === "Won" || slip.status === "Paid") ? slip.potentialPayout : 0,
         });
       });
       bets.forEach((bet) => {
@@ -2129,6 +2201,7 @@ function useDailyMasterRecords(allUsers: PlatformUser[]): DailyMasterRecord[] {
         bettors,
         slips,
         bets,
+        payouts: row.payouts,
         withdrawals: row.exchangeWithdrawals,
         net: row.net,
         balanceAfter: row.balanceAfter,
@@ -2444,6 +2517,7 @@ function DailyMasterTableView({
             <span>新注册用户</span>
             <span>注单量</span>
             <span>总投注额</span>
+            <span style={{ color: "#f87171", fontWeight: 700 }}>中奖兑付</span>
             <span>提现下发</span>
             <span>资金净变动</span>
             <span>金库结存</span>
@@ -2479,6 +2553,9 @@ function DailyMasterTableView({
                 </div>
                 <span>{row.bettors.length} 单</span>
                 <span>{dayWager > 0 ? `${dayWager}u` : "0u"}</span>
+                <span style={{color: row.payouts > 0 ? "#f87171" : "#94a3b8", fontWeight: row.payouts > 0 ? 700 : 400}}>
+                  {row.payouts > 0 ? `-${row.payouts}u` : "-"}
+                </span>
                 <span style={{color: row.withdrawals > 0 ? "#f87171" : "#94a3b8"}}>
                   {row.withdrawals > 0 ? `-${row.withdrawals}u` : "0u"}
                 </span>
@@ -2518,7 +2595,7 @@ function DailyMasterTableView({
                 {selectedRecord.isToday && <span className="badge-today">今日最新</span>}
               </h3>
               <p style={{margin: "4px 0 0", fontSize: 13, color: "#94a3b8"}}>
-                当日总收入 +{selectedRecord.totalIncome}u · Crash 收益 +{selectedRecord.crashIncome}u · 赛事收益 +{selectedRecord.sportsIncome}u{selectedRecord.mlbIncome > 0 ? ` · MLB 收益 +${selectedRecord.mlbIncome}u` : ""}{selectedRecord.commissionIncome > 0 ? ` · 分佣收益 ${selectedRecord.commissionIncome}u` : ""} · 提现下发 {selectedRecord.withdrawals}u · 当日金库结余 {selectedRecord.balanceAfter}u (平账差额 0.00u)
+                当日总收入 +{selectedRecord.totalIncome}u · Crash 收益 +{selectedRecord.crashIncome}u · 赛事收益 +{selectedRecord.sportsIncome}u{selectedRecord.mlbIncome > 0 ? ` · MLB 收益 +${selectedRecord.mlbIncome}u` : ""}{selectedRecord.commissionIncome > 0 ? ` · 分佣收益 ${selectedRecord.commissionIncome}u` : ""}{selectedRecord.payouts > 0 ? ` · 中奖兑付 -${selectedRecord.payouts}u` : ""}{selectedRecord.withdrawals > 0 ? ` · 提现下发 -${selectedRecord.withdrawals}u` : ""} · 当日金库结余 {selectedRecord.balanceAfter}u (平账差额 0.00u)
               </p>
             </div>
             <div className="day-drilldown-tabs">
@@ -4170,7 +4247,7 @@ function SystemWalletPanel({openDetail, onOpenWithdraw}: {openDetail: (detail: D
       <div>
         <p className="eyebrow">平台金库中枢</p>
         <h2>{platformBalance.toLocaleString()}u 可用余额 (每日营收 50-299u，Crash 10-65u，3-15 新注册用户全自动累增生效中)</h2>
-        <span>7.10 初始基准 875u；7.15 净变动 {todayWalletChange.toFixed(2)}u；7.16 提现下发 -1000u；7.20 充值 +{postJulyFifteenthDeposits}u；7.20-8.22 体育投注 +{postJulyFifteenthStakes}u；五大联赛实收净额 +{leagueBetReceiptTotal}u；8月出款 -{augustWithdrawals}u；9月出款 -{septemberWithdrawals}u；10月出款 -{octoberWithdrawals}u；转盘收益 +{wheelIncomeTotal}u；Crash 游戏收益 +{crashIncomeTotal}u；中奖兑付扣减 -{manualSettledPayouts}u</span>
+        <span>7.10 初始基准 875u；7.15 净变动 {todayWalletChange.toFixed(2)}u；7.16 提现下发 -1000u；7.20 充值 +{postJulyFifteenthDeposits}u；7.20-8.22 体育投注 +{postJulyFifteenthStakes}u；五大联赛实收净额 +{leagueBetReceiptTotal}u；8月出款 -{augustWithdrawals}u；9月出款 -{septemberWithdrawals}u；10月出款 -{octoberWithdrawals}u；转盘收益 +{wheelIncomeTotal}u；Crash 游戏收益 +{crashIncomeTotal}u；中奖兑付扣减 -{manualSettledPayouts + octoberSettledPayoutsTotal}u</span>
       </div>
       <div className="wallet-actions">
         <button onClick={() => openDetail(walletDetail())}>查看对账明细</button>
@@ -4987,7 +5064,7 @@ function walletDetail(): Detail {
       ["10月提现出款", `-${octoberWithdrawals}u`],
       ["幸运转盘收益", `+${wheelIncomeTotal}u`],
       ["Crash 游戏收益", `+${crashIncomeTotal}u`],
-      ["中奖注单已兑付扣减", `-${manualSettledPayouts}u`],
+      ["中奖注单已兑付扣减", `-${manualSettledPayouts + octoberSettledPayoutsTotal}u`],
       ["借贷平账差额", "0.00u (已完全平账)"],
     ],
     actions: ["下载对账单", "申请提币至交易所"],

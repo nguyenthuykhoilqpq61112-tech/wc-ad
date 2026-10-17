@@ -1807,8 +1807,8 @@ nav button:hover,
 
 .daily-master-table .data-row {
   display: grid;
-  grid-template-columns: 140px 115px 110px 110px 115px 130px 95px 80px 110px 100px 115px 120px 110px 95px;
-  min-width: 1550px;
+  grid-template-columns: 140px 115px 110px 110px 115px 130px 95px 80px 110px 105px 100px 115px 120px 110px 95px;
+  min-width: 1660px;
   align-items: center;
   gap: 10px;
   padding: 12px 14px;
