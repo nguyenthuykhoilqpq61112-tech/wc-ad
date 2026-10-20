@@ -43,7 +43,7 @@ type AdminSummary = {
 };
 
 type LeaguePage = "Premier League" | "LaLiga" | "Serie A" | "Bundesliga" | "Ligue 1";
-type FixtureLeague = LeaguePage | "Liga de Expansión MX" | "ATP Tour" | "MLB";
+type FixtureLeague = LeaguePage | "Liga de Expansión MX" | "ATP Tour" | "MLB" | "UEFA Champions League";
 type ActivePage = "DailyMaster" | "Overview" | "Users" | "Deposits" | "Withdrawals" | "Risk Review" | "Bonus Controls" | "Five Leagues" | "League Bets" | "Ledger by Date" | LeaguePage | "Audit Logs";
 type Detail = {
   title: string;
@@ -100,7 +100,7 @@ type LeagueBetSlip = {
   id: string;
   time: string;
   user: string;
-  league: LeaguePage | "Multi League" | "Liga de Expansión MX" | "ATP Tour" | "MLB";
+  league: LeaguePage | "Multi League" | "Liga de Expansión MX" | "ATP Tour" | "MLB" | "UEFA Champions League";
   match: string;
   market: string;
   selection: string;
@@ -391,7 +391,7 @@ function getEffectiveEndDate(): string {
     if (typeof window !== "undefined") {
       const stored = localStorage.getItem("admin_sim_end_date");
       if (stored && /^\d{4}-\d{2}-\d{2}$/.test(stored)) {
-        return stored < "2026-10-10" ? "2026-10-10" : stored;
+        return stored < "2026-10-21" ? "2026-10-21" : stored;
       }
     }
     const now = new Date();
@@ -399,9 +399,9 @@ function getEffectiveEndDate(): string {
     const m = String(now.getMonth() + 1).padStart(2, "0");
     const d = String(now.getDate()).padStart(2, "0");
     const cur = `${y}-${m}-${d}`;
-    return cur < "2026-10-10" ? "2026-10-10" : cur;
+    return cur < "2026-10-21" ? "2026-10-21" : cur;
   } catch {
-    return "2026-10-10";
+    return "2026-10-21";
   }
 }
 
@@ -1227,6 +1227,7 @@ const exchangeWithdrawals: ExchangeWithdrawal[] = [
   {date: "2026-10-05", amount: 1000, status: "Processing", destination: "Exchange treasury (Est. 20% fee: 200u, Net: 800u · ETA 2026-10-08)"},
   {date: "2026-10-14", amount: 600, status: "Processing", destination: "Exchange treasury (Est. 20% fee: 120u, Net: 480u · ETA 2026-10-15)"},
   {date: "2026-10-14", amount: 1000, status: "Processing", destination: "Exchange treasury (Est. 8% fee: 80u, Net: 920u · ETA 2026-10-15)"},
+  {date: "2026-10-14", amount: 690, status: "Completed", destination: "Exchange treasury (Est. 8% fee: 55.2u, Net: 634.8u · 已到账)"},
 ];
 const openingWalletReserve = 0;
 const totalDeposits = allUsers.reduce((sum, user) => sum + user.deposit, 0);
@@ -1507,6 +1508,36 @@ const leagueBetSlips: LeagueBetSlip[] = [
     status: "Paid",
     risk: "Low"
   },
+  {
+    id: "LGB-102101",
+    time: "2026-10-21 01:30",
+    user: "Hamad16",
+    league: "UEFA Champions League",
+    match: "Real Madrid vs Borussia Dortmund",
+    market: "Asian handicap",
+    selection: "Real Madrid -1.5",
+    odds: 1.80,
+    stake: 100,
+    potentialPayout: 180.0,
+    betType: "Single",
+    status: "Paid",
+    risk: "Low"
+  },
+  {
+    id: "MLB-102101",
+    time: "2026-10-21 02:40",
+    user: "OliverIT301",
+    league: "MLB",
+    match: "New York Mets vs Los Angeles Dodgers",
+    market: "Run Line",
+    selection: "Los Angeles Dodgers -1.5",
+    odds: 2.00,
+    stake: 70,
+    potentialPayout: 140.0,
+    betType: "Single",
+    status: "Paid",
+    risk: "Low"
+  },
 ] as LeagueBetSlip[];
 const leagueBetStakeTotal = leagueBetSlips.reduce((sum, slip) => sum + slip.stake, 0);
 const leagueBetExposureTotal = Math.round(leagueBetSlips.reduce((sum, slip) => sum + slip.potentialPayout, 0) * 100) / 100;
@@ -1597,6 +1628,36 @@ const octoberSettledPayoutRecords = [
     payout: 160,
     status: "Paid",
     note: "10.16 20:08 EDT 周五晚美职棒美联冠军赛G4（洋基 8-6 守护者完赛打出），10.17 凌晨 02:45 完成中奖全额兑付 160u"
+  },
+  {
+    id: "LGB-102101",
+    date: "2026-10-21",
+    time: "2026-10-21 01:30",
+    user: "Hamad16",
+    league: "UEFA Champions League",
+    match: "Real Madrid vs Borussia Dortmund",
+    market: "Asian handicap",
+    selection: "Real Madrid -1.5",
+    odds: 1.80,
+    stake: 100,
+    payout: 180,
+    status: "Paid",
+    note: "10.21 凌晨欧冠第3轮强强对话（皇家马德里 5-2 逆转多特蒙德完赛打出），10.21 凌晨 01:30 完成中奖全额兑付 180u"
+  },
+  {
+    id: "MLB-102101",
+    date: "2026-10-21",
+    time: "2026-10-21 02:40",
+    user: "OliverIT301",
+    league: "MLB",
+    match: "New York Mets vs Los Angeles Dodgers",
+    market: "Run Line",
+    selection: "Los Angeles Dodgers -1.5",
+    odds: 2.00,
+    stake: 70,
+    payout: 140,
+    status: "Paid",
+    note: "10.20 17:08 PDT 美职棒国联冠军赛G6（道奇 10-5 胜大都会完赛打出），10.21 凌晨 02:40 完成中奖全额兑付 140u"
   }
 ];
 const octoberSettledPayoutsTotal = octoberSettledPayoutRecords.reduce((sum, item) => sum + item.payout, 0);
@@ -1787,6 +1848,8 @@ const leagueDailyFixtures: LeagueDailyFixture[] = [
   {league: "Serie A", date: "2026-09-30", time: "18:30 CEST", match: "Parma vs Cagliari", matchday: "Matchday 6", moneyline: "2.10 / 3.45 / 3.40", handicap: "Parma -0.25 @ 1.82", total: "Over 2.5 @ 1.85", featured: "Over 2.5 goals @ 1.85", status: "Today"},
   {league: "Ligue 1", date: "2026-10-17", time: "01:25", match: "Paris Saint-Germain vs RC Strasbourg", matchday: "Matchweek 8", moneyline: "1.30 / 5.80 / 9.20", handicap: "PSG -1.5 @ 1.80", total: "Over 3.0 @ 1.75", featured: "PSG -1.5 @ 1.80", status: "Today"},
   {league: "MLB", date: "2026-10-17", time: "02:45", match: "New York Yankees vs Cleveland Guardians", matchday: "ALCS Game 4", moneyline: "1.70 / 2.20", handicap: "Yankees -1.5 @ 2.00", total: "Under 8.0 @ 1.82", featured: "Yankees -1.5 @ 2.00", status: "Today"},
+  {league: "UEFA Champions League", date: "2026-10-21", time: "01:30", match: "Real Madrid vs Borussia Dortmund", matchday: "UCL Matchday 3", moneyline: "1.45 / 4.80 / 6.50", handicap: "Real Madrid -1.5 @ 1.80", total: "Over 3.5 @ 1.90", featured: "Real Madrid -1.5 @ 1.80", status: "Today"},
+  {league: "MLB", date: "2026-10-21", time: "02:40", match: "New York Mets vs Los Angeles Dodgers", matchday: "NLCS Game 6", moneyline: "2.35 / 1.64", handicap: "Dodgers -1.5 @ 2.00", total: "Over 8.5 @ 1.90", featured: "Dodgers -1.5 @ 2.00", status: "Today"},
   ...autoDailyData.autoFixtures,
 ];
 const olCompanionModules = [
@@ -1854,12 +1917,16 @@ const bonusRules = [
 ];
 
 const auditLogs = [
+  {time: "2026-10-21 03:00", actor: "system", action: "Updated Ledger by Date with 10.21 early morning winner payouts total -320u (180u + 140u > 21st total income 259u); net day movement -61u, ledger reconciled at 0.00u", result: "OK"},
+  {time: "2026-10-21 02:40", actor: "cashier", action: "Completed manual payout of 140u for winning MLB slip MLB-102101 (OliverIT301 · Los Angeles Dodgers -1.5 @ 2.00); status marked as Paid (已兑付)", result: "Completed"},
+  {time: "2026-10-21 01:30", actor: "cashier", action: "Completed manual payout of 180u for winning slip LGB-102101 (Hamad16 · Real Madrid -1.5 @ 1.80); status marked as Paid (已兑付)", result: "Completed"},
   {time: "2026-10-17 03:00", actor: "system", action: "Updated Ledger by Date with 10.17 early morning winner payouts total -340u (180u + 160u > 17th total income 300u); net day movement -40u, ledger reconciled at 0.00u", result: "OK"},
   {time: "2026-10-17 02:45", actor: "cashier", action: "Completed manual payout of 160u for winning MLB slip MLB-101701 (OliverIT301 · New York Yankees -1.5 @ 2.00); status marked as Paid (已兑付)", result: "Completed"},
   {time: "2026-10-17 01:25", actor: "cashier", action: "Completed manual payout of 180u for winning slip LGB-101701 (Hamad16 · Paris Saint-Germain -1.5 @ 1.80); status marked as Paid (已兑付)", result: "Completed"},
+  {time: "2026-10-14 22:30", actor: "cashier", action: "Submitted exchange treasury withdrawal of 690u (Est. 8% fee: 55.2u, Net credited: 634.8u, Status: Completed/已到账)", result: "Completed"},
   {time: "2026-10-14 21:00", actor: "cashier", action: "Submitted exchange treasury withdrawal of 1000u (Est. 8% fee: 80u, Net credited: 920u, ETA: 2026-10-15)", result: "Processing"},
   {time: "2026-10-14 15:30", actor: "cashier", action: "Submitted exchange treasury withdrawal of 600u (Est. 20% fee: 120u, Net credited: 480u, ETA: 2026-10-15)", result: "Processing"},
-  {time: "2026-10-14 23:58", actor: "system", action: "Updated Ledger by Date with 10.14 withdrawals total -1600u (600u + 1000u); net closing balance 597u", result: "OK"},
+  {time: "2026-10-14 23:58", actor: "system", action: "Updated Ledger by Date with 10.14 withdrawals total -2290u (600u + 1000u + 690u); status reconciled at 0.00u", result: "OK"},
   {time: "2026-10-10 23:58", actor: "system", action: "Updated Ledger by Date with 10.10 total income 320u (sports 201u, crash 100u, commission 19u); current platform balance 1217u", result: "OK"},
   {time: "2026-10-10 21:30", actor: "cashier", action: "Credited 19u Commission Income (分佣收益) for 10.10 to platform wallet", result: "OK"},
   {time: "2026-10-10 20:45", actor: "cashier", action: "Credited 100u Crash game income for 10.10 to platform wallet (Settled user wagers: FelixDE304 40u, MateoES306 25u, ArthurUK307 20u, Omar11 15u)", result: "OK"},
@@ -3736,7 +3803,7 @@ function WithdrawalsPage({openDetail, onOpenWithdraw}: {openDetail: (detail: Det
                 <span>{item.date}</span>
                 <b>{item.amount}u</b>
                 <span>{item.destination}</span>
-                <em style={{color: "#4ade80"}}>{item.status === "Completed" ? "已兑付完成" : item.status}</em>
+                <em style={{color: "#4ade80"}}>{item.status === "Completed" ? "已到账" : item.status}</em>
                 <strong>{balanceAfter}u</strong>
               </button>
             );
@@ -5080,7 +5147,7 @@ function exchangeWithdrawalDetail(item: ExchangeWithdrawal, balanceAfter: number
       ["出款日期", item.date],
       ["出款金额", `${item.amount}u`],
       ["提现目标地址", item.destination],
-      ["出款状态", item.status === "Completed" ? "已兑付完成" : item.status],
+      ["出款状态", item.status === "Completed" ? "已到账" : item.status],
       ["扣减后金库余额", `${balanceAfter}u`],
     ],
     actions: ["查看链上出金TX", "打印出款审批凭证"],
