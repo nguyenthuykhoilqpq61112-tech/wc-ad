@@ -668,7 +668,7 @@ function generateAutoDailyData(endDate = getEffectiveEndDate()) {
         sports: sportsIncome,
         mlb: mlbIncome,
         commission: commissionIncome,
-        signups: date === "2026-10-21" ? regCount + 1 : regCount
+        signups: date === "2026-10-21" ? regCount + 2 : regCount
       });
 
       // 生成 7-15 位注册用户
@@ -718,6 +718,23 @@ function generateAutoDailyData(endDate = getEffectiveEndDate()) {
         };
         dayUsers.push(crashNewUser);
         autoUsers.push(crashNewUser);
+        // 10.21 第二位 Crash 新用户
+        const crashNewUser2: PlatformUser = {
+          id: `user_oct_1021_crash_02`,
+          username: "MikeCA712",
+          email: "mike.ca712@gmail.com",
+          phone: "+1 6045729310",
+          ip: "142.116.22.88",
+          registeredAt: "2026-10-21 16:20",
+          round: "October UEFA & Crash signups",
+          location: "Canada",
+          region: "North America",
+          channel: "Telegram",
+          deposit: 35,
+          stake: 22,
+        };
+        dayUsers.push(crashNewUser2);
+        autoUsers.push(crashNewUser2);
       }
 
       // 生成小飞机 (Crash) 玩家下注明细 (2-3个用户不同金额，加总为 crashIncome)
@@ -744,7 +761,7 @@ function generateAutoDailyData(endDate = getEffectiveEndDate()) {
         crashDetailsList.push(`${u} (${amt}u)`);
       });
       if (date === "2026-10-21") {
-        crashDetailsList.unshift("StefanDE916 (下注 25u · 2.40x 逃顶中奖 60u)");
+        crashDetailsList.unshift("StefanDE916 (下注 25u · 2.40x 逃顶中奖 60u) · MikeCA712 (下注 22u · 2.50x 逃顶中奖 55u)");
       }
       if (autoCrashIncomes.length > 0) {
         autoCrashIncomes[autoCrashIncomes.length - 1].details = crashDetailsList.join(" · ");
@@ -1576,6 +1593,21 @@ const leagueBetSlips: LeagueBetSlip[] = [
     status: "Paid",
     risk: "Low"
   },
+  {
+    id: "CRASH-102102",
+    time: "2026-10-21 16:40",
+    user: "MikeCA712",
+    league: "Crash 小飞机",
+    match: "Crash 经典逃顶模式 (第 102231 期)",
+    market: "自动逃顶倍率",
+    selection: "逃顶目标 @ 2.50x (2.50x 成功跳伞)",
+    odds: 2.50,
+    stake: 22,
+    potentialPayout: 55.0,
+    betType: "Single",
+    status: "Paid",
+    risk: "Low"
+  },
 ] as LeagueBetSlip[];
 const leagueBetStakeTotal = leagueBetSlips.reduce((sum, slip) => sum + slip.stake, 0);
 const leagueBetExposureTotal = Math.round(leagueBetSlips.reduce((sum, slip) => sum + slip.potentialPayout, 0) * 100) / 100;
@@ -1711,6 +1743,21 @@ const octoberSettledPayoutRecords = [
     payout: 60,
     status: "Paid",
     note: "10.21 14:35 新用户 StefanDE916 玩 Crash 小飞机下注 25u，在 2.40x 成功逃顶跳伞，派彩 60u (中奖大于花费本金 35u) 已结算出款"
+  },
+  {
+    id: "CRASH-102102",
+    date: "2026-10-21",
+    time: "2026-10-21 16:40",
+    user: "MikeCA712",
+    league: "Crash 小飞机",
+    match: "Crash 经典逃顶模式 (第 102231 期)",
+    market: "自动逃顶倍率",
+    selection: "逃顶目标 @ 2.50x (2.50x 成功跳伞)",
+    odds: 2.50,
+    stake: 22,
+    payout: 55,
+    status: "Paid",
+    note: "10.21 16:40 新用户 MikeCA712 玩 Crash 小飞机下注 22u，在 2.50x 成功逃顶跳伞，派彩 55u (中奖大于花费本金 33u) 已结算出款"
   }
 ];
 const octoberSettledPayoutsTotal = octoberSettledPayoutRecords.reduce((sum, item) => sum + item.payout, 0);
@@ -1970,7 +2017,8 @@ const bonusRules = [
 ];
 
 const auditLogs = [
-  {time: "2026-10-21 15:00", actor: "system", action: "Updated Ledger by Date with 10.21 winner payouts total -380u (180u UCL + 140u MLB + 60u Crash > 21st total income 259u); net day movement -121u, ledger reconciled at 0.00u", result: "OK"},
+  {time: "2026-10-21 15:00", actor: "system", action: "Updated Ledger by Date with 10.21 winner payouts total -435u (180u UCL + 140u MLB + 60u Crash CRASH-102101 + 55u Crash CRASH-102102 > 21st total income 259u); net day movement -176u, ledger reconciled at 0.00u", result: "OK"},
+  {time: "2026-10-21 16:45", actor: "cashier", action: "Completed payout of 55u for winning Crash slip CRASH-102102 (MikeCA712 · 22u @ 2.50x auto-cashout, net profit +33u); status marked as Paid (已兑付)", result: "Completed"},
   {time: "2026-10-21 14:40", actor: "cashier", action: "Completed payout of 60u for winning Crash slip CRASH-102101 (StefanDE916 · 25u @ 2.40x auto-cashout, net profit +35u); status marked as Paid (已兑付)", result: "Completed"},
   {time: "2026-10-21 02:40", actor: "cashier", action: "Completed manual payout of 140u for winning MLB slip MLB-102101 (OliverIT301 · Los Angeles Dodgers -1.5 @ 2.00); status marked as Paid (已兑付)", result: "Completed"},
   {time: "2026-10-21 01:30", actor: "cashier", action: "Completed manual payout of 180u for winning slip LGB-102101 (Hamad16 · Real Madrid -1.5 @ 1.80); status marked as Paid (已兑付)", result: "Completed"},
