@@ -100,7 +100,7 @@ type LeagueBetSlip = {
   id: string;
   time: string;
   user: string;
-  league: LeaguePage | "Multi League" | "Liga de Expansión MX" | "ATP Tour" | "MLB" | "UEFA Champions League";
+  league: LeaguePage | "Multi League" | "Liga de Expansión MX" | "ATP Tour" | "MLB" | "UEFA Champions League" | "Crash 小飞机";
   match: string;
   market: string;
   selection: string;
@@ -668,7 +668,7 @@ function generateAutoDailyData(endDate = getEffectiveEndDate()) {
         sports: sportsIncome,
         mlb: mlbIncome,
         commission: commissionIncome,
-        signups: regCount
+        signups: date === "2026-10-21" ? regCount + 1 : regCount
       });
 
       // 生成 7-15 位注册用户
@@ -700,6 +700,26 @@ function generateAutoDailyData(endDate = getEffectiveEndDate()) {
         autoUsers.push(user);
       }
 
+      // 10.21 增加玩 Crash game 的新用户一人（投注 25u，中奖 60u，中的比花费的多）
+      if (date === "2026-10-21") {
+        const crashNewUser: PlatformUser = {
+          id: `user_oct_1021_crash_01`,
+          username: "StefanDE916",
+          email: "stefan.de916@gmail.com",
+          phone: "+49 1521984210",
+          ip: "91.132.88.42",
+          registeredAt: "2026-10-21 14:15",
+          round: "October UEFA & Crash signups",
+          location: "Germany",
+          region: "Europe",
+          channel: "Telegram",
+          deposit: 30,
+          stake: 25,
+        };
+        dayUsers.push(crashNewUser);
+        autoUsers.push(crashNewUser);
+      }
+
       // 生成小飞机 (Crash) 玩家下注明细 (2-3个用户不同金额，加总为 crashIncome)
       const crashUserCount = Math.min(3, Math.max(2, Math.floor(crashIncome / 15)));
       let remainingCrash = crashIncome;
@@ -723,6 +743,9 @@ function generateAutoDailyData(endDate = getEffectiveEndDate()) {
         });
         crashDetailsList.push(`${u} (${amt}u)`);
       });
+      if (date === "2026-10-21") {
+        crashDetailsList.unshift("StefanDE916 (下注 25u · 2.40x 逃顶中奖 60u)");
+      }
       if (autoCrashIncomes.length > 0) {
         autoCrashIncomes[autoCrashIncomes.length - 1].details = crashDetailsList.join(" · ");
       }
@@ -1538,6 +1561,21 @@ const leagueBetSlips: LeagueBetSlip[] = [
     status: "Paid",
     risk: "Low"
   },
+  {
+    id: "CRASH-102101",
+    time: "2026-10-21 14:35",
+    user: "StefanDE916",
+    league: "Crash 小飞机",
+    match: "Crash 经典逃顶模式 (第 102188 期)",
+    market: "自动逃顶倍率",
+    selection: "逃顶目标 @ 2.40x (2.40x 成功跳伞)",
+    odds: 2.40,
+    stake: 25,
+    potentialPayout: 60.0,
+    betType: "Single",
+    status: "Paid",
+    risk: "Low"
+  },
 ] as LeagueBetSlip[];
 const leagueBetStakeTotal = leagueBetSlips.reduce((sum, slip) => sum + slip.stake, 0);
 const leagueBetExposureTotal = Math.round(leagueBetSlips.reduce((sum, slip) => sum + slip.potentialPayout, 0) * 100) / 100;
@@ -1658,6 +1696,21 @@ const octoberSettledPayoutRecords = [
     payout: 140,
     status: "Paid",
     note: "10.20 17:08 PDT 美职棒国联冠军赛G6（道奇 10-5 胜大都会完赛打出），10.21 凌晨 02:40 完成中奖全额兑付 140u"
+  },
+  {
+    id: "CRASH-102101",
+    date: "2026-10-21",
+    time: "2026-10-21 14:35",
+    user: "StefanDE916",
+    league: "Crash 小飞机",
+    match: "Crash 经典逃顶模式 (第 102188 期)",
+    market: "自动逃顶倍率",
+    selection: "逃顶目标 @ 2.40x (2.40x 成功跳伞)",
+    odds: 2.40,
+    stake: 25,
+    payout: 60,
+    status: "Paid",
+    note: "10.21 14:35 新用户 StefanDE916 玩 Crash 小飞机下注 25u，在 2.40x 成功逃顶跳伞，派彩 60u (中奖大于花费本金 35u) 已结算出款"
   }
 ];
 const octoberSettledPayoutsTotal = octoberSettledPayoutRecords.reduce((sum, item) => sum + item.payout, 0);
@@ -1917,7 +1970,8 @@ const bonusRules = [
 ];
 
 const auditLogs = [
-  {time: "2026-10-21 03:00", actor: "system", action: "Updated Ledger by Date with 10.21 early morning winner payouts total -320u (180u + 140u > 21st total income 259u); net day movement -61u, ledger reconciled at 0.00u", result: "OK"},
+  {time: "2026-10-21 15:00", actor: "system", action: "Updated Ledger by Date with 10.21 winner payouts total -380u (180u UCL + 140u MLB + 60u Crash > 21st total income 259u); net day movement -121u, ledger reconciled at 0.00u", result: "OK"},
+  {time: "2026-10-21 14:40", actor: "cashier", action: "Completed payout of 60u for winning Crash slip CRASH-102101 (StefanDE916 · 25u @ 2.40x auto-cashout, net profit +35u); status marked as Paid (已兑付)", result: "Completed"},
   {time: "2026-10-21 02:40", actor: "cashier", action: "Completed manual payout of 140u for winning MLB slip MLB-102101 (OliverIT301 · Los Angeles Dodgers -1.5 @ 2.00); status marked as Paid (已兑付)", result: "Completed"},
   {time: "2026-10-21 01:30", actor: "cashier", action: "Completed manual payout of 180u for winning slip LGB-102101 (Hamad16 · Real Madrid -1.5 @ 1.80); status marked as Paid (已兑付)", result: "Completed"},
   {time: "2026-10-17 03:00", actor: "system", action: "Updated Ledger by Date with 10.17 early morning winner payouts total -340u (180u + 160u > 17th total income 300u); net day movement -40u, ledger reconciled at 0.00u", result: "OK"},
@@ -3116,7 +3170,7 @@ function buildDailyUserActivities(users: PlatformUser[]): DailyUserActivity[] {
         const u = userMap.get(slip.user.toLowerCase());
         const regDate = u?.registeredAt ? u.registeredAt.slice(0, 10) : "";
         const userType: "New User" | "Returning User" = regDate === date ? "New User" : "Returning User";
-        const result: "Won" | "Lost" | "Pending" = slip.status.toLowerCase().includes("won")
+        const result: "Won" | "Lost" | "Pending" = (slip.status === "Won" || slip.status === "Paid" || slip.status.toLowerCase().includes("won") || slip.status.toLowerCase().includes("paid"))
           ? "Won"
           : slip.status.toLowerCase().includes("lost")
           ? "Lost"
@@ -3131,7 +3185,7 @@ function buildDailyUserActivities(users: PlatformUser[]): DailyUserActivity[] {
           odds: slip.odds,
           stake: slip.stake,
           result,
-          payout: result === "Won" ? slip.potentialPayout : 0,
+          payout: (result === "Won" || slip.status === "Paid") ? slip.potentialPayout : 0,
         });
       }
     });
