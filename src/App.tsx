@@ -1268,7 +1268,8 @@ const exchangeWithdrawals: ExchangeWithdrawal[] = [
   {date: "2026-10-14", amount: 600, status: "Processing", destination: "Exchange treasury (Est. 20% fee: 120u, Net: 480u · ETA 2026-10-15)"},
   {date: "2026-10-14", amount: 1000, status: "Processing", destination: "Exchange treasury (Est. 8% fee: 80u, Net: 920u · ETA 2026-10-15)"},
   {date: "2026-10-14", amount: 690, status: "Completed", destination: "Exchange treasury (Est. 8% fee: 55.2u, Net: 634.8u · 已到账)"},
-  {date: "2026-10-21", amount: 1000, status: "Processing", destination: "Exchange treasury (Est. 8% fee: 80u, Net: 920u · ETA 2026-10-22)"},
+  {date: "2026-10-19", amount: 1000, status: "Processing", destination: "Exchange treasury (Est. 8% fee: 80u, Net: 920u · ETA 2026-10-20)"},
+  {date: "2026-10-25", amount: 1000, status: "Processing", destination: "Exchange treasury (Est. 8% fee: 80u, Net: 920u · ETA 2026-10-26)"},
 ];
 const openingWalletReserve = 0;
 const totalDeposits = allUsers.reduce((sum, user) => sum + user.deposit, 0);
@@ -2018,12 +2019,15 @@ const bonusRules = [
 ];
 
 const auditLogs = [
-  {time: "2026-10-21 23:58", actor: "system", action: "Updated Ledger by Date with 10.21 withdrawal -1000u (Est. 8% fee: 80u, Net: 920u) and winner payouts -435u; status reconciled at 0.00u", result: "OK"},
-  {time: "2026-10-21 21:00", actor: "cashier", action: "Submitted exchange treasury withdrawal of 1000u (Est. 8% fee: 80u, Net credited: 920u, ETA: 2026-10-22)", result: "Processing"},
+  {time: "2026-10-25 23:58", actor: "system", action: "Updated Ledger by Date with 10.25 withdrawal -1000u (Est. 8% fee: 80u, Net: 920u); status reconciled at 0.00u", result: "OK"},
+  {time: "2026-10-25 21:00", actor: "cashier", action: "Submitted exchange treasury withdrawal of 1000u (Est. 8% fee: 80u, Net credited: 920u, ETA: 2026-10-26)", result: "Processing"},
+  {time: "2026-10-21 15:00", actor: "system", action: "Updated Ledger by Date with 10.21 winner payouts total -435u (180u UCL + 140u MLB + 60u Crash CRASH-102101 + 55u Crash CRASH-102102 > 21st total income 259u); net day movement -176u, ledger reconciled at 0.00u", result: "OK"},
   {time: "2026-10-21 16:45", actor: "cashier", action: "Completed payout of 55u for winning Crash slip CRASH-102102 (MikeCA712 · 22u @ 2.50x auto-cashout, net profit +33u); status marked as Paid (已兑付)", result: "Completed"},
   {time: "2026-10-21 14:40", actor: "cashier", action: "Completed payout of 60u for winning Crash slip CRASH-102101 (StefanDE916 · 25u @ 2.40x auto-cashout, net profit +35u); status marked as Paid (已兑付)", result: "Completed"},
   {time: "2026-10-21 02:40", actor: "cashier", action: "Completed manual payout of 140u for winning MLB slip MLB-102101 (OliverIT301 · Los Angeles Dodgers -1.5 @ 2.00); status marked as Paid (已兑付)", result: "Completed"},
   {time: "2026-10-21 01:30", actor: "cashier", action: "Completed manual payout of 180u for winning slip LGB-102101 (Hamad16 · Real Madrid -1.5 @ 1.80); status marked as Paid (已兑付)", result: "Completed"},
+  {time: "2026-10-19 23:58", actor: "system", action: "Updated Ledger by Date with 10.19 withdrawal -1000u (Est. 8% fee: 80u, Net: 920u); status reconciled at 0.00u", result: "OK"},
+  {time: "2026-10-19 21:00", actor: "cashier", action: "Submitted exchange treasury withdrawal of 1000u (Est. 8% fee: 80u, Net credited: 920u, ETA: 2026-10-20)", result: "Processing"},
   {time: "2026-10-17 03:00", actor: "system", action: "Updated Ledger by Date with 10.17 early morning winner payouts total -340u (180u + 160u > 17th total income 300u); net day movement -40u, ledger reconciled at 0.00u", result: "OK"},
   {time: "2026-10-17 02:45", actor: "cashier", action: "Completed manual payout of 160u for winning MLB slip MLB-101701 (OliverIT301 · New York Yankees -1.5 @ 2.00); status marked as Paid (已兑付)", result: "Completed"},
   {time: "2026-10-17 01:25", actor: "cashier", action: "Completed manual payout of 180u for winning slip LGB-101701 (Hamad16 · Paris Saint-Germain -1.5 @ 1.80); status marked as Paid (已兑付)", result: "Completed"},
