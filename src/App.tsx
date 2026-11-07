@@ -2694,7 +2694,7 @@ function DailyMasterTableView({
 
       <Panel
         title="按日运营与财务综合数据总表"
-        meta="每日自动生成收入、Crash收益、赛事净收益、MLB收益、分佣收益、新注册用户、注单量、提现流水与金库结余。点击任意行即可在下方一览查看当日所有注册用户、渠道、投注比赛、赔率与胜负。"
+        meta="按日汇总营收、各游戏收益、新增用户、注单量、中奖兑付、提现流水与金库结存。点击任意行即可在下方查看当日用户注册、赛事投注与借贷流水。"
       >
         <div className="data-table daily-master-table">
           <div className="data-row data-head">
@@ -4144,7 +4144,6 @@ function LeagueBetsPage({openDetail}: {openDetail: (detail: Detail) => void}) {
         <div>
           <p className="eyebrow">体育赛事注单运营中心</p>
           <h2>赛事注单追踪列表</h2>
-          <span>集中管理单关、串关、滚球及特殊道具盘注单。系统已对账 3090u 历史赛事流水及每日自动生成注单，借贷平衡完全平账。</span>
         </div>
         <div className="league-bets-metrics">
           <button onClick={() => openDetail(metricDetail("联赛注单总量", displayedSlips.length, "当前视图中显示的赛事注单总数。"))}><span>注单数</span><strong>{displayedSlips.length}</strong></button>
