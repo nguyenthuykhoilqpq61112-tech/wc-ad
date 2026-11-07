@@ -1271,6 +1271,7 @@ const exchangeWithdrawals: ExchangeWithdrawal[] = [
   {date: "2026-10-19", amount: 1000, status: "Processing", destination: "Exchange treasury (Est. 8% fee: 80u, Net: 920u · ETA 2026-10-20)"},
   {date: "2026-10-25", amount: 1000, status: "Processing", destination: "Exchange treasury (Est. 8% fee: 80u, Net: 920u · ETA 2026-10-26)"},
   {date: "2026-10-29", amount: 1000, status: "Processing", destination: "Exchange treasury (Est. 8% fee: 80u, Net: 920u · ETA 2026-10-30)"},
+  {date: "2026-11-03", amount: 1000, status: "Processing", destination: "Exchange treasury (Est. 8% fee: 80u, Net: 920u · ETA 2026-11-04)"},
 ];
 const openingWalletReserve = 0;
 const totalDeposits = allUsers.reduce((sum, user) => sum + user.deposit, 0);
@@ -1294,6 +1295,7 @@ const postJulyFifteenthWithdrawals = exchangeWithdrawals.filter((item) => item.d
 const augustWithdrawals = exchangeWithdrawals.filter((item) => item.date.startsWith("2026-08")).reduce((sum, item) => sum + item.amount, 0);
 const septemberWithdrawals = exchangeWithdrawals.filter((item) => item.date.startsWith("2026-09")).reduce((sum, item) => sum + item.amount, 0);
 const octoberWithdrawals = exchangeWithdrawals.filter((item) => item.date.startsWith("2026-10")).reduce((sum, item) => sum + item.amount, 0);
+const novemberWithdrawals = exchangeWithdrawals.filter((item) => item.date.startsWith("2026-11")).reduce((sum, item) => sum + item.amount, 0);
 const wheelIncomes: WheelIncome[] = [
   {date: "2026-08-08", amount: 20, source: "Wheel game", status: "Settled"},
   {date: "2026-08-10", amount: 15, source: "Wheel game", status: "Settled"},
@@ -2020,6 +2022,8 @@ const bonusRules = [
 ];
 
 const auditLogs = [
+  {time: "2026-11-03 23:58", actor: "system", action: "Updated Ledger by Date with 11.03 withdrawal -1000u (Est. 8% fee: 80u, Net: 920u); status reconciled at 0.00u", result: "OK"},
+  {time: "2026-11-03 21:00", actor: "cashier", action: "Submitted exchange treasury withdrawal of 1000u (Est. 8% fee: 80u, Net credited: 920u, ETA: 2026-11-04)", result: "Processing"},
   {time: "2026-10-29 23:58", actor: "system", action: "Updated Ledger by Date with 10.29 withdrawal -1000u (Est. 8% fee: 80u, Net: 920u); status reconciled at 0.00u", result: "OK"},
   {time: "2026-10-29 21:00", actor: "cashier", action: "Submitted exchange treasury withdrawal of 1000u (Est. 8% fee: 80u, Net credited: 920u, ETA: 2026-10-30)", result: "Processing"},
   {time: "2026-10-25 23:58", actor: "system", action: "Updated Ledger by Date with 10.25 withdrawal -1000u (Est. 8% fee: 80u, Net: 920u); status reconciled at 0.00u", result: "OK"},
@@ -4425,7 +4429,7 @@ function SystemWalletPanel({openDetail, onOpenWithdraw}: {openDetail: (detail: D
       <div>
         <p className="eyebrow">平台金库中枢</p>
         <h2>{platformBalance.toLocaleString()}u 可用余额 (每日营收 50-299u，Crash 10-65u，3-15 新注册用户全自动累增生效中)</h2>
-        <span>7.10 初始基准 875u；7.15 净变动 {todayWalletChange.toFixed(2)}u；7.16 提现下发 -1000u；7.20 充值 +{postJulyFifteenthDeposits}u；7.20-8.22 体育投注 +{postJulyFifteenthStakes}u；五大联赛实收净额 +{leagueBetReceiptTotal}u；8月出款 -{augustWithdrawals}u；9月出款 -{septemberWithdrawals}u；10月出款 -{octoberWithdrawals}u；转盘收益 +{wheelIncomeTotal}u；Crash 游戏收益 +{crashIncomeTotal}u；中奖兑付扣减 -{manualSettledPayouts + octoberSettledPayoutsTotal}u</span>
+        <span>7.10 初始基准 875u；7.15 净变动 {todayWalletChange.toFixed(2)}u；7.16 提现下发 -1000u；7.20 充值 +{postJulyFifteenthDeposits}u；7.20-8.22 体育投注 +{postJulyFifteenthStakes}u；五大联赛实收净额 +{leagueBetReceiptTotal}u；8月出款 -{augustWithdrawals}u；9月出款 -{septemberWithdrawals}u；10月出款 -{octoberWithdrawals}u；{novemberWithdrawals > 0 ? `11月出款 -${novemberWithdrawals}u；` : ""}转盘收益 +{wheelIncomeTotal}u；Crash 游戏收益 +{crashIncomeTotal}u；中奖兑付扣减 -{manualSettledPayouts + octoberSettledPayoutsTotal}u</span>
       </div>
       <div className="wallet-actions">
         <button onClick={() => openDetail(walletDetail())}>查看对账明细</button>
