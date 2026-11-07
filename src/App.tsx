@@ -405,6 +405,23 @@ function getEffectiveEndDate(): string {
   }
 }
 
+const DATE_SLIP_SPLITS: Record<string, { f: number[]; m: number[] }> = {
+  "2026-10-25": { f: [65, 50, 32], m: [18, 13] },               // 5 单 (3+2), f=147u, m=31u
+  "2026-10-26": { f: [64, 55, 45, 30], m: [26, 22, 18] },       // 7 单 (4+3), f=194u, m=66u
+  "2026-10-27": { f: [70, 57], m: [45, 34] },                   // 4 单 (2+2), f=127u, m=79u
+  "2026-10-28": { f: [18, 15, 13, 12], m: [35, 25] },           // 6 单 (4+2), f=58u, m=60u
+  "2026-10-29": { f: [68, 48], m: [61] },                       // 3 单 (2+1), f=116u, m=61u
+  "2026-10-30": { f: [80, 65, 50], m: [15, 12, 10] },           // 6 单 (3+3), f=195u, m=37u
+  "2026-10-31": { f: [40, 32, 22], m: [51] },                   // 4 单 (3+1), f=94u, m=51u
+  "2026-11-01": { f: [70, 60, 50, 35], m: [12, 10, 9] },       // 7 单 (4+3), f=215u, m=31u
+  "2026-11-02": { f: [65, 54, 42], m: [35, 28] },               // 5 单 (3+2), f=161u, m=63u
+  "2026-11-03": { f: [60, 52, 44, 35, 25], m: [30, 24, 20] },   // 8 单 (5+3), f=216u, m=74u
+  "2026-11-04": { f: [62, 48], m: [24, 20] },                   // 4 单 (2+2), f=110u, m=44u
+  "2026-11-05": { f: [34, 28, 24, 20], m: [27, 22] },           // 6 单 (4+2), f=106u, m=49u
+  "2026-11-06": { f: [100, 74, 50], m: [38, 27] },              // 5 单 (3+2), f=224u, m=65u
+  "2026-11-07": { f: [55, 24, 18, 14], m: [22, 18, 15] },       // 7 单 (4+3), f=111u, m=55u
+};
+
 function generateAutoDailyData(endDate = getEffectiveEndDate()) {
   const dates: string[] = [];
   let curr = new Date("2026-10-01T00:00:00");
@@ -767,147 +784,104 @@ function generateAutoDailyData(endDate = getEffectiveEndDate()) {
         autoCrashIncomes[autoCrashIncomes.length - 1].details = crashDetailsList.join(" · ");
       }
 
-      // 生成足球比赛赛程 (2场不同的比赛)
+      // 生成足球比赛赛程与注单
       const footballMatches = MATCH_CATALOG.filter((m) => m.league !== "ATP Tour");
-      const fIdx1 = (dayIdx * 3) % footballMatches.length;
-      let fIdx2 = (dayIdx * 3 + 1) % footballMatches.length;
-      if (fIdx1 === fIdx2) fIdx2 = (fIdx2 + 1) % footballMatches.length;
-      const m1 = footballMatches[fIdx1];
-      const m2 = footballMatches[fIdx2];
+      const fStakes = DATE_SLIP_SPLITS[date]?.f || [
+        Math.max(10, Math.floor(sportsIncome * 0.55)),
+        sportsIncome - Math.max(10, Math.floor(sportsIncome * 0.55))
+      ];
 
-      autoFixtures.push({
-        league: m1.league,
-        date,
-        time: "18:45 CET",
-        match: m1.match,
-        matchday: m1.matchday,
-        moneyline: m1.moneyline,
-        handicap: m1.handicap,
-        total: m1.total,
-        featured: m1.featured,
-        status: "Today"
-      });
-      autoFixtures.push({
-        league: m2.league,
-        date,
-        time: "21:00 CET",
-        match: m2.match,
-        matchday: m2.matchday,
-        moneyline: m2.moneyline,
-        handicap: m2.handicap,
-        total: m2.total,
-        featured: m2.featured,
-        status: "Upcoming"
-      });
+      fStakes.forEach((stake, idx) => {
+        const mIdx = (dayIdx * 3 + idx) % footballMatches.length;
+        const match = footballMatches[mIdx];
+        const user = dayUsers[idx % dayUsers.length]?.username || `AutoUser0${idx + 1}`;
+        if (dayUsers[idx % dayUsers.length]) {
+          dayUsers[idx % dayUsers.length].stake = (dayUsers[idx % dayUsers.length].stake || 0) + stake;
+        }
 
-      // 足球下注注单：2位不同用户下注不同比赛，金额不同且加总为 sportsIncome
-      const sStake1 = Math.max(10, Math.floor(sportsIncome * 0.55));
-      const sStake2 = sportsIncome - sStake1;
-      const sUser1 = dayUsers[0]?.username || "AutoUser01";
-      const sUser2 = dayUsers[1]?.username || "AutoUser02";
-      if (dayUsers[0]) dayUsers[0].stake = (dayUsers[0].stake || 0) + sStake1;
-      if (dayUsers[1]) dayUsers[1].stake = (dayUsers[1].stake || 0) + sStake2;
+        if (!autoFixtures.some((f) => f.date === date && f.match === match.match)) {
+          autoFixtures.push({
+            league: match.league,
+            date,
+            time: `${14 + idx * 2}:30 CET`,
+            match: match.match,
+            matchday: match.matchday,
+            moneyline: match.moneyline,
+            handicap: match.handicap,
+            total: match.total,
+            featured: match.featured,
+            status: idx === 0 ? "Today" : "Upcoming"
+          });
+        }
 
-      autoLeagueSlips.push({
-        id: `LGB-${date.replace(/-/g, "").slice(4)}01`,
-        time: `${date} 14:30`,
-        user: sUser1,
-        league: m1.league,
-        match: m1.match,
-        market: m1.market,
-        selection: m1.selection,
-        odds: m1.odds,
-        stake: sStake1,
-        potentialPayout: Math.round(sStake1 * m1.odds * 100) / 100,
-        betType: "Single",
-        status: "Pending",
-        risk: "Low"
-      });
-      autoLeagueSlips.push({
-        id: `LGB-${date.replace(/-/g, "").slice(4)}02`,
-        time: `${date} 16:45`,
-        user: sUser2,
-        league: m2.league,
-        match: m2.match,
-        market: m2.market,
-        selection: m2.selection,
-        odds: m2.odds,
-        stake: sStake2,
-        potentialPayout: Math.round(sStake2 * m2.odds * 100) / 100,
-        betType: "Single",
-        status: "Pending",
-        risk: "Low"
+        const is1106Paid = (date === "2026-11-06" && idx === 0);
+        const is1107Paid = (date === "2026-11-07" && idx === 0);
+        const slipStatus = (is1106Paid || is1107Paid) ? "Paid" : "Pending";
+        const odds = is1106Paid ? 1.80 : is1107Paid ? 2.00 : match.odds;
+        const potentialPayout = is1106Paid ? 180 : is1107Paid ? 110 : Math.round(stake * odds * 100) / 100;
+
+        autoLeagueSlips.push({
+          id: `LGB-${date.replace(/-/g, "").slice(4)}${String(idx + 1).padStart(2, "0")}`,
+          time: `${date} ${String(13 + idx * 2).padStart(2, "0")}:${String(15 + idx * 10).padStart(2, "0")}`,
+          user: is1106Paid ? "Hamad16" : is1107Paid ? "OliverIT301" : user,
+          league: match.league,
+          match: match.match,
+          market: match.market,
+          selection: match.selection,
+          odds,
+          stake,
+          potentialPayout,
+          betType: "Single",
+          status: slipStatus,
+          risk: "Low"
+        });
       });
 
       // 生成 MLB 赛程与注单
-      const mlbIdx1 = (dayIdx * 2) % MLB_CATALOG.length;
-      let mlbIdx2 = (dayIdx * 2 + 1) % MLB_CATALOG.length;
-      if (mlbIdx1 === mlbIdx2) mlbIdx2 = (mlbIdx2 + 1) % MLB_CATALOG.length;
-      const mlbM1 = MLB_CATALOG[mlbIdx1];
-      const mlbM2 = MLB_CATALOG[mlbIdx2];
+      const mStakes = DATE_SLIP_SPLITS[date]?.m || [
+        Math.max(10, Math.floor(mlbIncome * 0.58)),
+        mlbIncome - Math.max(10, Math.floor(mlbIncome * 0.58))
+      ];
 
-      autoFixtures.push({
-        league: "MLB",
-        date,
-        time: mlbM1.time,
-        match: mlbM1.match,
-        matchday: mlbM1.matchday,
-        moneyline: mlbM1.moneyline,
-        handicap: mlbM1.handicap,
-        total: mlbM1.total,
-        featured: mlbM1.featured,
-        status: "Today"
-      });
-      autoFixtures.push({
-        league: "MLB",
-        date,
-        time: mlbM2.time,
-        match: mlbM2.match,
-        matchday: mlbM2.matchday,
-        moneyline: mlbM2.moneyline,
-        handicap: mlbM2.handicap,
-        total: mlbM2.total,
-        featured: mlbM2.featured,
-        status: "Upcoming"
-      });
+      mStakes.forEach((stake, idx) => {
+        const mIdx = (dayIdx * 2 + idx) % MLB_CATALOG.length;
+        const match = MLB_CATALOG[mIdx];
+        const userIdx = (fStakes.length + idx) % dayUsers.length;
+        const user = dayUsers[userIdx]?.username || `MLBUser0${idx + 1}`;
+        if (dayUsers[userIdx]) {
+          dayUsers[userIdx].stake = (dayUsers[userIdx].stake || 0) + stake;
+        }
 
-      // MLB 下注注单：2位不同用户下注不同MLB赛事，金额不同且加总为 mlbIncome
-      const mlbStake1 = Math.max(10, Math.floor(mlbIncome * 0.58));
-      const mlbStake2 = mlbIncome - mlbStake1;
-      const mlbUser1 = dayUsers[2 % dayUsers.length]?.username || "MLBUser01";
-      const mlbUser2 = dayUsers[3 % dayUsers.length]?.username || "MLBUser02";
-      if (dayUsers[2 % dayUsers.length]) dayUsers[2 % dayUsers.length].stake = (dayUsers[2 % dayUsers.length].stake || 0) + mlbStake1;
-      if (dayUsers[3 % dayUsers.length]) dayUsers[3 % dayUsers.length].stake = (dayUsers[3 % dayUsers.length].stake || 0) + mlbStake2;
+        if (!autoFixtures.some((f) => f.date === date && f.match === match.match)) {
+          autoFixtures.push({
+            league: "MLB",
+            date,
+            time: match.time,
+            match: match.match,
+            matchday: match.matchday,
+            moneyline: match.moneyline,
+            handicap: match.handicap,
+            total: match.total,
+            featured: match.featured,
+            status: idx === 0 ? "Today" : "Upcoming"
+          });
+        }
 
-      autoLeagueSlips.push({
-        id: `MLB-${date.replace(/-/g, "").slice(4)}01`,
-        time: `${date} 18:20`,
-        user: mlbUser1,
-        league: "MLB",
-        match: mlbM1.match,
-        market: mlbM1.market,
-        selection: mlbM1.selection,
-        odds: mlbM1.odds,
-        stake: mlbStake1,
-        potentialPayout: Math.round(mlbStake1 * mlbM1.odds * 100) / 100,
-        betType: "Single",
-        status: "Pending",
-        risk: "Low"
-      });
-      autoLeagueSlips.push({
-        id: `MLB-${date.replace(/-/g, "").slice(4)}02`,
-        time: `${date} 19:40`,
-        user: mlbUser2,
-        league: "MLB",
-        match: mlbM2.match,
-        market: mlbM2.market,
-        selection: mlbM2.selection,
-        odds: mlbM2.odds,
-        stake: mlbStake2,
-        potentialPayout: Math.round(mlbStake2 * mlbM2.odds * 100) / 100,
-        betType: "Single",
-        status: "Pending",
-        risk: "Low"
+        autoLeagueSlips.push({
+          id: `MLB-${date.replace(/-/g, "").slice(4)}${String(idx + 1).padStart(2, "0")}`,
+          time: `${date} ${String(18 + idx).padStart(2, "0")}:${String(20 + idx * 15).padStart(2, "0")}`,
+          user,
+          league: "MLB",
+          match: match.match,
+          market: match.market,
+          selection: match.selection,
+          odds: match.odds,
+          stake,
+          potentialPayout: Math.round(stake * match.odds * 100) / 100,
+          betType: "Single",
+          status: "Pending",
+          risk: "Low"
+        });
       });
     } else {
       // 10.01 - 10.09 历史平稳数据
@@ -1763,6 +1737,36 @@ const octoberSettledPayoutRecords = [
     payout: 55,
     status: "Paid",
     note: "10.21 16:40 新用户 MikeCA712 玩 Crash 小飞机下注 22u，在 2.50x 成功逃顶跳伞，派彩 55u (中奖大于花费本金 33u) 已结算出款"
+  },
+  {
+    id: "LGB-110601",
+    date: "2026-11-06",
+    time: "2026-11-06 22:40",
+    user: "Hamad16",
+    league: "Premier League",
+    match: "Arsenal vs Paris Saint-Germain",
+    market: "Moneyline",
+    selection: "Arsenal win",
+    odds: 1.80,
+    stake: 100,
+    payout: 180,
+    status: "Paid",
+    note: "11.06 21:00 CET 周五焦点战完赛打出，11.06 22:40 完成中奖全额派彩兑付 180u"
+  },
+  {
+    id: "LGB-110701",
+    date: "2026-11-07",
+    time: "2026-11-07 17:30",
+    user: "OliverIT301",
+    league: "Premier League",
+    match: "Manchester City vs Fulham",
+    market: "Team total",
+    selection: "Man City over 2.5",
+    odds: 2.00,
+    stake: 55,
+    payout: 110,
+    status: "Paid",
+    note: "11.07 15:00 UK 英超焦点赛完赛打出，11.07 17:30 完成中奖全额派彩兑付 110u"
   }
 ];
 const octoberSettledPayoutsTotal = octoberSettledPayoutRecords.reduce((sum, item) => sum + item.payout, 0);
@@ -2022,6 +2026,10 @@ const bonusRules = [
 ];
 
 const auditLogs = [
+  {time: "2026-11-07 23:58", actor: "system", action: "Updated Ledger by Date with 11.07 winner payout -110u; net day movement +93u, ledger reconciled at 0.00u", result: "OK"},
+  {time: "2026-11-07 17:30", actor: "cashier", action: "Completed manual payout of 110u for winning slip LGB-110701 (OliverIT301 · 55u @ 2.00); status marked as Paid (已兑付)", result: "Completed"},
+  {time: "2026-11-06 23:58", actor: "system", action: "Updated Ledger by Date with 11.06 winner payout -180u; net day movement +150u, ledger reconciled at 0.00u", result: "OK"},
+  {time: "2026-11-06 22:40", actor: "cashier", action: "Completed manual payout of 180u for winning slip LGB-110601 (Hamad16 · 100u @ 1.80); status marked as Paid (已兑付)", result: "Completed"},
   {time: "2026-11-03 23:58", actor: "system", action: "Updated Ledger by Date with 11.03 withdrawal -1000u (Est. 8% fee: 80u, Net: 920u); status reconciled at 0.00u", result: "OK"},
   {time: "2026-11-03 21:00", actor: "cashier", action: "Submitted exchange treasury withdrawal of 1000u (Est. 8% fee: 80u, Net credited: 920u, ETA: 2026-11-04)", result: "Processing"},
   {time: "2026-10-29 23:58", actor: "system", action: "Updated Ledger by Date with 10.29 withdrawal -1000u (Est. 8% fee: 80u, Net: 920u); status reconciled at 0.00u", result: "OK"},
