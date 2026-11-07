@@ -1270,6 +1270,7 @@ const exchangeWithdrawals: ExchangeWithdrawal[] = [
   {date: "2026-10-14", amount: 690, status: "Completed", destination: "Exchange treasury (Est. 8% fee: 55.2u, Net: 634.8u · 已到账)"},
   {date: "2026-10-19", amount: 1000, status: "Processing", destination: "Exchange treasury (Est. 8% fee: 80u, Net: 920u · ETA 2026-10-20)"},
   {date: "2026-10-25", amount: 1000, status: "Processing", destination: "Exchange treasury (Est. 8% fee: 80u, Net: 920u · ETA 2026-10-26)"},
+  {date: "2026-10-29", amount: 1000, status: "Processing", destination: "Exchange treasury (Est. 8% fee: 80u, Net: 920u · ETA 2026-10-30)"},
 ];
 const openingWalletReserve = 0;
 const totalDeposits = allUsers.reduce((sum, user) => sum + user.deposit, 0);
@@ -2019,6 +2020,8 @@ const bonusRules = [
 ];
 
 const auditLogs = [
+  {time: "2026-10-29 23:58", actor: "system", action: "Updated Ledger by Date with 10.29 withdrawal -1000u (Est. 8% fee: 80u, Net: 920u); status reconciled at 0.00u", result: "OK"},
+  {time: "2026-10-29 21:00", actor: "cashier", action: "Submitted exchange treasury withdrawal of 1000u (Est. 8% fee: 80u, Net credited: 920u, ETA: 2026-10-30)", result: "Processing"},
   {time: "2026-10-25 23:58", actor: "system", action: "Updated Ledger by Date with 10.25 withdrawal -1000u (Est. 8% fee: 80u, Net: 920u); status reconciled at 0.00u", result: "OK"},
   {time: "2026-10-25 21:00", actor: "cashier", action: "Submitted exchange treasury withdrawal of 1000u (Est. 8% fee: 80u, Net credited: 920u, ETA: 2026-10-26)", result: "Processing"},
   {time: "2026-10-21 15:00", actor: "system", action: "Updated Ledger by Date with 10.21 winner payouts total -435u (180u UCL + 140u MLB + 60u Crash CRASH-102101 + 55u Crash CRASH-102102 > 21st total income 259u); net day movement -176u, ledger reconciled at 0.00u", result: "OK"},
