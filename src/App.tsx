@@ -3595,8 +3595,6 @@ function OverviewPage({summary, totalUserCount, filteredUsers, openDetail, onOpe
         <Metric title="借贷平账差额" value={dateLedgerDelta} icon={<AlertTriangle size={20} />} onClick={() => openDetail(ledgerBalanceDetail())} />
       </section>
 
-      <SystemWalletPanel openDetail={openDetail} onOpenWithdraw={onOpenWithdraw} />
-
       <DailyMasterTableView allUsers={filteredUsers} openDetail={openDetail} onOpenWithdraw={onOpenWithdraw} />
 
       <section className="split-grid">
@@ -4435,9 +4433,8 @@ function SystemWalletPanel({openDetail, onOpenWithdraw}: {openDetail: (detail: D
   return (
     <section className="wallet-band">
       <div>
-        <p className="eyebrow">平台金库中枢</p>
-        <h2>{platformBalance.toLocaleString()}u 可用余额 (每日营收 50-299u，Crash 10-65u，3-15 新注册用户全自动累增生效中)</h2>
-        <span>7.10 初始基准 875u；7.15 净变动 {todayWalletChange.toFixed(2)}u；7.16 提现下发 -1000u；7.20 充值 +{postJulyFifteenthDeposits}u；7.20-8.22 体育投注 +{postJulyFifteenthStakes}u；五大联赛实收净额 +{leagueBetReceiptTotal}u；8月出款 -{augustWithdrawals}u；9月出款 -{septemberWithdrawals}u；10月出款 -{octoberWithdrawals}u；{novemberWithdrawals > 0 ? `11月出款 -${novemberWithdrawals}u；` : ""}转盘收益 +{wheelIncomeTotal}u；Crash 游戏收益 +{crashIncomeTotal}u；中奖兑付扣减 -{manualSettledPayouts + octoberSettledPayoutsTotal}u</span>
+        <p className="eyebrow">平台金库出金控制台</p>
+        <h2>{platformBalance.toLocaleString()} USDT 金库可用余额</h2>
       </div>
       <div className="wallet-actions">
         <button onClick={() => openDetail(walletDetail())}>查看对账明细</button>
