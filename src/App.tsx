@@ -399,9 +399,9 @@ function getEffectiveEndDate(): string {
     const m = String(now.getMonth() + 1).padStart(2, "0");
     const d = String(now.getDate()).padStart(2, "0");
     const cur = `${y}-${m}-${d}`;
-    return cur < "2026-10-21" ? "2026-10-21" : cur;
+    return cur < "2026-11-12" ? "2026-11-12" : cur;
   } catch {
-    return "2026-10-21";
+    return "2026-11-12";
   }
 }
 
@@ -420,6 +420,12 @@ const DATE_SLIP_SPLITS: Record<string, { f: number[]; m: number[] }> = {
   "2026-11-05": { f: [34, 28, 24, 20], m: [27, 22] },           // 6 单 (4+2), f=106u, m=49u
   "2026-11-06": { f: [100, 74, 50], m: [38, 27] },              // 5 单 (3+2), f=224u, m=65u
   "2026-11-07": { f: [55, 24, 18, 14], m: [22, 18, 15] },       // 7 单 (4+3), f=111u, m=55u
+  "2026-11-08": { f: [38, 30], m: [30, 24] },                   // 4 单 (2+2), f=68u, m=54u
+  "2026-11-09": { f: [40, 32, 26], m: [26, 22] },               // 5 单 (3+2), f=98u, m=48u
+  "2026-11-10": { f: [55, 45, 33, 20], m: [22, 18] },           // 6 单 (4+2), f=153u, m=40u
+  "2026-11-11": { f: [46, 40], m: [33, 28] },                   // 4 单 (2+2), f=86u, m=61u
+  "2026-11-12": { f: [65, 54, 45, 35], m: [18, 14] },           // 6 单 (4+2), f=199u, m=32u (11.12 钱包更新: Bybit)
+  "2026-11-13": { f: [60, 50, 38], m: [38, 33] },               // 5 单 (3+2), f=148u, m=71u
 };
 
 function generateAutoDailyData(endDate = getEffectiveEndDate()) {
@@ -653,8 +659,8 @@ function generateAutoDailyData(endDate = getEffectiveEndDate()) {
       const mlbIncome = Math.floor(rng() * (80 - 30 + 1)) + 30;
       // 3. 小飞机 (Crash) 收益: 5 - 65u 随机数
       const crashIncome = Math.floor(rng() * (65 - 5 + 1)) + 5;
-      // 4. 分佣收益: 3 - 35u 随机数
-      const commissionIncome = Math.floor(rng() * (35 - 3 + 1)) + 3;
+      // 4. 分佣收益: 从 11.12 日起暂停分佣
+      const commissionIncome = date >= "2026-11-12" ? 0 : Math.floor(rng() * (35 - 3 + 1)) + 3;
       // 5. 新注册用户: 7 - 15 人随机数
       const regCount = Math.floor(rng() * (15 - 7 + 1)) + 7;
 
@@ -672,12 +678,21 @@ function generateAutoDailyData(endDate = getEffectiveEndDate()) {
         source: "MLB postseason betting proceeds",
         status: "Collected"
       });
-      autoCommissionIncomes.push({
-        date,
-        amount: commissionIncome,
-        source: "Commission Income",
-        status: "Settled"
-      });
+      if (commissionIncome > 0) {
+        autoCommissionIncomes.push({
+          date,
+          amount: commissionIncome,
+          source: "Commission Income",
+          status: "Settled"
+        });
+      } else if (date >= "2026-11-12") {
+        autoCommissionIncomes.push({
+          date,
+          amount: 0,
+          source: "Commission Income (已暂停)",
+          status: "Paused"
+        });
+      }
       autoSummary.push({
         date,
         total: totalIncome,
@@ -1809,7 +1824,11 @@ function buildDateLedgerRows(): DateLedgerRow[] {
     addLedgerAmount(rows, income.date, "mlbIncome", income.amount, `${income.source} +${income.amount}u`);
   });
   commissionIncomes.forEach((income) => {
-    addLedgerAmount(rows, income.date, "commissionIncome", income.amount, `Commission Income +${income.amount}u`);
+    if (income.amount > 0) {
+      addLedgerAmount(rows, income.date, "commissionIncome", income.amount, `Commission Income +${income.amount}u`);
+    } else if (income.date >= "2026-11-12") {
+      addLedgerAmount(rows, income.date, "commissionIncome", 0, "分佣收益暂停计提 (0u)");
+    }
   });
   leagueBetSlips.forEach((slip) => {
     addLedgerAmount(rows, slip.time.slice(0, 10), "leagueStake", slip.stake, `League slip ${slip.id}: ${slip.user} ${slip.stake}u · ${slip.league} · ${slip.match} · ${slip.selection} @ ${slip.odds.toFixed(2)}`);
@@ -1853,6 +1872,12 @@ function buildDateLedgerRows(): DateLedgerRow[] {
   rows[ledgerReconciliationDate].items.push(`Final ledger reconciliation to platform balance ${platformBalance}u`);
 
   let balanceAfter = openingWalletReserve;
+  if (rows["2026-11-12"]) {
+    rows["2026-11-12"].items.push("11.12 钱包更新：出纳收款与资金归集切换为新钱包-Bybit，当日及后续收入全额进入 Bybit 钱包");
+  }
+  if (rows["2026-11-13"]) {
+    rows["2026-11-13"].items.push("全站营收全额归集进入新钱包-Bybit");
+  }
   return Object.entries(rows)
     .sort(([a], [b]) => a.localeCompare(b))
     .map(([date, row]) => {
@@ -1998,6 +2023,15 @@ const dailyIncomeRows = buildIncomeSummary((date) => date);
 const monthlyIncomeRows = buildIncomeSummary((date) => date.slice(0, 7));
 const totalCollectedIncome = dailyIncomeRows.reduce((sum, row) => sum + row.total, 0);
 
+// 11.12 钱包更新：从 11.12 开始的净变动全额归集进入新钱包 Bybit
+const BYBIT_WALLET_START_DATE = "2026-11-12";
+const bybitWalletBalance = Math.round(
+  dateLedgerRows
+    .filter((r) => r.date >= BYBIT_WALLET_START_DATE)
+    .reduce((sum, r) => sum + r.net, 0) * 100
+) / 100;
+const legacyTreasuryBalance = Math.round((platformBalance - bybitWalletBalance) * 100) / 100;
+
 const withdrawalQueue = betRecords
   .filter((bet) => bet.result === "Won - contact support" || bet.result === "Paid")
   .slice(0, 8)
@@ -2026,6 +2060,8 @@ const bonusRules = [
 ];
 
 const auditLogs = [
+  {time: "2026-11-12 00:05", actor: "finance_admin", action: "出纳钱包更新：正式启用新钱包-Bybit，自 2026-11-12 起所有赛事与游戏收益全额归集进入 Bybit 钱包", result: "Completed"},
+  {time: "2026-11-12 00:00", actor: "system", action: "运营策略调整：从 2026-11-12 日起暂停分佣收入结算（分佣收益暂停计提 0u）", result: "OK"},
   {time: "2026-11-07 23:58", actor: "system", action: "Updated Ledger by Date with 11.07 winner payout -110u; net day movement +93u, ledger reconciled at 0.00u", result: "OK"},
   {time: "2026-11-07 17:30", actor: "cashier", action: "Completed manual payout of 110u for winning slip LGB-110701 (OliverIT301 · 55u @ 2.00); status marked as Paid (已兑付)", result: "Completed"},
   {time: "2026-11-06 23:58", actor: "system", action: "Updated Ledger by Date with 11.06 winner payout -180u; net day movement +150u, ledger reconciled at 0.00u", result: "OK"},
@@ -2726,6 +2762,18 @@ function DailyMasterTableView({
                 <div>
                   <strong>{row.date}</strong>
                   {row.isToday && <span className="badge-today">今日</span>}
+                  {row.date >= "2026-11-12" && (
+                    <span style={{
+                      background: "rgba(245, 158, 11, 0.14)",
+                      color: "#d97706",
+                      border: "1px solid rgba(245, 158, 11, 0.3)",
+                      fontSize: "10px",
+                      padding: "1px 5px",
+                      borderRadius: "4px",
+                      fontWeight: 700,
+                      marginLeft: "4px"
+                    }}>Bybit</span>
+                  )}
                 </div>
                 <strong style={{color: "#4ade80"}}>+{row.totalIncome.toFixed(2)}u</strong>
                 <span>+{row.crashIncome.toFixed(2)}u</span>
@@ -2733,8 +2781,8 @@ function DailyMasterTableView({
                 <span style={{ color: row.date >= "2026-10-11" && row.mlbIncome > 0 ? "#38bdf8" : "#94a3b8", fontWeight: 700 }}>
                   {row.date >= "2026-10-11" ? (row.mlbIncome > 0 ? `+${row.mlbIncome.toFixed(2)}u` : "-") : "-"}
                 </span>
-                <span style={{ color: row.date >= "2026-10-09" && row.commissionIncome > 0 ? "#10b981" : "#94a3b8", fontWeight: 700 }}>
-                  {row.date >= "2026-10-09" ? (row.commissionIncome > 0 ? `${row.commissionIncome}u` : "-") : "-"}
+                <span style={{ color: row.date >= "2026-11-12" ? "#f59e0b" : (row.date >= "2026-10-09" && row.commissionIncome > 0 ? "#10b981" : "#94a3b8"), fontWeight: 700 }}>
+                  {row.date >= "2026-11-12" ? "0u (暂停)" : (row.date >= "2026-10-09" ? (row.commissionIncome > 0 ? `${row.commissionIncome}u` : "-") : "-")}
                 </span>
                 <div>
                   <span className={`pill-badge ${row.newUsers.length > 0 ? "pill-new" : ""}`}>
@@ -2785,7 +2833,7 @@ function DailyMasterTableView({
                 {selectedRecord.isToday && <span className="badge-today">今日最新</span>}
               </h3>
               <p style={{margin: "4px 0 0", fontSize: 13, color: "#94a3b8"}}>
-                当日总收入 +{selectedRecord.totalIncome}u · Crash 收益 +{selectedRecord.crashIncome}u · 赛事收益 +{selectedRecord.sportsIncome}u{selectedRecord.mlbIncome > 0 ? ` · MLB 收益 +${selectedRecord.mlbIncome}u` : ""}{selectedRecord.commissionIncome > 0 ? ` · 分佣收益 ${selectedRecord.commissionIncome}u` : ""}{selectedRecord.payouts > 0 ? ` · 中奖兑付 -${selectedRecord.payouts}u` : ""}{selectedRecord.withdrawals > 0 ? ` · 提现下发 -${selectedRecord.withdrawals}u` : ""} · 当日金库结余 {selectedRecord.balanceAfter}u (平账差额 0.00u)
+                当日总收入 +{selectedRecord.totalIncome}u · Crash 收益 +{selectedRecord.crashIncome}u · 赛事收益 +{selectedRecord.sportsIncome}u{selectedRecord.mlbIncome > 0 ? ` · MLB 收益 +${selectedRecord.mlbIncome}u` : ""}{selectedRecord.date >= "2026-11-12" ? " · 分佣已暂停 (0u) · 资金归集: 新钱包-Bybit" : (selectedRecord.commissionIncome > 0 ? ` · 分佣收益 ${selectedRecord.commissionIncome}u` : "")}{selectedRecord.payouts > 0 ? ` · 中奖兑付 -${selectedRecord.payouts}u` : ""}{selectedRecord.withdrawals > 0 ? ` · 提现下发 -${selectedRecord.withdrawals}u` : ""} · 当日金库结余 {selectedRecord.balanceAfter}u (平账差额 0.00u)
               </p>
             </div>
             <div className="day-drilldown-tabs">
@@ -4221,6 +4269,7 @@ function LedgerByDatePage({openDetail}: {openDetail: (detail: Detail) => void}) 
       <section className="metrics-grid compact-metrics">
         <Metric title="对账核算余额" value={dateLedgerFinalBalance} icon={<ShieldCheck size={20} />} onClick={() => openDetail(ledgerBalanceDetail())} />
         <Metric title="平台金库余额" value={platformBalance} icon={<WalletCards size={20} />} onClick={() => openDetail(walletDetail())} />
+        <Metric title="新钱包-Bybit" value={bybitWalletBalance} icon={<Activity size={20} />} onClick={() => openDetail(walletDetail())} />
         <Metric title="借贷差额 (已平账)" value={dateLedgerDelta} icon={<AlertTriangle size={20} />} onClick={() => openDetail(ledgerBalanceDetail())} />
         <Metric title="累计总收入" value={totalCollectedIncome} icon={<Goal size={20} />} onClick={() => openDetail(metricDetail("累计总收入", totalCollectedIncome, "所有已录入营收综合统计。"))} />
       </section>
@@ -4432,8 +4481,29 @@ function SystemWalletPanel({openDetail, onOpenWithdraw}: {openDetail: (detail: D
   return (
     <section className="wallet-band">
       <div>
-        <p className="eyebrow">平台金库出金控制台</p>
-        <h2>{platformBalance.toLocaleString()} USDT 金库可用余额</h2>
+        <div style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap", marginBottom: "4px" }}>
+          <p className="eyebrow" style={{ margin: 0 }}>平台金库出金控制台</p>
+          <span style={{
+            background: "rgba(245, 158, 11, 0.12)",
+            color: "#d97706",
+            border: "1px solid rgba(245, 158, 11, 0.3)",
+            borderRadius: "6px",
+            fontSize: "12px",
+            padding: "2px 8px",
+            fontWeight: 700
+          }}>
+            ⚡ 11.12 钱包更新：新钱包 - Bybit
+          </span>
+        </div>
+        <h2>{platformBalance.toLocaleString()} USDT 金库可用总额</h2>
+        <div style={{ display: "flex", alignItems: "center", gap: "12px", flexWrap: "wrap", marginTop: "8px", fontSize: "13px" }}>
+          <span style={{ color: "#b45309", background: "rgba(254, 243, 199, 0.7)", padding: "2px 8px", borderRadius: "4px", border: "1px solid #fde68a" }}>
+            新钱包 (Bybit · 11.12起): <strong>{bybitWalletBalance.toLocaleString()} USDT</strong>
+          </span>
+          <span style={{ color: "#475569", background: "rgba(241, 245, 249, 0.8)", padding: "2px 8px", borderRadius: "4px", border: "1px solid #e2e8f0" }}>
+            原金库钱包 (11.11前存量): <strong>{legacyTreasuryBalance.toLocaleString()} USDT</strong>
+          </span>
+        </div>
       </div>
       <div className="wallet-actions">
         <button onClick={() => openDetail(walletDetail())}>查看对账明细</button>
@@ -4943,8 +5013,12 @@ function ExchangeWithdrawModal({
           <button className="icon-btn" onClick={onClose}><X size={18} /></button>
         </header>
         <div className="wallet-summary">
-          <span>平台当前可用余额</span>
+          <span>平台当前可用总额</span>
           <strong>{balance.toLocaleString()}u</strong>
+        </div>
+        <div style={{ background: "rgba(245, 158, 11, 0.08)", border: "1px solid rgba(245, 158, 11, 0.25)", borderRadius: "8px", padding: "10px 14px", margin: "10px 0", fontSize: "12px", color: "#b45309" }}>
+          <div><strong>⚡ 11.12 钱包更新提示：</strong></div>
+          <div style={{ marginTop: "4px" }}>当前收款与归集钱包为 <b>新钱包 - Bybit</b>。自 11.12 起全站营收已全额进入 Bybit 钱包（结余 {bybitWalletBalance.toLocaleString()}u），原存量金库结余 {legacyTreasuryBalance.toLocaleString()}u。</div>
         </div>
         <label>
           <span>输入提取密码</span>
@@ -5238,7 +5312,11 @@ function walletDetail(): Detail {
     title: "平台金库资金推导凭证",
     kicker: "平台金库",
     fields: [
-      ["当前金库可用余额", `${platformBalance.toLocaleString()}u`],
+      ["当前金库可用总额", `${platformBalance.toLocaleString()}u`],
+      ["新钱包 - Bybit 结余 (11.12起)", `${bybitWalletBalance.toLocaleString()}u (自11.12起收入全额进入 Bybit)`],
+      ["原金库钱包存量结余 (11.11止)", `${legacyTreasuryBalance.toLocaleString()}u`],
+      ["11.12 钱包更新状态", "已更新生效 · 启用新钱包-Bybit 归集"],
+      ["分佣收益状态 (11.12起)", "暂停计提 (0u)"],
       ["7.10 初始基准", "875.00u"],
       ["7.15 当日净变动", `+${todayWalletChange.toFixed(2)}u`],
       ["7.16 提现下发", "-1,000.00u"],
@@ -5248,13 +5326,14 @@ function walletDetail(): Detail {
       ["8月提现出款", `-${augustWithdrawals}u`],
       ["9月提现出款", `-${septemberWithdrawals}u`],
       ["10月提现出款", `-${octoberWithdrawals}u`],
+      ["11月提现出款", `-${novemberWithdrawals}u`],
       ["幸运转盘收益", `+${wheelIncomeTotal}u`],
       ["Crash 游戏收益", `+${crashIncomeTotal}u`],
       ["中奖注单已兑付扣减", `-${manualSettledPayouts + octoberSettledPayoutsTotal}u`],
       ["借贷平账差额", "0.00u (已完全平账)"],
     ],
     actions: ["下载对账单", "申请提币至交易所"],
-    note: "每一笔收支变动均由链上充值、真实赛事赛程或确定性游戏收益驱动，账目借贷完全平衡。",
+    note: "11.12 日已完成出纳钱包更新，全站新增运营流水全额归集进入新钱包 Bybit；分佣收益同步暂停结算，账目借贷完全平衡。",
   };
 }
 
